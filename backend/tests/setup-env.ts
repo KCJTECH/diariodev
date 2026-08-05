@@ -10,3 +10,9 @@ if (base) {
 }
 process.env.NODE_ENV = 'test';
 process.env.LOG_LEVEL = 'fatal';
+
+// Desliga o envio de e-mail no ambiente de teste. Sem isto, o .env carregado acima
+// entrega um SMTP real aos testes, e as suítes que exercitam redefinição de senha
+// disparam mensagens de verdade para os endereços do seed, que são de pessoas reais.
+// Vazio vale como ausente na validação de ambiente, então o mailer fica desabilitado.
+process.env.SMTP_HOST = '';

@@ -880,7 +880,7 @@ class Component extends DCLogic {
     newCat: '', newP: { name: '', role: '', mail: '' },
     list: null, editing: null, draft: null, confirmDelete: null,
     groups: null, gEditing: null, gDraft: null, gConfirm: null,
-    userDraft: null, userConfirm: false,
+    userDraft: null, userConfirm: false, userResetBusy: false,
     gView: 'lista', gSort: 'az', gPage: 1,
     iView: 'lista', iSort: 'az', iPage: 1,
     pView: 'lista', pSort: 'az', pPage: 1, cPage: 1, cSort: 'az',
@@ -1286,7 +1286,27 @@ class Component extends DCLogic {
         }
       })),
       passNote: (ud.pass1 || ud.pass2) ? 'a senha será substituída ao salvar' : 'nenhuma alteração de senha pendente',
-      onResetLink: () => this.toast('Link enviado', 'Redefinição de senha enviada para ' + (ud.email || 'o e-mail cadastrado'), 'success'),
+      // Chama o backend de verdade (POST /users/:id/password-reset). O link vai por
+      // e-mail para quem está acionando, não para o colaborador: o caso de uso é ele
+      // não conseguir acessar o próprio e-mail, e aí o gestor repassa pelo canal que a
+      // equipe já usa. Antes daqui isto era um stub que só exibia sucesso.
+      onResetLink: () => {
+        if (this.state.userResetBusy) return;
+        this.setState({ userResetBusy: true });
+        D.adminResetPassword(ud.id)
+          .then((r) => {
+            this.setState({ userResetBusy: false });
+            if (r.mailSent) {
+              this.toast('Link enviado para você', 'Repasse o link para ' + ud.name + ' pelo canal combinado', 'success');
+            } else {
+              this.toast('Link gerado, e-mail não enviado', 'Fale com o TI: o envio falhou', 'error');
+            }
+          })
+          .catch((err) => {
+            this.setState({ userResetBusy: false });
+            setU({ error: (err && err.message) || 'Não foi possível gerar o link.' });
+          });
+      },
       stats: [
         { value: uStats.length, label: 'registros no total' },
         { value: uStats.filter(a => a.d < 7).length, label: 'nos últimos 7 dias' },

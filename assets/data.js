@@ -212,6 +212,19 @@
         throw new Error('Não foi possível redefinir a senha. Verifique a conexão.');
       });
     },
+    /* Gestor+ gera o link de redefinição de outro colaborador
+       (POST /users/:id/password-reset). O link vai por e-mail para quem acionou, para
+       repassar ao colaborador pelo canal que a equipe já usa. Resolve com { mailSent }. */
+    adminResetPassword: function (id) {
+      return http('POST', '/users/' + id + '/password-reset').then(function (r) {
+        return { mailSent: !!(r && r.data && r.data.mailSent) };
+      }).catch(function (err) {
+        if (err && err.status === 403) throw new Error('Seu nível de acesso não permite redefinir a senha de outro colaborador.');
+        if (err && err.status === 404) throw new Error('Colaborador não encontrado.');
+        if (err && err.status === 429) throw new Error('Muitas tentativas. Aguarde um instante.');
+        throw new Error('Não foi possível gerar o link. Verifique a conexão.');
+      });
+    },
     /* Indicadores da tela de login. Sem sessão não há dados da equipe: devolve zeros
        (a lista de colaboradores não é exposta antes de autenticar). */
     loginStats: function () {
