@@ -210,7 +210,12 @@ export async function requestPasswordReset(
   });
 
   void sending.then((mailSent) => {
-    if (mailSent) return;
+    if (mailSent) {
+      // Registrar o sucesso é o que permite distinguir "enviado" de "não existe
+      // conta para esse e-mail", que sem isso ficam os dois sem rastro no log.
+      logger.info({ userId: user.id }, 'e-mail de redefinição de senha enviado');
+      return;
+    }
     // Sem SMTP configurado (ou falha no envio) o pedido fica registrado, mas o
     // usuário não recebe nada. Precisa aparecer no log para o TI agir.
     logger.warn({ userId: user.id }, 'reset de senha solicitado, mas o e-mail não foi enviado');

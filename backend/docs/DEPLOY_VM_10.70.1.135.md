@@ -47,19 +47,24 @@ tail -f /home/kcj/diariodev/logs/worker.log
 # estado dos processos
 pgrep -af 'dist/src/(server|workers)'
 
-# reiniciar manualmente (em shell interativo NO servidor)
-cd /home/kcj/diariodev/backend
-pkill -f 'dist/src/server.js'; pkill -f 'dist/src/workers/index.js'
-setsid nohup node dist/src/server.js        > ../logs/api.log    2>&1 < /dev/null &
-setsid nohup node dist/src/workers/index.js > ../logs/worker.log 2>&1 < /dev/null &
+# reiniciar (sempre por este caminho, inclusive por ssh)
+bash /home/kcj/diariodev/restart.sh
 ```
 
-Atenção ao reiniciar por `ssh usuario@host '...'` em vez de shell interativo: o padrão
-do `pkill -f` também casa com a linha de comando do próprio script remoto, que contém
-esse texto. O `pkill` mata a própria sessão SSH antes de subir os processos, e a
-aplicação fica fora do ar. Isso já aconteceu em 2026-08-05. Por SSH, mate por PID
-(`pgrep -f 'dist/src/server.js'` primeiro, depois `kill <pid>`) ou use colchete no
-padrão (`pkill -f 'dist/src/[s]erver.js'`), que não casa consigo mesmo.
+O `restart.sh` está versionado na raiz do projeto. Ele encerra API e worker, sobe um de
+cada, espera o `/health/ready` responder e informa quantos processos ficaram de pé.
+Retorna 1 e mostra o fim do log se a API não subir.
+
+Não reinicie por comando inline via `ssh usuario@host '... pkill ...'`. O `pkill -f`
+casa contra a linha de comando completa dos processos, e o comando inline contém o
+próprio padrão na sua argv: o `pkill` mata a sessão SSH antes de subir os processos e a
+aplicação fica fora do ar. Isso aconteceu duas vezes em 2026-08-05, na segunda vez
+inclusive com colchete no padrão (`'dist/src/[s]erver.js'`), que não protege, porque a
+linha de subida traz o caminho sem colchete e casa igual. Em script isso não acontece,
+porque a argv do shell é só `bash restart.sh`.
+
+Para conferir processos sem correr esse risco, use o colchete apenas na consulta:
+`pgrep -af 'dist/src/serve[r].js'`.
 
 ## Pendente: iniciar automaticamente no boot (exige root)
 Os arquivos de serviço já estão no servidor em /home/kcj/. Instale como root:
