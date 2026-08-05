@@ -9,22 +9,26 @@ async function waitDV(page: Page): Promise<void> {
 }
 
 // Login pelo atalho "entrar como" (dev). Navega para o dashboard e espera o DV.
-async function loginAs(page: Page, fullName: string): Promise<void> {
+// Login real por e-mail e senha (a tela não expõe mais a lista de colaboradores).
+async function loginAs(page: Page, email: string): Promise<void> {
   await page.goto('/login.dc.html');
-  await page.getByText(fullName, { exact: true }).first().click();
+  await waitDV(page);
+  await page.getByPlaceholder('seu@itscs.com.br').fill(email);
+  await page.getByPlaceholder('••••••••').fill('DiarioDev@2026');
+  await page.getByText('Entrar', { exact: true }).click();
   await page.waitForURL('**/dashboard.dc.html', { timeout: 15_000 });
   await waitDV(page);
 }
 
 test('login (ceo) abre o dashboard com os dados reais', async ({ page }) => {
-  await loginAs(page, 'Marcelo Andrade');
+  await loginAs(page, 'marcelo@itscs.com.br');
   await expect(page).toHaveURL(/dashboard\.dc\.html/);
   // nome do usuário na sidebar
   await expect(page.getByText('Marcelo Andrade')).toBeVisible();
 });
 
 test('sessão persiste ao recarregar (cookie httpOnly, fonte backend)', async ({ page }) => {
-  await loginAs(page, 'Elaine Ribeiro');
+  await loginAs(page, 'elaine@itscs.com.br');
   await page.reload();
   await waitDV(page);
   const name = await page.evaluate(() => (window as unknown as { DV: { user(): { name: string } } }).DV.user().name);
@@ -37,11 +41,11 @@ test('realtime: atividade criada em um navegador aparece no outro', async ({ bro
   const a = await ctxA.newPage();
   const b = await ctxB.newPage();
 
-  await loginAs(a, 'Marcelo Andrade'); // ceo: recebe eventos da equipe
+  await loginAs(a, 'marcelo@itscs.com.br'); // ceo: recebe eventos da equipe
   await a.goto('/atividades.dc.html');
   await waitDV(a);
 
-  await loginAs(b, 'Elaine Ribeiro'); // dev
+  await loginAs(b, 'elaine@itscs.com.br'); // dev
   await b.goto('/atividades.dc.html');
   await waitDV(b);
 
@@ -65,7 +69,7 @@ test('realtime: atividade criada em um navegador aparece no outro', async ({ bro
 });
 
 test('logout encerra a sessão e protege rotas autenticadas', async ({ page }) => {
-  await loginAs(page, 'Marcelo Andrade');
+  await loginAs(page, 'marcelo@itscs.com.br');
   await page.evaluate(() => (window as unknown as { DV: { logout(): void } }).DV.logout());
   await page.waitForURL('**/login.dc.html', { timeout: 10_000 });
 

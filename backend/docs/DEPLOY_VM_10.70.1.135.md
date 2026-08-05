@@ -85,6 +85,23 @@ src/modules/auth/auth.cookies.ts). Antes, com NODE_ENV=production, o cookie saí
 sempre `Secure` e o login não persistia em acesso HTTP. Agora o comportamento é
 configurável, mantendo Secure por padrão em produção.
 
+## Senhas de usuário (importante)
+A tela de administração NÃO tem campo de senha. Por isso o backend define a senha
+inicial de novos usuários assim:
+- Se `INITIAL_USER_PASSWORD` estiver no .env, é essa a senha inicial (na VM está
+  definida). O admin cria o colaborador pela tela e informa essa senha a ele.
+- Se estiver vazia, o sistema gera uma senha aleatória, devolvida apenas na resposta
+  da API (e nem isso em produção) — na prática a conta ficaria inacessível pela tela.
+
+Orientação: o usuário deve trocar a senha no primeiro acesso (Minha conta). Não existe
+troca obrigatória automática.
+
+Para definir a senha de alguém manualmente (uso administrativo, no servidor):
+```bash
+bash /home/kcj/set-pass.sh usuario@itscs.com.br 'NovaSenha@123'
+```
+Isso também revoga as sessões ativas daquele usuário.
+
 ## Limitações e próximos passos
 - Sem HTTPS: para produção real, colocar atrás de proxy com TLS e voltar
   `COOKIE_SECURE=true`.

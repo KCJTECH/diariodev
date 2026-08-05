@@ -33,7 +33,24 @@ Abrir: http://localhost:3333/login.dc.html
 Login de dev: qualquer colaborador pela lista "entrar como". Senha do seed em `prisma/seed.ts`
 (todos os usuários; trocar fora do local). Perfis: marcelo=ceo, laerty=gestor, demais=dev.
 
-## Infra
+## Deploy em VM (2026-08-04) — NO AR
+Sistema implantado e validado em http://10.70.1.135:3333/login.dc.html (Debian 13, host kcjlab17, user kcj).
+Sem Docker: o servidor já tinha Node 24 e PostgreSQL 17 (porta **5433**); Redis 8 foi instalado no deploy.
+Banco `diariodev` / schema `diariodev` / user `diariodev_app`; migrations + seed aplicados; conta alvaro (CEO).
+Projeto em /home/kcj/diariodev, logs em /home/kcj/diariodev/logs. Detalhes e comandos: backend/docs/DEPLOY_VM_10.70.1.135.md.
+Acesso por chave SSH configurado (o agente conecta sem senha; root/sudo continua sendo o Julio).
+Correção nascida do deploy: `COOKIE_SECURE` (env + auth.cookies.ts) — com NODE_ENV=production o cookie saía sempre
+Secure e o login não persistia em HTTP; na VM está COOKIE_SECURE=false. Com HTTPS, voltar para true.
+Login na tela passou a ser REAL por e-mail e senha (2026-08-04): removida a lista "ou entre como" do
+login.dc.html (expunha nome/cargo/nível de todos sem autenticar), adicionado `DV.login()` no data.js e
+ALLOW_DEV_LOGIN=false na VM (fecha /auth/dev-login e /auth/dev-accounts). E2E atualizados: 10 verdes.
+Senha de novos usuários: a tela de admin NÃO tem campo de senha, então o backend usa
+`INITIAL_USER_PASSWORD` (definida na VM) como senha inicial; sem ela, gera aleatória e a conta fica
+inacessível pela tela. Script administrativo na VM: `bash /home/kcj/set-pass.sh email 'senha'`.
+PENDENTE no servidor (exige root): instalar os units systemd já enviados (/home/kcj/diariodev-api.service e
+diariodev-worker.service) para subir no boot; hoje os processos rodam via setsid/nohup.
+
+## Infra local (desenvolvimento)
 - PostgreSQL local: banco `diarioDev` (D maiúsculo, case-sensitive na URL), schema `diariodev`,
   usuário app `diariodev_app` (não superusuário; tem CREATEDB p/ shadow db do migrate dev).
 - Redis: Memurai (serviço Windows, `localhost:6379`).

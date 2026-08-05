@@ -60,6 +60,12 @@ npm run start:worker   # worker
 ```
 Abra `http://localhost:3333/login.dc.html`.
 
+## Senha de novos usuários
+A tela de administração não tem campo de senha. Configure `INITIAL_USER_PASSWORD` no
+.env para que usuários criados pela tela nasçam com uma senha inicial conhecida (o
+admin repassa e orienta a troca em Minha conta). Sem essa variável, o sistema gera uma
+senha aleatória, devolvida somente na resposta da API fora de produção.
+
 ## Acesso inicial
 O seed cria usuários de desenvolvimento com a senha definida em `prisma/seed.ts`
 (troque fora do ambiente local). Perfis: `marcelo` (ceo), `laerty` (gestor), demais
