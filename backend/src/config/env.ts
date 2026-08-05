@@ -84,7 +84,14 @@ const schema = z.object({
     .transform((s) => new Set(s.split(',').map((h) => h.trim()).filter(Boolean))),
 });
 
-const parsed = schema.safeParse(process.env);
+// Variável presente mas vazia (`CHAVE=` no .env) vale como ausente. Sem isso o
+// `.default()` e o `.optional()` não se aplicam, a string vazia chega à validação
+// e o boot falha, ou passa adiante como '' e quebra o fallback de quem a lê.
+const provided = Object.fromEntries(
+  Object.entries(process.env).filter(([, v]) => v !== undefined && v !== ''),
+);
+
+const parsed = schema.safeParse(provided);
 
 if (!parsed.success) {
   const issues = parsed.error.issues
