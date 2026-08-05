@@ -76,12 +76,23 @@ O que a VM tem a mais: ajustes de layout do cabeçalho e da área de conteúdo.
 Efeito prático: na VM o conteúdo fica centralizado e limitado a 1600px em telas largas,
 e a barra de ações não quebra em duas linhas. No local o comportamento é o antigo.
 
-## Próximo passo sugerido
+## Situação depois da comparação
 
-Trazer os dois arquivos da VM para a pasta local e commitar, para que a alteração entre
-no repositório. Isso sobrescreve a versão local desses dois arquivos, então precisa de
-confirmação antes de executar.
+A divergência de arquivo foi resolvida por fora desta comparação, ainda em 2026-08-05.
+O repositório recebeu os dois commits com exatamente essas alterações:
 
-Antes de considerar a tela de recuperação de senha concluída, ainda falta o endpoint de
-solicitação de reset no backend e o SMTP configurado. Enquanto isso não existir, a tela
-informa ao usuário um envio que não acontece.
+| Commit | Conteúdo |
+| --- | --- |
+| `332605d` | feat: adiciona recuperação de senha por modal no login |
+| `3d52fb9` | fix: corrige header em duas linhas e conteúdo desalinhado |
+
+Depois de integrar esses commits, `login.dc.html` e `assets/app-shell.js` na pasta local
+ficaram idênticos aos da VM (verificado por comparação de conteúdo, ignorando fim de
+linha). As duas pastas estão alinhadas nos 178 arquivos comparados, e o código que só
+existia no servidor passou a estar versionado.
+
+## Pendência que continua aberta
+
+A tela de recuperação de senha é apenas de interface. Falta o endpoint de solicitação de
+reset no backend e o SMTP configurado. Enquanto isso não existir, a tela informa ao
+usuário um envio de link que não acontece.
