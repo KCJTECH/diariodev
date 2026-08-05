@@ -346,12 +346,14 @@
 
           <div>
             <div style="font-size:.77rem;font-weight:700;margin-bottom:7px">Projeto</div>
-            <input value="{{ form.project }}" onChange="{{ onFormProject }}" placeholder="Digite para buscar ou criar…" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:6px;font-size:.88rem;outline:none" style-focus="border-color:var(--brand-text)" />
-            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">
-              <sc-for list="{{ form.projectSug }}" as="s" hint-placeholder-count="4">
-                <div onClick="{{ s.onClick }}" style="{{ s.style }}" style-hover="border-color:var(--brand-text)">{{ s.name }}</div>
-              </sc-for>
-            </div>
+            <input value="{{ form.project }}" onChange="{{ onFormProject }}" placeholder="Digite o nome ou escolha abaixo" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:6px;font-size:.88rem;outline:none" style-focus="border-color:var(--brand-text)" />
+            <sc-if value="{{ form.showProjectSug }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">
+                <sc-for list="{{ form.projectSug }}" as="s" hint-placeholder-count="4">
+                  <div onClick="{{ s.onClick }}" style="{{ s.style }}" style-hover="border-color:var(--brand-text)">{{ s.name }}</div>
+                </sc-for>
+              </div>
+            </sc-if>
           </div>
 
           <div>
@@ -497,6 +499,7 @@ class Component extends DCLogic {
   componentWillUnmount() { clearInterval(this.t); window.removeEventListener('keydown', this.onKey); }
 
   openNew(preProject) {
+    this._focused = false;
     const u = DV.user();
     this.setState({
       detail: null,
@@ -504,6 +507,7 @@ class Component extends DCLogic {
     });
   }
   openEdit(a) {
+    this._focused = false;
     this.setState({
       detail: null,
       form: { mode: 'edit', id: a.id, project: a.proj, cat: a.cat, title: a.title, desc: a.desc, date: DV.iso(a.d), dur: a.dur === '—' ? '' : a.dur, pri: a.pri, error: '', who: a.who, files: (a.files || []).slice() }
@@ -664,9 +668,10 @@ class Component extends DCLogic {
       hasError: !!f.error, error: f.error,
       project: f.project, title: f.title, desc: f.desc, date: f.date, dur: f.dur,
       userName: (D.person(f.who) || u).name, userIni: (D.person(f.who) || u).ini, userAvatar: D.avatar(D.person(f.who) || u, 34),
-      projectSug: projects.filter(p => !f.project.trim() || p.toLowerCase().indexOf(f.project.trim().toLowerCase()) > -1).slice(0, 5).map(p => ({
+      projectSug: projects.slice(0, 8).map(p => ({
         name: p, style: D.chip(f.project === p) + 'font-size:.76rem;padding:4px 10px;', onClick: () => this.setF('project', p)
       })),
+      showProjectSug: projects.length > 0,
       cats: catList.map((cn, i) => ({
         name: cn, kbd: String(i + 1),
         style: D.catStyle(cn) + ';padding:6px 12px;font-size:.79rem;cursor:pointer' + (f.cat === cn ? ';box-shadow:0 0 0 2px var(--brand)' : ''),
@@ -757,7 +762,7 @@ class Component extends DCLogic {
       drawerOpen: !!f, form: form,
       openNew: () => this.openNew(),
       closeDrawer: () => this.setState({ form: null }),
-      titleRef: (el) => { if (el && !this._focused) { this._focused = true; setTimeout(() => { el.focus(); this._focused = false; }, 40); } },
+      titleRef: (el) => { if (el && !this._focused) { this._focused = true; setTimeout(() => { el && el.focus(); }, 40); } },
       save: () => this.commit(false),
       saveAndNext: () => this.commit(true),
       remove: () => {
