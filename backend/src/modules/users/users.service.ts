@@ -2,10 +2,11 @@
 // Salvaguardas: ninguém se desativa/exclui na mesma operação; o último CEO
 // ativo não pode ser removido nem rebaixado.
 import { randomBytes } from 'node:crypto';
+import type { AccessLevel } from '@prisma/client';
 import type { Db } from '../../common/database/prisma.js';
 import { Errors } from '../../common/errors/app-error.js';
-import { API_TO_LEVEL, type ApiLevel, type AuthUser } from '../../common/auth/types.js';
-import { hashPassword } from '../../common/auth/password.js';
+import { API_TO_LEVEL, LEVEL_TO_API, rankOf, type ApiLevel, type AuthUser } from '../../common/auth/types.js';
+import { hashPassword, isTrivialPassword } from '../../common/auth/password.js';
 import { sha256 } from '../../common/auth/tokens.js';
 import { slugify } from '../../common/utils/format.js';
 import { sendMail } from '../../common/mail/mailer.js';
@@ -157,6 +158,58 @@ export async function deactivateUser(db: Db, actor: AuthUser, targetPublicKey: s
   });
 }
 
+// Quem pode mexer na senha de quem. Duas regras, e as duas existem para evitar
+// tomada de conta, não por formalidade:
+//   1. Ninguém age sobre a própria conta por aqui. Trocar a própria senha é
+//      /auth/password, que exige a senha atual. Sem isso, uma sessão sequestrada
+//      trocaria a senha sem conhecer a antiga e trancaria o dono do lado de fora.
+//   2. Só é possível agir sobre nível estritamente menor. Sem isso um gestor
+//      redefine a senha do CEO e assume o acesso dele, e dois gestores se
+//      personificam entre si.
+function assertCanActOnPassword(actor: AuthUser, target: { id: string; effectiveLevel: AccessLevel; name: string }): void {
+  if (target.id === actor.id) {
+    throw Errors.forbidden('Para trocar a própria senha use a opção da sua conta, que pede a senha atual.');
+  }
+  if (rankOf(actor.level) <= rankOf(LEVEL_TO_API[target.effectiveLevel])) {
+    throw Errors.forbidden('Seu nível de acesso não permite mexer na senha desse colaborador.');
+  }
+}
+
+// Definição direta da senha por gestor+, usada pelos campos de senha da tela de
+// administração. Revoga as sessões do colaborador e invalida links de redefinição
+// em aberto, senão um link antigo continuaria valendo depois da troca.
+export async function setUserPassword(
+  db: Db,
+  actor: AuthUser,
+  targetPublicKey: string,
+  newPassword: string,
+  meta: Meta,
+): Promise<void> {
+  const user = await db.user.findFirst({ where: { publicKey: targetPublicKey, deletedAt: null } });
+  if (!user) throw Errors.notFound('USER_NOT_FOUND', 'Usuário não encontrado.');
+  assertCanActOnPassword(actor, user);
+
+  if (newPassword.length < 8) throw Errors.validation([{ field: 'newPassword', message: 'Mínimo de 8 caracteres.' }]);
+  if (isTrivialPassword(newPassword)) {
+    throw Errors.validation([{ field: 'newPassword', message: 'Senha muito comum.' }]);
+  }
+
+  const passwordHash = await hashPassword(newPassword);
+  await db.$transaction([
+    db.user.update({ where: { id: user.id }, data: { passwordHash, passwordChangedAt: new Date() } }),
+    db.passwordResetToken.updateMany({
+      where: { userId: user.id, usedAt: null, expiresAt: { gt: new Date() } },
+      data: { usedAt: new Date() },
+    }),
+    db.session.updateMany({ where: { userId: user.id, revokedAt: null }, data: { revokedAt: new Date() } }),
+  ]);
+  await writeAudit(db, {
+    actorUserId: actor.id, action: 'user.password_set', entityType: 'user', entityId: user.id,
+    requestId: meta.requestId, ipHash: meta.ipHash, userAgent: meta.userAgent,
+  });
+  logger.info({ actorUserId: actor.id, targetUserId: user.id }, 'senha definida pelo administrador');
+}
+
 // Reset acionado por gestor+ para outro colaborador. O link vai por e-mail para
 // quem acionou, não para o titular da conta: o caso de uso é justamente o
 // colaborador que não consegue acessar o próprio e-mail, e aí o gestor repassa o
@@ -169,6 +222,7 @@ export async function adminResetPassword(
 ): Promise<{ resetToken?: string; mailSent: boolean }> {
   const user = await db.user.findFirst({ where: { publicKey: targetPublicKey, deletedAt: null } });
   if (!user) throw Errors.notFound('USER_NOT_FOUND', 'Usuário não encontrado.');
+  assertCanActOnPassword(actor, user);
 
   // Um pedido novo invalida os anteriores ainda abertos, para não deixar vários
   // links válidos circulando para a mesma conta.

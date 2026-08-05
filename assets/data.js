@@ -225,6 +225,20 @@
         throw new Error('Não foi possível gerar o link. Verifique a conexão.');
       });
     },
+    /* Gestor+ define a senha de outro colaborador (POST /users/:id/password).
+       O servidor só permite sobre nível estritamente menor e nunca sobre a própria
+       conta; encerra as sessões do colaborador e invalida links de redefinição abertos. */
+    setUserPassword: function (id, newPassword) {
+      return http('POST', '/users/' + id + '/password', { newPassword: newPassword }).then(function () {
+        return true;
+      }).catch(function (err) {
+        if (err && err.status === 403) throw new Error((err.message) || 'Seu nível de acesso não permite definir a senha desse colaborador.');
+        if (err && err.status === 404) throw new Error('Colaborador não encontrado.');
+        if (err && err.status === 422) throw new Error((err.message) || 'Senha não aceita. Use ao menos 8 caracteres e evite senhas comuns.');
+        if (err && err.status === 429) throw new Error('Muitas tentativas. Aguarde um instante.');
+        throw new Error('Não foi possível definir a senha. Verifique a conexão.');
+      });
+    },
     /* Indicadores da tela de login. Sem sessão não há dados da equipe: devolve zeros
        (a lista de colaboradores não é exposta antes de autenticar). */
     loginStats: function () {

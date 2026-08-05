@@ -21,6 +21,11 @@ const createBody = z.object({
 });
 const updateBody = createBody.partial();
 const keyParam = z.object({ id: z.string().min(1).max(60) });
+const setPasswordBody = z.object({ newPassword: z.string().min(8).max(200) });
+
+// As duas rotas que mexem em senha de outro colaborador têm limite próprio: são
+// alvo óbvio para tentativa de tomada de conta a partir de uma sessão obtida.
+const tight = { rateLimit: { max: 10, timeWindow: '1 minute' } };
 
 export function registerUserRoutes(app: FastifyInstance, db: Db): void {
   app.addHook('preHandler', app.authenticate);
@@ -53,8 +58,18 @@ export function registerUserRoutes(app: FastifyInstance, db: Db): void {
     return ok({ ok: true }, req.id);
   });
 
-  app.post('/:id/password-reset', { preHandler: app.requireLevel('gestor') }, async (req) => {
+  app.post('/:id/password-reset', { preHandler: app.requireLevel('gestor'), config: tight }, async (req) => {
     const { id } = keyParam.parse(req.params);
     return ok(await svc.adminResetPassword(db, req.authUser!, id, requestMeta(req)), req.id);
+  });
+
+  // Define a senha do colaborador direto, para os campos de senha da tela de
+  // administração. Só age sobre nível estritamente menor e nunca sobre a própria
+  // conta; as duas regras estão em users.service (assertCanActOnPassword).
+  app.post('/:id/password', { preHandler: app.requireLevel('gestor'), config: tight }, async (req) => {
+    const { id } = keyParam.parse(req.params);
+    const { newPassword } = setPasswordBody.parse(req.body);
+    await svc.setUserPassword(db, req.authUser!, id, newPassword, requestMeta(req));
+    return ok({ ok: true }, req.id);
   });
 }

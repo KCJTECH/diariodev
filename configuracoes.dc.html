@@ -1329,13 +1329,28 @@ class Component extends DCLogic {
         if (parts.length < 2) { setU({ error: 'Informe nome e sobrenome.' }); return; }
         if (!(ud.email || '').trim() || (ud.email || '').indexOf('@') < 0) { setU({ error: 'Informe um e-mail válido de acesso.' }); return; }
         if ((ud.pass1 || ud.pass2) && ud.pass1 !== ud.pass2) { setU({ error: 'As senhas não coincidem.' }); return; }
-        if (ud.pass1 && ud.pass1.length < 6) { setU({ error: 'A senha precisa de ao menos 6 caracteres.' }); return; }
+        // 8 caracteres é o mínimo que o servidor aceita; validar com 6 aqui só
+        // produziria um erro vindo do backend depois de o usuário achar que salvou.
+        if (ud.pass1 && ud.pass1.length < 8) { setU({ error: 'A senha precisa de ao menos 8 caracteres.' }); return; }
         D.setPeople(D.people().map(p => p.id === ud.id ? Object.assign({}, p, {
           name: ud.name.trim(), role: (ud.role || '').trim() || p.role, email: ud.email.trim(),
           ini: (parts[0][0] + parts[parts.length - 1][0]).toUpperCase(), active: ud.active, level: ud.level
         }) : p));
-        this.setState({ userDraft: null, userConfirm: false });
-        this.toast('Usuário salvo', ud.name + (ud.pass1 ? ' · senha atualizada' : ''), 'success');
+        // A senha vai em chamada própria (POST /users/:id/password): o diff de setPeople
+        // nunca enviou senha, e era daí que vinha o falso "senha atualizada".
+        if (!ud.pass1) {
+          this.setState({ userDraft: null, userConfirm: false });
+          this.toast('Usuário salvo', ud.name, 'success');
+          return;
+        }
+        D.setUserPassword(ud.id, ud.pass1)
+          .then(() => {
+            this.setState({ userDraft: null, userConfirm: false });
+            this.toast('Usuário salvo', ud.name + ' · senha redefinida, sessões encerradas', 'success');
+          })
+          .catch((err) => {
+            setU({ error: 'Dados salvos, mas a senha não foi alterada: ' + ((err && err.message) || 'falha na operação.') });
+          });
       }
     } : { levelChips: [], groupChips: [], stats: [] };
 

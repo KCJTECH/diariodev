@@ -34,6 +34,23 @@ GET /activities para um dev retorna só as próprias. GET /activities?project=<q
 participa> retorna a timeline completa daquele projeto. A regra é aplicada no
 servidor (participatesInProject).
 
+## Senha definida pelo administrador
+POST /users/:publicKey/password (gestor+) define a senha do colaborador direto, e é o
+que sustenta os campos Nova senha e Confirmar senha da tela de administração. Encerra as
+sessões do colaborador e invalida links de redefinição em aberto, senão um link antigo
+continuaria válido depois da troca.
+
+Duas regras de autorização, ambas em `assertCanActOnPassword` e válidas também para o
+reset por link abaixo:
+
+Ninguém age sobre a própria conta por essas rotas. Trocar a própria senha é
+POST /auth/password, que exige a senha atual. Sem isso, uma sessão sequestrada trocaria a
+senha sem conhecer a antiga e trancaria o dono do lado de fora.
+
+Só é possível agir sobre nível estritamente menor. Sem isso um gestor redefine a senha do
+CEO e assume o acesso dele, e dois gestores se personificam entre si. Vale para as duas
+rotas: definir senha e gerar link.
+
 ## Reset de senha
 Dois caminhos geram o token, e os dois terminam no mesmo confirm.
 

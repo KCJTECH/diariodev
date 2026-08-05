@@ -114,6 +114,111 @@ describe('usuários: reset de senha acionado pelo gestor', () => {
     });
     expect(res.statusCode).toBe(404);
   });
+
+  it('gestor não gera link de redefinição do CEO (bloqueia tomada de conta)', async () => {
+    const gestor = await login('laerty@itscs.com.br');
+    const res = await app.inject({
+      method: 'POST', url: '/api/v1/users/marcelo/password-reset', headers: { cookie: gestor },
+    });
+    expect(res.statusCode).toBe(403);
+  });
+});
+
+// Campos "Nova senha"/"Confirmar senha" da tela de administração.
+describe('usuários: gestor define a senha do colaborador', () => {
+  async function criarAlvo(): Promise<{ publicKey: string; email: string }> {
+    const email = `senha${Date.now()}@itscs.com.br`;
+    const res = await app.inject({
+      method: 'POST', url: '/api/v1/users', headers: { cookie: ceo },
+      payload: { name: 'Alvo Senha', role: 'Analista', email, level: 'dev' },
+    });
+    expect(res.statusCode).toBe(201);
+    return { publicKey: body(res).data.user.id, email };
+  }
+
+  it('define a senha, encerra as sessões e invalida link em aberto', async () => {
+    const alvo = await criarAlvo();
+
+    // link de redefinição em aberto antes da troca direta
+    const link = await app.inject({
+      method: 'POST', url: `/api/v1/users/${alvo.publicKey}/password-reset`, headers: { cookie: ceo },
+    });
+    const tokenAntigo = body(link).data.resetToken;
+
+    const nova = 'DefinidaPeloGestor@2026';
+    const res = await app.inject({
+      method: 'POST', url: `/api/v1/users/${alvo.publicKey}/password`, headers: { cookie: ceo },
+      payload: { newPassword: nova },
+    });
+    expect(res.statusCode).toBe(200);
+
+    const entra = await app.inject({
+      method: 'POST', url: '/api/v1/auth/login', payload: { email: alvo.email, password: nova },
+    });
+    expect(entra.statusCode).toBe(200);
+
+    // o link que estava em aberto não vale mais
+    const reusa = await app.inject({
+      method: 'POST', url: '/api/v1/auth/password-reset/confirm',
+      payload: { token: tokenAntigo, newPassword: 'AindaOutra@2026' },
+    });
+    expect(reusa.statusCode).toBe(401);
+  });
+
+  it('não define a senha da própria conta por esta rota', async () => {
+    const res = await app.inject({
+      method: 'POST', url: '/api/v1/users/marcelo/password', headers: { cookie: ceo },
+      payload: { newPassword: 'TentandoEmMim@2026' },
+    });
+    expect(res.statusCode).toBe(403);
+  });
+
+  it('gestor não define a senha do CEO', async () => {
+    const gestor = await login('laerty@itscs.com.br');
+    const res = await app.inject({
+      method: 'POST', url: '/api/v1/users/marcelo/password', headers: { cookie: gestor },
+      payload: { newPassword: 'EscalandoPrivilegio@2026' },
+    });
+    expect(res.statusCode).toBe(403);
+  });
+
+  it('gestor não define a senha de outro gestor', async () => {
+    const gestor = await login('laerty@itscs.com.br');
+    const outro = await app.inject({
+      method: 'POST', url: '/api/v1/users', headers: { cookie: ceo },
+      payload: { name: 'Outro Gestor', role: 'Coordenador', email: `og${Date.now()}@itscs.com.br`, level: 'gestor' },
+    });
+    expect(outro.statusCode).toBe(201);
+    const res = await app.inject({
+      method: 'POST', url: `/api/v1/users/${body(outro).data.user.id}/password`, headers: { cookie: gestor },
+      payload: { newPassword: 'EntreIguais@2026' },
+    });
+    expect(res.statusCode).toBe(403);
+  });
+
+  it('dev não define senha de ninguém', async () => {
+    const alvo = await criarAlvo();
+    const dev = await login('elaine@itscs.com.br');
+    const res = await app.inject({
+      method: 'POST', url: `/api/v1/users/${alvo.publicKey}/password`, headers: { cookie: dev },
+      payload: { newPassword: 'NaoDeveria@2026' },
+    });
+    expect(res.statusCode).toBe(403);
+  });
+
+  it('senha curta → 422 e senha trivial → 422', async () => {
+    const alvo = await criarAlvo();
+    const curta = await app.inject({
+      method: 'POST', url: `/api/v1/users/${alvo.publicKey}/password`, headers: { cookie: ceo },
+      payload: { newPassword: 'abc' },
+    });
+    expect(curta.statusCode).toBe(422);
+    const trivial = await app.inject({
+      method: 'POST', url: `/api/v1/users/${alvo.publicKey}/password`, headers: { cookie: ceo },
+      payload: { newPassword: '12345678' },
+    });
+    expect(trivial.statusCode).toBe(422);
+  });
 });
 
 describe('categorias: arquivar preserva histórico', () => {

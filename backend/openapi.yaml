@@ -164,6 +164,35 @@ paths:
                 newPassword: { type: string, minLength: 8 }
       responses:
         "200": { description: senha alterada; revoga outras sessões }
+  /users/{id}/password:
+    post:
+      tags: [users]
+      summary: gestor+ define a senha de outro colaborador
+      description: >-
+        Atende os campos de senha da tela de administração. Só age sobre nível
+        estritamente menor e nunca sobre a própria conta (trocar a própria senha é
+        /auth/password, que exige a senha atual). Encerra as sessões do colaborador e
+        invalida links de redefinição em aberto.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+          description: publicKey do colaborador
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [newPassword]
+              properties:
+                newPassword: { type: string, minLength: 8, maxLength: 200 }
+      responses:
+        "200": { description: senha definida; sessões revogadas }
+        "403": { description: própria conta, ou nível igual ou superior ao do solicitante }
+        "404": { description: colaborador não encontrado }
+        "422": { description: senha curta ou muito comum }
   /users/{id}/password-reset:
     post:
       tags: [users]
