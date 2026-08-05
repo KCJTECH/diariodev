@@ -17,6 +17,7 @@
   a:hover{color:var(--brand-text)}
   input,button{font-family:inherit;font-size:inherit;color:inherit}
   @keyframes dvUp{from{transform:translateY(10px);opacity:0}to{transform:translateY(0);opacity:1}}
+  @keyframes dvFade{from{opacity:0}to{opacity:1}}
 </style>
 </helmet>
 
@@ -69,7 +70,7 @@
       <div style="margin-bottom:18px">
         <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px">
           <span style="font-size:.78rem;font-weight:700">Senha</span>
-          <span style="font-size:.74rem;color:var(--text-faint)">Esqueci minha senha</span>
+          <span onClick="{{ openRecover }}" style="font-size:.74rem;color:var(--text-faint);cursor:pointer" style-hover="color:var(--brand-text)">Esqueci minha senha</span>
         </div>
         <input type="password" value="{{ pass }}" onChange="{{ onPass }}" placeholder="••••••••" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:6px;font-size:.9rem;outline:none;background:var(--surface)" style-focus="border-color:var(--brand-text)" />
       </div>
@@ -77,20 +78,68 @@
       <div onClick="{{ submit }}" style="width:100%;padding:12px;background:var(--accent);color:#fff;border-radius:6px;font-size:.92rem;font-weight:700;text-align:center;cursor:pointer" style-hover="filter:brightness(1.08)" style-active="transform:scale(.99)">Entrar</div>
 
       <div style="font-size:.72rem;color:var(--text-faint);margin-top:18px;text-align:center;text-wrap:pretty">Use seu e-mail corporativo e sua senha de acesso.</div>
+      <div style="font-size:.72rem;color:var(--text-faint);margin-top:10px;text-align:center">esqueceu sua senha? <span onClick="{{ openRecover }}" style="color:var(--accent);font-weight:600;cursor:pointer" style-hover="filter:brightness(1.08)">Renove aqui</span></div>
     </div>
   </div>
 </div>
 
+<sc-if value="{{ recoverOpen }}" hint-placeholder-val="{{ false }}">
+  <div style="position:fixed;inset:0;z-index:70;display:flex;align-items:center;justify-content:center;padding:4vh 20px">
+    <div onClick="{{ closeRecover }}" style="position:absolute;inset:0;background:var(--overlay);animation:dvFade .16s ease both"></div>
+    <div style="position:relative;width:420px;max-width:96vw;background:var(--surface);border-radius:calc(var(--radius) + 2px);box-shadow:0 8px 32px rgba(0,0,0,.24);display:flex;flex-direction:column;overflow:hidden;animation:dvUp .18s cubic-bezier(.2,.8,.2,1) both">
+      <div style="padding:18px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px">
+        <div style="flex:1">
+          <div style="font-size:.96rem;font-weight:700">Recuperar senha</div>
+          <div style="font-size:.74rem;color:var(--text-muted);margin-top:2px">Enviaremos as instruções para o seu e-mail</div>
+        </div>
+        <div onClick="{{ closeRecover }}" style="width:30px;height:30px;border-radius:6px;display:flex;align-items:center;justify-content:center;color:var(--text-muted);cursor:pointer;font-size:1rem" style-hover="background:var(--bg)">✕</div>
+      </div>
+
+      <sc-if value="{{ recoverForm }}" hint-placeholder-val="{{ true }}">
+        <div style="padding:20px 22px;display:flex;flex-direction:column;gap:14px">
+          <sc-if value="{{ recoverHasError }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;gap:10px;padding:11px 13px;border-radius:6px;font-size:.82rem;background:var(--tint-red);border:1px solid var(--tint-red-bd);color:var(--danger-text)">✕ {{ recoverError }}</div>
+          </sc-if>
+          <div>
+            <div style="font-size:.77rem;font-weight:700;margin-bottom:6px">E-mail corporativo</div>
+            <input value="{{ recoverEmail }}" onChange="{{ onRecoverEmail }}" placeholder="seu@itscs.com.br" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:6px;font-size:.9rem;outline:none;background:var(--surface)" style-focus="border-color:var(--brand-text)" />
+          </div>
+        </div>
+        <div style="padding:16px 22px;border-top:1px solid var(--border);background:var(--surface-2);display:flex;align-items:center;gap:10px">
+          <div style="flex:1"></div>
+          <div onClick="{{ closeRecover }}" style="font-size:.82rem;font-weight:600;padding:9px 14px;border:1.5px solid var(--border);border-radius:6px;color:var(--text-muted);cursor:pointer" style-hover="border-color:var(--brand-text);color:var(--brand-text)">Cancelar</div>
+          <div onClick="{{ sendRecover }}" style="font-size:.86rem;font-weight:700;padding:10px 18px;background:var(--accent);color:#fff;border-radius:6px;cursor:pointer" style-hover="filter:brightness(1.08)">Enviar link</div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ recoverSent }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:22px;display:flex;flex-direction:column;gap:14px">
+          <div style="display:flex;gap:10px;padding:12px 14px;border-radius:6px;font-size:.84rem;background:var(--surface-2);border:1px solid var(--border);color:var(--text)">
+            <span style="font-weight:700;color:var(--accent)">✓</span>
+            <div>Se houver uma conta com esse e-mail, você receberá as instruções de recuperação em instantes. Verifique também a caixa de spam.</div>
+          </div>
+        </div>
+        <div style="padding:16px 22px;border-top:1px solid var(--border);background:var(--surface-2);display:flex;justify-content:flex-end">
+          <div onClick="{{ closeRecover }}" style="font-size:.86rem;font-weight:700;padding:10px 18px;background:var(--accent);color:#fff;border-radius:6px;cursor:pointer" style-hover="filter:brightness(1.08)">Entendi</div>
+        </div>
+      </sc-if>
+    </div>
+  </div>
+</sc-if>
+
 </x-dc>
 <script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1280,&quot;height&quot;:820}}">
 class Component extends DCLogic {
-  state = { email: '', pass: '', error: '', ready: false };
+  state = { email: '', pass: '', error: '', ready: false, recoverOpen: false, recoverEmail: '', recoverError: '', recoverSent: false, recoverBusy: false };
 
   componentDidMount() {
     this.t = setInterval(() => {
       if (window.DV) { clearInterval(this.t); this.setState({ ready: true }); }
     }, 25);
-    this.onKey = (e) => { if (e.key === 'Enter') this.submit(); };
+    this.onKey = (e) => {
+      if (e.key === 'Escape' && this.state.recoverOpen) { this.setState({ recoverOpen: false }); return; }
+      if (e.key === 'Enter') { this.state.recoverOpen ? this.sendRecover() : this.submit(); }
+    };
     window.addEventListener('keydown', this.onKey);
   }
   componentWillUnmount() { clearInterval(this.t); window.removeEventListener('keydown', this.onKey); }
@@ -107,19 +156,41 @@ class Component extends DCLogic {
       .catch((err) => this.setState({ busy: false, error: (err && err.message) || 'Não foi possível entrar.' }));
   }
 
+  sendRecover() {
+    if (this.state.recoverBusy) return;
+    const mail = (this.state.recoverEmail || '').trim().toLowerCase();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail)) { this.setState({ recoverError: 'Informe um e-mail válido.' }); return; }
+    this.setState({ recoverBusy: true, recoverError: '' });
+    // Ainda não há endpoint de solicitação de reset no backend (depende de SMTP).
+    // Mensagem neutra: não revela se o e-mail existe (evita enumeração de usuários).
+    setTimeout(() => this.setState({ recoverBusy: false, recoverSent: true }), 600);
+  }
+
   renderVals() {
     const D = window.DV;
-    if (!D) return { kpi: {}, email: this.state.email, pass: this.state.pass };
+    const recover = {
+      recoverOpen: this.state.recoverOpen,
+      recoverEmail: this.state.recoverEmail,
+      recoverError: this.state.recoverError,
+      recoverHasError: !!this.state.recoverError,
+      recoverSent: this.state.recoverSent,
+      recoverForm: !this.state.recoverSent,
+      openRecover: () => this.setState({ recoverOpen: true, recoverSent: false, recoverError: '', recoverEmail: this.state.recoverEmail || this.state.email || '' }),
+      closeRecover: () => this.setState({ recoverOpen: false }),
+      onRecoverEmail: (e) => this.setState({ recoverEmail: e.target.value, recoverError: '' }),
+      sendRecover: () => this.sendRecover()
+    };
+    if (!D) return Object.assign({ kpi: {}, email: this.state.email, pass: this.state.pass }, recover);
     // Antes de autenticar não há dados da equipe; os indicadores ficam neutros.
     const stats = D.loginStats ? D.loginStats() : { today: 0, week: 0, people: 0 };
-    return {
+    return Object.assign({
       email: this.state.email, pass: this.state.pass,
       error: this.state.error, hasError: !!this.state.error,
       onEmail: (e) => this.setState({ email: e.target.value, error: '' }),
       onPass: (e) => this.setState({ pass: e.target.value, error: '' }),
       submit: () => this.submit(),
       kpi: { today: stats.today, week: stats.week, people: stats.people }
-    };
+    }, recover);
   }
 }
 
