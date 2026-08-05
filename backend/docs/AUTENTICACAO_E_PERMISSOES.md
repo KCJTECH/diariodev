@@ -99,7 +99,7 @@ lista PASSWORD_RESET_VIA_GESTOR deve conter apenas o que realmente precisa. As r
 administrativas de senha continuam com a regra de nível estritamente menor; ela não se
 aplica aqui porque no autoatendimento não existe um solicitante autenticado para comparar.
 
-O link aponta para APP_ORIGIN/login.dc.html#reset=TOKEN. O token vai no fragmento, e
+O link aponta para APP_ORIGIN/#reset=TOKEN. O token vai no fragmento, e
 não na query, de propósito: o navegador não envia o fragmento ao servidor, então o
 token não aparece no log de requisição, no cabeçalho Referer nem em log de proxy. A
 tela lê o fragmento, abre o formulário de nova senha e chama

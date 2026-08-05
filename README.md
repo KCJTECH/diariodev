@@ -7,7 +7,7 @@ Protótipo navegável, uma página por tela, pronto para virar um app React/Type
 
 | Arquivo | Tela / papel |
 | --- | --- |
-| `login.dc.html` | Login (e-mail + senha, ou entrada rápida por colaborador) |
+| `index.html` | Login (e-mail + senha, ou entrada rápida por colaborador) |
 | `dashboard.dc.html` | Dashboard: cards coloridos, gráfico 14 dias, quem registrou hoje, últimas atividades |
 | `atividades.dc.html` | Lista/timeline + drawer de **Nova / Editar atividade** |
 | `colaboradores.dc.html` | Lista de colaboradores |

@@ -1,6 +1,6 @@
 # Guia do usuário
 
-Acesse http://localhost:3333/login.dc.html (ou o endereço informado pela sua equipe).
+Acesse http://localhost:3333/ (ou o endereço informado pela sua equipe).
 
 ## Login
 Informe seu e-mail corporativo e a senha e clique em Entrar. Em desenvolvimento,

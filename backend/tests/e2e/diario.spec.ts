@@ -11,7 +11,7 @@ async function waitDV(page: Page): Promise<void> {
 // Login pelo atalho "entrar como" (dev). Navega para o dashboard e espera o DV.
 // Login real por e-mail e senha (a tela não expõe mais a lista de colaboradores).
 async function loginAs(page: Page, email: string): Promise<void> {
-  await page.goto('/login.dc.html');
+  await page.goto('/');
   await waitDV(page);
   await page.getByPlaceholder('seu@itscs.com.br').fill(email);
   await page.getByPlaceholder('••••••••').fill('DiarioDev@2026');
@@ -71,9 +71,9 @@ test('realtime: atividade criada em um navegador aparece no outro', async ({ bro
 test('logout encerra a sessão e protege rotas autenticadas', async ({ page }) => {
   await loginAs(page, 'marcelo@itscs.com.br');
   await page.evaluate(() => (window as unknown as { DV: { logout(): void } }).DV.logout());
-  await page.waitForURL('**/login.dc.html', { timeout: 10_000 });
+  await page.waitForURL('**/', { timeout: 10_000 });
 
   // rota protegida sem sessão volta para o login
   await page.goto('/dashboard.dc.html');
-  await page.waitForURL('**/login.dc.html', { timeout: 10_000 });
+  await page.waitForURL('**/', { timeout: 10_000 });
 });

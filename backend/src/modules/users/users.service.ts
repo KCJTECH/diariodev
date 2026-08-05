@@ -248,7 +248,7 @@ export async function adminResetPassword(
 
   // Token no fragmento (#), não na query: o fragmento não é enviado ao servidor,
   // então não entra em log de requisição, Referer nem log de proxy.
-  const link = `${env.APP_ORIGIN}/login.dc.html#reset=${encodeURIComponent(token)}`;
+  const link = `${env.APP_ORIGIN}/#reset=${encodeURIComponent(token)}`;
   const mailSent = await sendMail({
     to: actor.email,
     subject: `Diário Dev: link de redefinição de senha de ${user.name}`,

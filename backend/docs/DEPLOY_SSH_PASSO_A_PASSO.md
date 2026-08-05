@@ -91,7 +91,7 @@ docker compose exec -e NODE_ENV=development api node dist/prisma/seed.js
 ```
 
 ## Passo 8 — Acessar
-No navegador: `http://10.70.1.135:3333/login.dc.html`
+No navegador: `http://10.70.1.135:3333/`
 Entre com um e-mail cadastrado (ex.: seu usuário) e qualquer senha (modo protótipo).
 
 ## Verificações e problemas

@@ -187,7 +187,7 @@ export async function requestPasswordReset(
 
   // Token no fragmento (#), não na query: o fragmento não é enviado ao servidor,
   // então o token não entra no log de requisição, no Referer nem em log de proxy.
-  const link = `${env.APP_ORIGIN}/login.dc.html#reset=${encodeURIComponent(token)}`;
+  const link = `${env.APP_ORIGIN}/#reset=${encodeURIComponent(token)}`;
   const minutes = env.PASSWORD_RESET_TTL_MINUTES;
 
   // Contas declaradas em PASSWORD_RESET_VIA_GESTOR não têm caixa que alguém leia,

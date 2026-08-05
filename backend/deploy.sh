@@ -22,6 +22,6 @@ echo "==> Healthcheck"
 sleep 3
 docker compose exec -T api node -e "fetch('http://localhost:3333/health/ready').then(r=>r.json()).then(j=>{console.log(JSON.stringify(j));process.exit(j.status==='ok'?0:1)}).catch(e=>{console.error(String(e));process.exit(1)})"
 
-echo "==> Pronto. Acesse http://<IP-DO-SERVIDOR>:3333/login.dc.html"
+echo "==> Pronto. Acesse http://<IP-DO-SERVIDOR>:3333/"
 echo "    Seed (SOMENTE ambiente não produtivo, exige NODE_ENV!=production):"
 echo "    docker compose exec -e NODE_ENV=development api node dist/prisma/seed.js"

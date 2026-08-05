@@ -279,7 +279,7 @@ class Component extends DCLogic {
         rowStyle: 'display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:8px;cursor:pointer;border:1px solid ' + (p.id === u.id ? 'var(--tint-orange-bd)' : 'var(--border)') + ';background:' + (p.id === u.id ? 'var(--tint-orange)' : 'var(--surface)'),
         onClick: () => { D.setUser(p.id); window.location.reload(); }
       })),
-      logout: () => { D.logout(); window.location.href = 'login.dc.html'; },
+      logout: () => { D.logout(); window.location.href = '/'; },
       openPass: () => this.setState({ pass: { atual: '', nova: '', conf: '', error: '' }, userMenu: false }),
       closePass: () => this.setState({ pass: null }),
       passOpen: !!this.state.pass,

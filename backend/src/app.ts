@@ -86,22 +86,28 @@ export async function buildApp(): Promise<FastifyInstance> {
   const frontendRoot = env.FRONTEND_DIR
     ? path.resolve(env.FRONTEND_DIR)
     : path.resolve(process.cwd(), '..');
-  // A raiz não é servida pelo static (index: false), então sem esta rota
-  // http://host:porta devolveria o 404 em JSON da API a quem digitou só o
-  // endereço do servidor. Manda para a tela de entrada.
-  app.get('/', async (_req, reply) => reply.redirect('/login.dc.html'));
-
   await app.register(fastifyStatic, {
     root: frontendRoot,
+    // A raiz serve o index.html, que é a tela de entrada. Sem isto,
+    // http://host:porta devolveria o 404 em JSON da API a quem digitou só o
+    // endereço do servidor. Servir, e não redirecionar, mantém a URL limpa.
+    index: ['index.html'],
     prefix: '/',
-    index: false,
     allowedPath: (pathName) =>
       /\.dc\.html$/.test(pathName) ||
+      pathName === '/' ||
+      pathName === '/index.html' ||
       pathName.startsWith('/assets/') ||
       pathName === '/support.js' ||
       pathName.startsWith('/uploads/') ||
       pathName.startsWith('/screenshots/'),
   });
+
+  // Compatibilidade: links de redefinição já enviados por e-mail apontam para
+  // /login.dc.html. Enquanto houver token válido em circulação (e por segurança
+  // depois disso), o caminho antigo leva ao novo preservando o fragmento, que o
+  // navegador mantém sozinho no redirecionamento.
+  app.get('/login.dc.html', async (_req, reply) => reply.redirect('/'));
 
   registerErrorHandler(app);
   registerHealthRoutes(app, { db: prisma, redis });

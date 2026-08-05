@@ -3,7 +3,7 @@
 Registro do deploy executado em 2026-08-04. Sistema no ar e validado.
 
 ## Acesso
-- Aplicação: http://10.70.1.135:3333/login.dc.html
+- Aplicação: http://10.70.1.135:3333/
 - Saúde: http://10.70.1.135:3333/health/ready
 
 ## Ambiente do servidor
@@ -82,7 +82,7 @@ Depois disso a aplicação sobe sozinha após reiniciar a VM, com restart autom�
 em caso de falha.
 
 ## Validação executada (resultados reais)
-- Acesso externo: porta 3333 alcançável; login.dc.html HTTP 200; assets/data.js 200
+- Acesso externo: porta 3333 alcançável; index.html HTTP 200; assets/data.js 200
 - Health: `{"status":"ok","checks":{"database":"ok","redis":"ok"}}`
 - Login por SENHA REAL via API: 200 (alvaro/ceo)
 - Bootstrap: 8 pessoas, 7 categorias, 5 projetos, 24 atividades, 6 tarefas, admin true

@@ -58,7 +58,7 @@ npm run build
 npm start              # API
 npm run start:worker   # worker
 ```
-Abra `http://localhost:3333/login.dc.html`.
+Abra `http://localhost:3333/`.
 
 ## Senha de novos usuários
 A tela de administração não tem campo de senha. Configure `INITIAL_USER_PASSWORD` no

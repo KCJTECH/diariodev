@@ -230,7 +230,7 @@ app-shell .as-content > main{align-self:center;max-width:1600px !important}
           b.innerHTML = '<em>' + it[1] + '</em>' + it[0];
           b.addEventListener('click', function (e) {
             e.stopPropagation();
-            if (it[2] === '__logout') { D.logout(); window.location.href = 'login.dc.html'; }
+            if (it[2] === '__logout') { D.logout(); window.location.href = '/'; }
             else window.location.href = it[2];
           });
           m.appendChild(b);

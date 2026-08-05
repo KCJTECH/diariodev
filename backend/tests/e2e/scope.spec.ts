@@ -8,7 +8,7 @@ async function waitDV(page: Page): Promise<void> {
 }
 // Login real por e-mail e senha (a tela não expõe mais a lista de colaboradores).
 async function loginAs(page: Page, email: string): Promise<void> {
-  await page.goto('/login.dc.html');
+  await page.goto('/');
   await waitDV(page);
   await page.getByPlaceholder('seu@itscs.com.br').fill(email);
   await page.getByPlaceholder('••••••••').fill('DiarioDev@2026');
@@ -18,7 +18,7 @@ async function loginAs(page: Page, email: string): Promise<void> {
 }
 
 test('login inválido mostra erro e não expõe a lista de colaboradores', async ({ page }) => {
-  await page.goto('/login.dc.html');
+  await page.goto('/');
   await waitDV(page);
   // a tela não deve listar usuários cadastrados antes de autenticar
   await expect(page.getByText(/entre como/i)).toHaveCount(0);
@@ -32,7 +32,7 @@ test('login inválido mostra erro e não expõe a lista de colaboradores', async
 });
 
 test('senha errada de usuário existente é recusada', async ({ page }) => {
-  await page.goto('/login.dc.html');
+  await page.goto('/');
   await waitDV(page);
   await page.getByPlaceholder('seu@itscs.com.br').fill('marcelo@itscs.com.br');
   await page.getByPlaceholder('••••••••').fill('senha-errada');

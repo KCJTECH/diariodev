@@ -182,7 +182,7 @@ class Component extends DCLogic {
     this.t = setInterval(() => {
       if (window.DV) { clearInterval(this.t); this.setState({ ready: true }); }
     }, 25);
-    // Link do e-mail de redefinição: login.dc.html#reset=TOKEN abre o formulário
+    // Link do e-mail de redefinição: /#reset=TOKEN abre o formulário
     // de nova senha em vez da tela normal de entrada. O token vem no fragmento,
     // que o navegador não envia ao servidor: assim ele não entra em log de
     // requisição, em Referer nem em log de proxy.

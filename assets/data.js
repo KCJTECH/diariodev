@@ -54,7 +54,7 @@
   /* mensagem de erro reutilizando o mecanismo visual existente (sem novos componentes) */
   function notifyError(err) {
     var msg = err && err.message ? err.message : 'Falha de comunicação com o servidor.';
-    if (err && err.status === 401) { location.href = 'login.dc.html'; return; }
+    if (err && err.status === 401) { location.href = '/'; return; }
     try { if (window.location && console) console.warn('[DV]', msg); } catch (e) {}
     fireError(err);
   }
@@ -258,7 +258,7 @@
       try { localStorage.removeItem('dv.session.pending'); } catch (e) {}
       state.user = null;
       // Navega só depois de encerrar a sessão (limpar cookies/revogar) no servidor.
-      var go = function () { location.href = 'login.dc.html'; };
+      var go = function () { location.href = '/'; };
       http('POST', '/auth/logout').then(go, go);
     },
     isLogged: function () { return !!state.user; },
@@ -710,7 +710,7 @@
             // e-mail e senha (DV.login).
             publish();
           } else {
-            location.href = 'login.dc.html';
+            location.href = '/';
           }
         } else {
           state.error = err; publish(); notifyError(err);

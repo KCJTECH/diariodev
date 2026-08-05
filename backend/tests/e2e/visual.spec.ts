@@ -12,7 +12,7 @@ async function waitDV(page: Page): Promise<void> {
 }
 // Login real por e-mail e senha (a tela não expõe mais a lista de colaboradores).
 async function loginAs(page: Page, email: string): Promise<void> {
-  await page.goto('/login.dc.html');
+  await page.goto('/');
   await waitDV(page);
   await page.getByPlaceholder('seu@itscs.com.br').fill(email);
   await page.getByPlaceholder('••••••••').fill('DiarioDev@2026');
@@ -22,7 +22,7 @@ async function loginAs(page: Page, email: string): Promise<void> {
 }
 
 test('visual: tela de login', async ({ page }) => {
-  await page.goto('/login.dc.html');
+  await page.goto('/');
   await waitDV(page);
   await page.getByText('Bem-vindo de volta').waitFor();
   await expect(page).toHaveScreenshot('login.png', { fullPage: true, maxDiffPixelRatio: 0.02 });
