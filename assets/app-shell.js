@@ -53,8 +53,9 @@ app-shell .as-menu button:hover{background:var(--surface-2)}
 app-shell .as-menu button em{width:16px;text-align:center;font-style:normal}
 app-shell .as-col{flex:1;min-width:0;display:flex;flex-direction:column}
 app-shell .as-header{position:sticky;top:0;z-index:20;background:var(--surface);border-bottom:1px solid var(--border);
-  padding:0 28px;display:flex;flex-direction:column}
-app-shell .as-bar{min-height:62px;display:flex;align-items:center;gap:16px}
+  padding:0;display:flex;flex-direction:column}
+app-shell .as-bar{min-height:62px;display:flex;align-items:center;gap:16px;flex-wrap:nowrap;width:100%;max-width:1600px;margin:0 auto;padding:0 28px}
+app-shell .as-tabs{width:100%;max-width:1600px;margin:0 auto;padding:0 28px}
 app-shell .as-btn{width:34px;height:34px;flex:0 0 34px;border:1.5px solid var(--border);border-radius:8px;display:flex;
   align-items:center;justify-content:center;color:var(--text-muted);font-size:1rem;font-weight:700;
   cursor:pointer;background:var(--surface);transition:border-color .13s,color .13s}
@@ -62,8 +63,10 @@ app-shell .as-btn:hover{border-color:var(--brand-text);color:var(--brand-text)}
 app-shell .as-title{min-width:140px;flex:1 1 auto;overflow:hidden}
 app-shell .as-title b{display:block;font-size:.95rem;font-weight:700;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 app-shell .as-title i{display:block;font-size:.74rem;font-style:normal;color:var(--text-muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-app-shell .as-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:flex-end}
+app-shell .as-actions{display:flex;align-items:center;gap:12px;flex-wrap:nowrap;justify-content:flex-end;min-width:0}
+app-shell .as-actions > *{flex-wrap:nowrap !important;min-width:0}
 app-shell .as-content{flex:1;display:flex;flex-direction:column;min-width:0}
+app-shell .as-content > main{align-self:center;max-width:1600px !important}
 @media (max-width:1040px){
   app-shell .as-aside{width:68px !important;flex:0 0 68px !important}
   app-shell .as-brand,app-shell .as-utxt,app-shell .as-caret,app-shell .as-nav a span{display:none !important}
@@ -71,8 +74,8 @@ app-shell .as-content{flex:1;display:flex;flex-direction:column;min-width:0}
   app-shell [data-role="sidebar-toggle"]{display:none}
 }
 @media (max-width:880px){
-  app-shell .as-header{padding:10px 16px}
-  app-shell .as-bar{flex-wrap:wrap;row-gap:10px}
+  app-shell .as-bar{flex-wrap:wrap;row-gap:10px;padding:10px 16px}
+  app-shell .as-tabs{padding:8px 16px}
 }
 @media print{
   app-shell .as-aside,app-shell .as-header{display:none !important}
