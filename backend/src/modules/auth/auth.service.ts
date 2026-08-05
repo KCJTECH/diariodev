@@ -189,40 +189,83 @@ export async function requestPasswordReset(
   // então o token não entra no log de requisição, no Referer nem em log de proxy.
   const link = `${env.APP_ORIGIN}/login.dc.html#reset=${encodeURIComponent(token)}`;
   const minutes = env.PASSWORD_RESET_TTL_MINUTES;
+
+  // Contas declaradas em PASSWORD_RESET_VIA_GESTOR não têm caixa que alguém leia,
+  // então o link nem é tentado nelas: vai direto para os gestores, que repassam ao
+  // responsável. Enviar ao titular deixaria um link válido parado numa caixa que
+  // ninguém abre. Ver docs/AUTENTICACAO_E_PERMISSOES.md.
+  const semCaixaPropria = env.PASSWORD_RESET_VIA_GESTOR.has(user.email.toLowerCase());
+
   // Envio sem await: a resposta não espera o SMTP. Além de não travar a requisição,
   // isso encurta a diferença de tempo entre e-mail existente e inexistente, que de
   // outro modo permitiria descobrir quem tem conta medindo a demora.
-  const sending = sendMail({
-    to: user.email,
-    subject: 'Diário Dev: redefinição de senha',
-    text: [
-      `Olá, ${user.name}.`,
-      '',
-      'Recebemos um pedido para redefinir a senha da sua conta no Diário Dev.',
-      `Abra o endereço abaixo para cadastrar uma nova senha. O link vale ${minutes} minutos e só pode ser usado uma vez.`,
-      '',
-      link,
-      '',
-      'Se não foi você que pediu, ignore esta mensagem. Sua senha atual continua válida.',
-      '',
-      'Diário Dev ITS',
-    ].join('\n'),
-  });
+  void (async () => {
+    if (!semCaixaPropria) {
+      const enviado = await sendMail({
+        to: user.email,
+        subject: 'Diário Dev: redefinição de senha',
+        text: [
+          `Olá, ${user.name}.`,
+          '',
+          'Recebemos um pedido para redefinir a senha da sua conta no Diário Dev.',
+          `Abra o endereço abaixo para cadastrar uma nova senha. O link vale ${minutes} minutos e só pode ser usado uma vez.`,
+          '',
+          link,
+          '',
+          'Se não foi você que pediu, ignore esta mensagem. Sua senha atual continua válida.',
+          '',
+          'Diário Dev ITS',
+        ].join('\n'),
+      });
+      if (enviado) {
+        // Registrar o sucesso é o que permite distinguir "enviado" de "não existe
+        // conta para esse e-mail", que sem isso ficam os dois sem rastro no log.
+        logger.info({ userId: user.id }, 'e-mail de redefinição de senha enviado');
+        return;
+      }
+      logger.warn({ userId: user.id }, 'envio ao titular falhou; tentando pelos gestores');
+    }
 
-  void sending.then((mailSent) => {
-    if (mailSent) {
-      // Registrar o sucesso é o que permite distinguir "enviado" de "não existe
-      // conta para esse e-mail", que sem isso ficam os dois sem rastro no log.
-      logger.info({ userId: user.id }, 'e-mail de redefinição de senha enviado');
+    // Destino alternativo: os gestores ativos. É o papel, não um endereço fixo.
+    const gestores = await db.user.findMany({
+      where: { effectiveLevel: 'GESTOR', active: true, deletedAt: null, id: { not: user.id } },
+      select: { email: true },
+    });
+    const destinos = gestores.map((g) => g.email).filter(Boolean);
+    if (destinos.length === 0) {
+      logger.error(
+        { userId: user.id },
+        'reset solicitado para conta sem caixa própria, mas não há gestor ativo para receber o link',
+      );
+      if (!isProduction) logger.warn({ resetLink: link }, 'link de redefinição (apenas desenvolvimento)');
       return;
     }
-    // Sem SMTP configurado (ou falha no envio) o pedido fica registrado, mas o
-    // usuário não recebe nada. Precisa aparecer no log para o TI agir.
-    logger.warn({ userId: user.id }, 'reset de senha solicitado, mas o e-mail não foi enviado');
-    // Fora de produção, sem SMTP, o link vai ao log para o desenvolvedor seguir
-    // o fluxo. Nunca em produção: seria um token válido gravado em arquivo.
-    if (!isProduction) logger.warn({ resetLink: link }, 'link de redefinição (apenas desenvolvimento)');
-  });
+
+    const enviadoGestor = await sendMail({
+      to: destinos.join(', '),
+      subject: `Diário Dev: redefinição de senha de ${user.name}`,
+      text: [
+        'Olá.',
+        '',
+        `Foi solicitada a redefinição de senha da conta de ${user.name} (${user.email}), que não recebe e-mail.`,
+        `Repasse o endereço abaixo ao responsável por essa conta. O link vale ${minutes} minutos e só pode ser usado uma vez.`,
+        '',
+        link,
+        '',
+        'Quem abrir este link define uma nova senha para essa conta. Não encaminhe para mais ninguém.',
+        '',
+        'Diário Dev ITS',
+      ].join('\n'),
+    });
+
+    if (enviadoGestor) {
+      logger.info({ userId: user.id, gestores: destinos.length }, 'link de redefinição enviado aos gestores');
+    } else {
+      logger.error({ userId: user.id }, 'reset solicitado, mas nem o titular nem os gestores receberam o link');
+      if (!isProduction) logger.warn({ resetLink: link }, 'link de redefinição (apenas desenvolvimento)');
+    }
+  })();
+
   return { userId: user.id, token };
 }
 

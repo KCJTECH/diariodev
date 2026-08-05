@@ -72,6 +72,33 @@ PASSWORD_RESET_TTL_MINUTES (padrão 60) e o e-mail sai por SMTP
 configurado o pedido é registrado, o e-mail não sai e fica um WARN no log; fora de
 produção o link também vai ao log, para o desenvolvedor seguir o fluxo.
 
+### Contas sem caixa de e-mail própria
+
+Algumas contas têm e-mail cadastrado que ninguém lê, como conta de sistema. Para elas o
+link não é enviado ao titular: iria para uma caixa que não é aberta e ficaria um link
+válido parado lá. O destino é o papel de gestor, não um endereço fixo: todos os usuários
+ativos com nível GESTOR recebem a mensagem, que identifica de quem é o link, e repassam ao
+responsável.
+
+Essas contas são declaradas em PASSWORD_RESET_VIA_GESTOR, lista de e-mails separada por
+vírgula. Precisa ser declaração explícita porque não há como o sistema descobrir sozinho:
+foi medido em 2026-08-05 que o servidor de e-mail da ITS aceita a mensagem mesmo para
+caixa que não atende, então o envio é reportado como sucesso e não serve de sinal.
+
+O mesmo desvio acontece quando o envio ao titular falha de verdade, com o SMTP recusando:
+aí o link é tentado com os gestores. O caso de o servidor aceitar e a mensagem não chegar
+continua sem tratamento automático, porque não é observável pelo backend.
+
+Se um gestor pedir a redefinição da própria senha, ele recebe direto, como qualquer
+titular com caixa própria.
+
+Consequência de segurança, aceita conscientemente: quem recebe o link pode definir a senha
+daquela conta. Um gestor que receba o link de uma conta de nível superior, como a conta
+administrativa, passa a poder assumir aquele acesso. É acesso de emergência, e por isso a
+lista PASSWORD_RESET_VIA_GESTOR deve conter apenas o que realmente precisa. As rotas
+administrativas de senha continuam com a regra de nível estritamente menor; ela não se
+aplica aqui porque no autoatendimento não existe um solicitante autenticado para comparar.
+
 O link aponta para APP_ORIGIN/login.dc.html#reset=TOKEN. O token vai no fragmento, e
 não na query, de propósito: o navegador não envia o fragmento ao servidor, então o
 token não aparece no log de requisição, no cabeçalho Referer nem em log de proxy. A

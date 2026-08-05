@@ -54,6 +54,15 @@ const schema = z.object({
   MAIL_FROM: z.string().optional(),
   // Validade do link de redefinição de senha, em minutos.
   PASSWORD_RESET_TTL_MINUTES: z.coerce.number().int().positive().default(60),
+  // Contas cujo e-mail cadastrado não é uma caixa que alguém lê (conta de sistema,
+  // por exemplo). Para elas o link de redefinição vai para os gestores, que repassam
+  // ao responsável. Lista de e-mails separada por vírgula; vazio = nenhuma.
+  // Precisa ser declarado: o servidor SMTP aceita a mensagem mesmo para caixa que
+  // não atende, então não há como o sistema descobrir isso sozinho no envio.
+  PASSWORD_RESET_VIA_GESTOR: z
+    .string()
+    .default('')
+    .transform((s) => new Set(s.split(',').map((e) => e.trim().toLowerCase()).filter(Boolean))),
 
   // Senha inicial de usuários criados pela tela de administração (que não tem
   // campo de senha). Se vazio, o sistema gera uma senha aleatória, que só é

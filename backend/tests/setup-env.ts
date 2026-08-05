@@ -16,3 +16,8 @@ process.env.LOG_LEVEL = 'fatal';
 // disparam mensagens de verdade para os endereços do seed, que são de pessoas reais.
 // Vazio vale como ausente na validação de ambiente, então o mailer fica desabilitado.
 process.env.SMTP_HOST = '';
+
+// Conta usada pelos testes como "e-mail cadastrado que ninguém lê", para exercitar o
+// desvio do link de redefinição para os gestores. Precisa ser um endereço do seed que
+// nenhum outro teste use como titular.
+process.env.PASSWORD_RESET_VIA_GESTOR = 'camila@itscs.com.br';
