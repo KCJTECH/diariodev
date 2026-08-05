@@ -156,6 +156,19 @@
     },
     projects: function () { return state.projects.slice(); },
     setProjects: function (l) { state.projects = l; },
+    /* Cria um projeto no servidor (POST /projects). Otimista com rollback em erro. */
+    createProject: function (name) {
+      name = (name || '').trim();
+      if (!name) return Promise.reject(new Error('Informe o nome do projeto.'));
+      if (state.projects.indexOf(name) > -1) return Promise.reject(new Error('Já existe um projeto com esse nome.'));
+      state.projects.push(name); rerender();
+      return http('POST', '/projects', { name: name }).catch(function (e) {
+        var i = state.projects.indexOf(name); if (i > -1) { state.projects.splice(i, 1); rerender(); }
+        if (e && e.status === 403) throw new Error('Você não tem permissão para criar projetos.');
+        if (e && e.status === 409) throw new Error('Já existe um projeto com esse nome.');
+        throw e;
+      });
+    },
     tasks: function () { return state.tasks; },
     setTasks: function (l) { state.tasks = l; },
 
