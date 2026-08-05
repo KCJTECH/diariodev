@@ -47,12 +47,19 @@ tail -f /home/kcj/diariodev/logs/worker.log
 # estado dos processos
 pgrep -af 'dist/src/(server|workers)'
 
-# reiniciar manualmente
+# reiniciar manualmente (em shell interativo NO servidor)
 cd /home/kcj/diariodev/backend
 pkill -f 'dist/src/server.js'; pkill -f 'dist/src/workers/index.js'
 setsid nohup node dist/src/server.js        > ../logs/api.log    2>&1 < /dev/null &
 setsid nohup node dist/src/workers/index.js > ../logs/worker.log 2>&1 < /dev/null &
 ```
+
+Atenção ao reiniciar por `ssh usuario@host '...'` em vez de shell interativo: o padrão
+do `pkill -f` também casa com a linha de comando do próprio script remoto, que contém
+esse texto. O `pkill` mata a própria sessão SSH antes de subir os processos, e a
+aplicação fica fora do ar. Isso já aconteceu em 2026-08-05. Por SSH, mate por PID
+(`pgrep -f 'dist/src/server.js'` primeiro, depois `kill <pid>`) ou use colchete no
+padrão (`pkill -f 'dist/src/[s]erver.js'`), que não casa consigo mesmo.
 
 ## Pendente: iniciar automaticamente no boot (exige root)
 Os arquivos de serviço já estão no servidor em /home/kcj/. Instale como root:
