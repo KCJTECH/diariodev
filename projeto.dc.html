@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="assets/theme.css">
+<script src="assets/data.js"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);font-family:'Segoe UI',system-ui,-apple-system,sans-serif;color:var(--text);-webkit-font-smoothing:antialiased}
+  a{color:var(--accent);text-decoration:none}
+  a:hover{color:var(--brand-text)}
+  input,button{font-family:inherit;font-size:inherit;color:inherit}
+  @keyframes dvUp{from{transform:translateY(10px);opacity:0}to{transform:translateY(0);opacity:1}}
+  @keyframes dvFade{from{opacity:0}to{opacity:1}}
+  @keyframes dvToast{from{transform:translateY(14px);opacity:0}to{transform:translateY(0);opacity:1}}
+  input,textarea{font-family:inherit;font-size:inherit;color:inherit}
+  ::-webkit-scrollbar{width:11px;height:11px}
+  ::-webkit-scrollbar-thumb{background:var(--border-strong);border:3px solid var(--bg);border-radius:8px}
+</style>
+</helmet>
+
+<x-import component-from-global-scope="app-shell" from="./assets/app-shell.js"
+  page="projeto" heading="{{ name }}" subtitle="Tudo o que aconteceu neste projeto" hint-size="100%,100%">
+
+  <div slot="actions" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:flex-end">
+    <a href="projetos.dc.html" style="font-size:.8rem;font-weight:600;color:var(--text-muted);padding:9px 14px;border:1.5px solid var(--border);border-radius:6px" style-hover="border-color:var(--brand-text);color:var(--brand-text)">← Projetos</a>
+      <sc-if value="{{ canPlan }}" hint-placeholder-val="{{ true }}">
+        <div onClick="{{ openTask }}" style="display:inline-flex;align-items:center;gap:7px;padding:10px 16px;border-radius:6px;border:1.5px solid var(--brand);color:var(--brand-text);font-size:.85rem;font-weight:600;white-space:nowrap;cursor:pointer" style-hover="background:var(--tint-blue)">
+          <span style="font-size:1rem;line-height:1">+</span> Nova tarefa
+        </div>
+      </sc-if>
+      <a href="{{ newHref }}" style="display:inline-flex;align-items:center;gap:7px;padding:10px 16px;border-radius:6px;background:var(--accent);color:#fff;font-size:.85rem;font-weight:600;white-space:nowrap" style-hover="filter:brightness(1.08);color:#ffffff">
+        <span style="font-size:1rem;line-height:1">+</span> Registrar neste projeto
+      </a>
+  </div>
+
+  <main data-screen-label="Detalhes do Projeto" style="flex:1;padding:26px 28px 64px;max-width:1360px;width:100%;display:flex;flex-direction:column;gap:16px;animation:dvUp .22s ease both">
+
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:22px 24px;display:flex;align-items:center;gap:18px">
+        <div style="width:52px;height:52px;border-radius:calc(var(--radius) + 2px);background:var(--tint-blue);border:1px solid var(--tint-blue-bd);display:flex;align-items:center;justify-content:center;color:var(--brand-text);font-size:1.2rem">◈</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:1.15rem;font-weight:800">{{ name }}</div>
+          <div style="font-size:.82rem;color:var(--text-muted);margin-top:2px">{{ subtitle }}</div>
+        </div>
+        <div style="display:flex;gap:4px">
+          <sc-for list="{{ people }}" as="m" hint-placeholder-count="4">
+            <a href="{{ m.href }}" title="{{ m.name }}" style="{{ m.avatar }}">{{ m.ini }}</a>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px">
+        <sc-for list="{{ stats }}" as="s" hint-placeholder-count="4">
+          <div style="{{ s.style }}">
+            <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em">{{ s.label }}</div>
+            <div style="font-size:1.6rem;font-weight:800;margin-top:6px;line-height:1.1">{{ s.value }}</div>
+            <div style="font-size:.73rem;opacity:.85">{{ s.hint }}</div>
+          </div>
+        </sc-for>
+      </div>
+
+      <sc-if value="{{ denied }}" hint-placeholder-val="{{ false }}">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:52px 24px;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center">
+          <div style="width:48px;height:48px;border-radius:calc(var(--radius) + 2px);background:var(--tint-red);border:1px solid var(--tint-red-bd);display:flex;align-items:center;justify-content:center;color:#dc2626;font-size:1.3rem">⛨</div>
+          <div style="font-size:.95rem;font-weight:700">Projeto fora do seu acesso</div>
+          <div style="font-size:.82rem;color:var(--text-muted);max-width:400px;text-wrap:pretty">Seu nível de acesso mostra apenas os projetos em que você tem registros ou tarefas atribuídas. Peça ao gestor para incluir você.</div>
+          <a href="projetos.dc.html" style="margin-top:8px;padding:9px 16px;border:1.5px solid var(--brand-text);border-radius:6px;font-size:.83rem;font-weight:600;color:var(--brand-text)">← Ver meus projetos</a>
+        </div>
+      </sc-if>
+
+      <div style="{{ tabsStyle }}">
+        <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="5">
+          <div onClick="{{ t.onClick }}" style="{{ t.style }}">
+            <span style="font-size:.9rem">{{ t.icon }}</span>{{ t.label }}
+            <sc-if value="{{ t.hasCount }}" hint-placeholder-val="{{ false }}">
+              <span style="{{ t.countStyle }}">{{ t.count }}</span>
+            </sc-if>
+          </div>
+        </sc-for>
+      </div>
+
+      <sc-if value="{{ isTasks }}" hint-placeholder-val="{{ false }}">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">
+          <div style="display:flex;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid var(--border);flex-wrap:wrap">
+            <div style="min-width:0">
+              <div style="font-size:.88rem;font-weight:700">Tarefas deste projeto</div>
+              <div style="font-size:.74rem;color:var(--text-muted);margin-top:2px">{{ taskSummary }}</div>
+            </div>
+            <div style="flex:1"></div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+              <sc-for list="{{ taskFilters }}" as="tf2" hint-placeholder-count="3">
+                <div onClick="{{ tf2.onClick }}" style="{{ tf2.style }}">{{ tf2.label }}</div>
+              </sc-for>
+            </div>
+          </div>
+          <sc-if value="{{ noTasks }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:38px 20px;text-align:center">
+              <div style="font-size:.88rem;font-weight:700">Nada pendente neste projeto</div>
+              <div style="font-size:.79rem;color:var(--text-muted);margin-top:4px">Planeje uma entrega futura e atribua a alguém da equipe.</div>
+            </div>
+          </sc-if>
+          <sc-for list="{{ tasks }}" as="t" hint-placeholder-count="4">
+            <div style="{{ t.rowStyle }}" style-hover="{{ t.rowHover }}">
+              <div onClick="{{ t.onToggle }}" style="{{ t.checkStyle }}" title="Marcar como concluída">{{ t.check }}</div>
+              <div style="flex:1;min-width:0">
+                <div style="{{ t.titleStyle }}">{{ t.title }}</div>
+                <div style="display:flex;align-items:center;gap:9px;margin-top:6px;flex-wrap:wrap">
+                  <span style="{{ t.catStyle }}">{{ t.cat }}</span>
+                  <span style="display:inline-flex;align-items:center;gap:5px;font-size:.75rem;color:var(--text-muted)">
+                    <span style="{{ t.avatar }}">{{ t.ini }}</span>{{ t.who }}
+                  </span>
+                  <span style="{{ t.priStyle }}">{{ t.pri }}</span>
+                  <span style="font-size:.72rem;color:var(--text-faint)">criada por {{ t.by }}</span>
+                </div>
+              </div>
+              <div style="text-align:right;flex:0 0 auto">
+                <div style="{{ t.dueStyle }}">{{ t.dueLabel }}</div>
+                <div style="font-size:.71rem;color:var(--text-faint);margin-top:2px">prazo {{ t.dueDate }}</div>
+              </div>
+              <sc-if value="{{ t.canEdit }}" hint-placeholder-val="{{ false }}">
+                <div onClick="{{ t.onEdit }}" style="font-size:.75rem;font-weight:600;color:var(--text-muted);padding:5px 10px;border:1px solid var(--border);border-radius:5px;background:var(--surface);cursor:pointer;flex:0 0 auto" style-hover="border-color:var(--brand-text);color:var(--brand-text)">Editar</div>
+              </sc-if>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isWorkload }}" hint-placeholder-val="{{ false }}">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px">
+          <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+            <div>
+              <div style="font-size:.88rem;font-weight:700">Carga dos envolvidos</div>
+              <div style="font-size:.74rem;color:var(--text-muted);margin-top:2px">Tarefas em aberto neste projeto e registros dos últimos 7 dias</div>
+            </div>
+            <div style="display:flex;gap:14px;font-size:.72rem;color:var(--text-muted);flex-wrap:wrap">
+              <span style="display:inline-flex;align-items:center;gap:5px"><span style="width:9px;height:9px;border-radius:3px;background:#dc2626"></span>atrasada</span>
+              <span style="display:inline-flex;align-items:center;gap:5px"><span style="width:9px;height:9px;border-radius:3px;background:#d97706"></span>vence em ≤3 dias</span>
+              <span style="display:inline-flex;align-items:center;gap:5px"><span style="width:9px;height:9px;border-radius:3px;background:var(--brand)"></span>no prazo</span>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:15px">
+            <sc-for list="{{ workload }}" as="w" hint-placeholder-count="4">
+              <div style="display:flex;align-items:center;gap:14px">
+                <div style="{{ w.avatar }}">{{ w.ini }}</div>
+                <div style="width:150px;flex:0 0 150px;min-width:0">
+                  <div style="font-size:.84rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ w.name }}</div>
+                  <div style="font-size:.72rem;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ w.role }}</div>
+                </div>
+                <div style="flex:1;min-width:0">
+                  <div style="display:flex;height:24px;border-radius:6px;overflow:hidden;background:var(--track)">
+                    <sc-for list="{{ w.segments }}" as="sg" hint-placeholder-count="2">
+                      <div style="{{ sg.style }}" title="{{ sg.title }}">{{ sg.count }}</div>
+                    </sc-for>
+                  </div>
+                  <div style="font-size:.71rem;color:var(--text-faint);margin-top:5px">{{ w.share }}</div>
+                </div>
+                <div style="text-align:right;flex:0 0 auto;width:120px">
+                  <div style="{{ w.loadStyle }}">{{ w.loadLabel }}</div>
+                  <div style="font-size:.71rem;color:var(--text-faint);margin-top:2px">{{ w.recent }}</div>
+                </div>
+              </div>
+            </sc-for>
+            <sc-if value="{{ noWorkload }}" hint-placeholder-val="{{ false }}">
+              <div style="padding:28px;text-align:center;font-size:.83rem;color:var(--text-faint)">Ninguém alocado neste projeto ainda.</div>
+            </sc-if>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isCalendar }}" hint-placeholder-val="{{ false }}">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+            <div>
+              <div style="font-size:.88rem;font-weight:700">{{ cal.monthLabel }}</div>
+              <div style="font-size:.74rem;color:var(--text-muted);margin-top:2px">Prazos das tarefas e registros do projeto</div>
+            </div>
+            <div style="flex:1"></div>
+            <div onClick="{{ cal.onPrev }}" style="width:32px;height:32px;border:1.5px solid var(--border);border-radius:7px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-muted);font-weight:700" style-hover="border-color:var(--brand-text);color:var(--brand-text)">‹</div>
+            <div onClick="{{ cal.onToday }}" style="padding:7px 13px;border:1.5px solid var(--border);border-radius:7px;font-size:.79rem;font-weight:600;color:var(--text-muted);cursor:pointer" style-hover="border-color:var(--brand-text);color:var(--brand-text)">Hoje</div>
+            <div onClick="{{ cal.onNext }}" style="width:32px;height:32px;border:1.5px solid var(--border);border-radius:7px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-muted);font-weight:700" style-hover="border-color:var(--brand-text);color:var(--brand-text)">›</div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;margin-bottom:6px">
+            <sc-for list="{{ cal.weekdays }}" as="wd" hint-placeholder-count="7">
+              <div style="font-size:.7rem;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.05em;text-align:center;padding:4px 0">{{ wd }}</div>
+            </sc-for>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px">
+            <sc-for list="{{ cal.cells }}" as="cd" hint-placeholder-count="35">
+              <div style="{{ cd.style }}">
+                <div style="{{ cd.numStyle }}">{{ cd.num }}</div>
+                <div style="display:flex;flex-direction:column;gap:3px;margin-top:5px;min-width:0">
+                  <sc-for list="{{ cd.items }}" as="it" hint-placeholder-count="1">
+                    <div style="{{ it.style }}" title="{{ it.full }}">{{ it.label }}</div>
+                  </sc-for>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isGantt }}" hint-placeholder-val="{{ false }}">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;overflow-x:auto">
+          <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+            <div>
+              <div style="font-size:.88rem;font-weight:700">Linha do tempo das entregas</div>
+              <div style="font-size:.74rem;color:var(--text-muted);margin-top:2px">{{ gantt.range }}</div>
+            </div>
+            <div style="display:flex;gap:14px;font-size:.72rem;color:var(--text-muted);flex-wrap:wrap">
+              <span style="display:inline-flex;align-items:center;gap:5px"><span style="width:14px;height:8px;border-radius:3px;background:#dc2626"></span>atrasada</span>
+              <span style="display:inline-flex;align-items:center;gap:5px"><span style="width:14px;height:8px;border-radius:3px;background:#16a34a"></span>concluída</span>
+              <span style="display:inline-flex;align-items:center;gap:5px"><span style="width:14px;height:8px;border-radius:3px;background:var(--brand)"></span>planejada</span>
+            </div>
+          </div>
+          <div style="min-width:720px">
+            <div style="display:flex;align-items:stretch;border-bottom:1px solid var(--border);padding-bottom:7px;margin-bottom:4px">
+              <div style="width:250px;flex:0 0 250px;font-size:.7rem;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.05em">Tarefa</div>
+              <div style="flex:1;display:flex;position:relative">
+                <sc-for list="{{ gantt.ticks }}" as="tk" hint-placeholder-count="6">
+                  <div style="{{ tk.style }}">{{ tk.label }}</div>
+                </sc-for>
+              </div>
+            </div>
+            <sc-for list="{{ gantt.rows }}" as="g2" hint-placeholder-count="5">
+              <div style="display:flex;align-items:center;padding:7px 0;border-bottom:1px solid var(--border-soft)">
+                <div style="width:250px;flex:0 0 250px;padding-right:14px;min-width:0">
+                  <div style="{{ g2.titleStyle }}">{{ g2.title }}</div>
+                  <div style="display:flex;align-items:center;gap:6px;margin-top:3px">
+                    <span style="{{ g2.avatar }}">{{ g2.ini }}</span>
+                    <span style="font-size:.71rem;color:var(--text-faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ g2.assignee }}</span>
+                  </div>
+                </div>
+                <div style="flex:1;position:relative;height:26px;background:var(--surface-3);border-radius:6px">
+                  <div style="{{ gantt.todayLine }}"></div>
+                  <div style="{{ g2.barStyle }}" title="{{ g2.tooltip }}">{{ g2.barLabel }}</div>
+                </div>
+              </div>
+            </sc-for>
+            <sc-if value="{{ gantt.empty }}" hint-placeholder-val="{{ false }}">
+              <div style="padding:36px;text-align:center;font-size:.83rem;color:var(--text-faint)">Nenhuma tarefa planejada neste projeto.</div>
+            </sc-if>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isEmpty }}" hint-placeholder-val="{{ false }}">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:52px 24px;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center">
+          <div style="width:48px;height:48px;border-radius:calc(var(--radius) + 2px);background:var(--bg);display:flex;align-items:center;justify-content:center;color:var(--text-faint);font-size:1.3rem">◈</div>
+          <div style="font-size:.95rem;font-weight:700">Projeto sem registros</div>
+          <div style="font-size:.82rem;color:var(--text-muted);max-width:360px;text-wrap:pretty">Assim que alguém registrar uma atividade neste projeto, a linha do tempo aparece aqui.</div>
+        </div>
+      </sc-if>
+
+      <div style="{{ timelineStyle }}">
+        <sc-for list="{{ groups }}" as="g" hint-placeholder-count="3">
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">
+            <div style="{{ g.headStyle }}">
+              <span style="{{ g.pillStyle }}">{{ g.label }}</span>
+              <span style="font-size:.76rem;color:var(--text-muted)">{{ g.sub }}</span>
+              <div style="flex:1"></div>
+              <span style="font-size:.75rem;font-weight:600;color:var(--text-faint)">{{ g.count }}</span>
+            </div>
+            <sc-for list="{{ g.items }}" as="a" hint-placeholder-count="3">
+              <a href="{{ a.href }}" style="display:flex;align-items:stretch;border-bottom:1px solid var(--border-soft);color:var(--text)" style-hover="background:var(--surface-2);color:var(--text)">
+                <div style="width:74px;flex:0 0 74px;padding:15px 0 15px 18px;font-family:ui-monospace,monospace;font-size:.75rem;color:var(--text-faint)">{{ a.time }}</div>
+                <div style="width:22px;flex:0 0 22px;position:relative">
+                  <div style="position:absolute;left:10px;top:0;bottom:0;width:2px;background:var(--border)"></div>
+                  <div style="{{ a.dotStyle }}"></div>
+                </div>
+                <div style="flex:1;min-width:0;padding:14px 18px 14px 10px">
+                  <div style="font-size:.88rem;font-weight:600;line-height:1.4;text-wrap:pretty">{{ a.title }}</div>
+                  <sc-if value="{{ a.hasDesc }}" hint-placeholder-val="{{ true }}">
+                    <div style="font-size:.8rem;color:var(--text-muted);line-height:1.55;margin-top:4px;text-wrap:pretty">{{ a.desc }}</div>
+                  </sc-if>
+                  <div style="display:flex;align-items:center;gap:9px;margin-top:8px;flex-wrap:wrap">
+                    <span style="{{ a.catStyle }}">{{ a.cat }}</span>
+                    <span style="display:inline-flex;align-items:center;gap:5px;font-size:.74rem;color:var(--text-muted)">
+                      <span style="{{ a.miniAvatar }}">{{ a.ini }}</span>{{ a.who }}
+                    </span>
+                    <span style="font-size:.74rem;color:var(--text-faint)">{{ a.date }} · {{ a.dur }}</span>
+                  </div>
+                </div>
+              </a>
+            </sc-for>
+          </div>
+        </sc-for>
+      </div>
+    </main>
+</x-import>
+
+<sc-if value="{{ taskModalOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;inset:0;z-index:70;display:flex;align-items:center;justify-content:center;padding:4vh 20px">
+      <div onClick="{{ closeTask }}" style="position:absolute;inset:0;background:var(--overlay);animation:dvFade .16s ease both"></div>
+      <div style="position:relative;width:620px;max-width:96vw;max-height:92vh;background:var(--surface);border-radius:calc(var(--radius) + 2px);box-shadow:0 8px 32px rgba(0,0,0,.24);display:flex;flex-direction:column;overflow:hidden;animation:dvUp .18s cubic-bezier(.2,.8,.2,1) both">
+        <div style="padding:18px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px">
+          <div style="flex:1">
+            <div style="font-size:.98rem;font-weight:700">{{ tf.heading }}</div>
+            <div style="font-size:.74rem;color:var(--text-muted);margin-top:2px">{{ name }} · atribua a um responsável e defina o prazo</div>
+          </div>
+          <div onClick="{{ closeTask }}" style="width:30px;height:30px;border-radius:6px;display:flex;align-items:center;justify-content:center;color:var(--text-muted);cursor:pointer;font-size:1rem" style-hover="background:var(--bg)">✕</div>
+        </div>
+        <div style="flex:1;overflow:auto;padding:22px 24px;display:flex;flex-direction:column;gap:16px">
+          <sc-if value="{{ tf.hasError }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;gap:10px;padding:11px 13px;border-radius:6px;font-size:.82rem;background:var(--tint-red);border:1px solid var(--tint-red-bd);color:var(--danger-text)">✕ {{ tf.error }}</div>
+          </sc-if>
+          <div>
+            <div style="font-size:.77rem;font-weight:700;margin-bottom:6px">Título da tarefa</div>
+            <input value="{{ tf.title }}" onChange="{{ tf.onTitle }}" placeholder="Ex.: Publicar o filtro de período no relatório" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:6px;font-size:.92rem;font-weight:600;outline:none" style-focus="border-color:var(--brand-text)" />
+          </div>
+          <div>
+            <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px">
+              <span style="font-size:.77rem;font-weight:700">Descrição</span>
+              <span style="font-size:.72rem;color:var(--text-faint)">opcional</span>
+            </div>
+            <textarea value="{{ tf.desc }}" onChange="{{ tf.onDesc }}" placeholder="Critérios de aceite, links, contexto…" style="width:100%;min-height:70px;padding:10px 12px;border:1.5px solid var(--border);border-radius:6px;font-size:.86rem;outline:none;resize:vertical;line-height:1.5" style-focus="border-color:var(--brand-text)"></textarea>
+          </div>
+          <div>
+            <div style="font-size:.77rem;font-weight:700;margin-bottom:7px">Responsável</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px">
+              <sc-for list="{{ tf.people }}" as="pp" hint-placeholder-count="5">
+                <div onClick="{{ pp.onClick }}" style="{{ pp.style }}">
+                  <span style="{{ pp.dot }}">{{ pp.ini }}</span>{{ pp.label }}
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+            <div>
+              <div style="font-size:.77rem;font-weight:700;margin-bottom:6px">Data máxima de entrega</div>
+              <input type="date" value="{{ tf.due }}" min="{{ tf.minDue }}" onChange="{{ tf.onDue }}" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:6px;font-size:.86rem;outline:none" style-focus="border-color:var(--brand-text)" />
+              <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+                <sc-for list="{{ tf.quickDates }}" as="q" hint-placeholder-count="3">
+                  <div onClick="{{ q.onClick }}" style="{{ q.style }}">{{ q.label }}</div>
+                </sc-for>
+              </div>
+            </div>
+            <div>
+              <div style="font-size:.77rem;font-weight:700;margin-bottom:6px">Categoria prevista</div>
+              <div style="display:flex;flex-wrap:wrap;gap:6px">
+                <sc-for list="{{ tf.cats }}" as="cc" hint-placeholder-count="6">
+                  <div onClick="{{ cc.onClick }}" style="{{ cc.style }}">{{ cc.label }}</div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:.77rem;font-weight:700;margin-bottom:7px">Prioridade</div>
+            <div style="display:flex;gap:7px">
+              <sc-for list="{{ tf.priorities }}" as="pr" hint-placeholder-count="3">
+                <div onClick="{{ pr.onClick }}" style="{{ pr.style }}">{{ pr.label }}</div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+        <div style="padding:16px 24px;border-top:1px solid var(--border);background:var(--surface-2);display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <sc-if value="{{ tf.isEdit }}" hint-placeholder-val="{{ false }}">
+            <div onClick="{{ tf.onDelete }}" style="{{ tf.deleteStyle }}">{{ tf.deleteLabel }}</div>
+          </sc-if>
+          <div style="flex:1"></div>
+          <div onClick="{{ closeTask }}" style="font-size:.82rem;font-weight:600;padding:9px 14px;border:1.5px solid var(--border);border-radius:6px;color:var(--text-muted);cursor:pointer" style-hover="border-color:var(--brand-text);color:var(--brand-text)">Cancelar</div>
+          <div onClick="{{ tf.onSave }}" style="font-size:.86rem;font-weight:700;padding:10px 18px;background:var(--accent);color:#fff;border-radius:6px;cursor:pointer" style-hover="filter:brightness(1.08)">{{ tf.saveLabel }}</div>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ toastOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;right:24px;bottom:24px;z-index:80;animation:dvToast .2s ease both">
+      <div style="{{ toast.style }}">
+        <span style="font-weight:700">{{ toast.icon }}</span>
+        <div>
+          <div style="font-weight:600">{{ toast.title }}</div>
+          <div style="font-size:.76rem;opacity:.8">{{ toast.sub }}</div>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:980}}">
+class Component extends DCLogic {
+  state = { ready: false, collapsed: false, p: null, tab: 'timeline', taskFilter: 'abertas', monthOff: 0, tform: null, tConfirm: false, toast: null, tick: 0 };
+
+  toast(title, sub, kind) {
+    clearTimeout(this._tt);
+    this.setState({ toast: { title: title, sub: sub, kind: kind || 'success' } });
+    this._tt = setTimeout(() => this.setState({ toast: null }), 3000);
+  }
+  setT(patch) { this.setState(s => ({ tform: Object.assign({}, s.tform, patch, patch.error === undefined ? { error: '' } : {}) })); }
+  bump() { this.setState(s => ({ tick: s.tick + 1 })); }
+  componentDidMount() {
+    this.t = setInterval(() => {
+      if (!window.DV) return;
+      clearInterval(this.t);
+      const q = new URLSearchParams(window.location.search);
+      this.setState({ ready: true, p: q.get('p') || DV.projects()[0] });
+    }, 25);
+    this.onKey = (e) => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); window.location.href = 'pesquisa.dc.html'; } };
+    window.addEventListener('keydown', this.onKey);
+  }
+  componentWillUnmount() { clearInterval(this.t); window.removeEventListener('keydown', this.onKey); }
+
+  renderVals() {
+    const D = window.DV;
+    if (!D) return { nav: [], sb: {}, u: {}, stats: [], groups: [], people: [], tabs: [], tasks: [], taskFilters: [], workload: [], cal: { cells: [], weekdays: [] }, gantt: { rows: [], ticks: [] }, tf: {}, toast: { style: '' } };
+    const u = D.user();
+    const allowed = D.visibleProjects(u);
+    const name = this.state.p || allowed[0] || D.projects()[0];
+    const denied = !D.canSeeProject(u, name);
+    const list = D.acts().filter(a => a.proj === name);
+
+    const tone = (t) => ({
+      orange: ['var(--tint-orange)', 'var(--tint-orange-bd)', 'var(--accent)'], blue: ['var(--tint-blue)', 'var(--tint-blue-bd)', 'var(--brand-text)'],
+      green: ['var(--tint-green)', 'var(--tint-green-bd)', 'var(--ok-text)'], info: ['var(--tint-sky)', 'var(--tint-sky-bd)', 'var(--info-text)']
+    })[t];
+    const card = (label, value, hint, t) => {
+      const x = tone(t);
+      return { label: label, value: value, hint: hint, style: 'border-radius:var(--radius);padding:16px 18px;border:1px solid ' + x[1] + ';background:' + x[0] + ';color:' + x[2] };
+    };
+
+    const map = {};
+    list.forEach(a => { const k = D.groupLabel(a.d); (map[k] = map[k] || []).push(a); });
+    const tones = { 'Hoje': ['var(--tint-orange)', 'var(--tint-orange-bd)', 'var(--accent)'], 'Ontem': ['var(--tint-blue)', 'var(--tint-blue-bd)', 'var(--brand-text)'], 'Esta semana': ['var(--surface-2)', 'var(--border)', 'var(--brand-text)'], 'Semanas anteriores': ['var(--surface-2)', 'var(--border)', '#64748b'] };
+
+    const tab = this.state.tab;
+    const canPlan = D.canPlan(u);
+    const projTasks = D.tasks().filter(t => t.proj === name);
+    const openT = projTasks.filter(t => !t.done);
+    const lateT = openT.filter(t => D.daysLeft(t.due) < 0);
+
+    /* ── tarefas do projeto ── */
+    const tFilters = { abertas: (t) => !t.done, atrasadas: (t) => !t.done && D.daysLeft(t.due) < 0, concluidas: (t) => t.done };
+    const shownT = projTasks.filter(tFilters[this.state.taskFilter] || tFilters.abertas)
+      .sort((a, b) => D.daysLeft(a.due) - D.daysLeft(b.due));
+
+    const openForm = (t) => this.setState({
+      tConfirm: false,
+      tform: t
+        ? { mode: 'edit', id: t.id, title: t.title, desc: t.desc || '', who: t.who, due: t.due, pri: t.pri, cat: t.cat, error: '' }
+        : { mode: 'new', id: null, title: '', desc: '', who: '', due: D.isoPlus(7), pri: 'média', cat: 'Entrega', error: '' }
+    });
+
+    /* ── workload dos envolvidos ── */
+    const involvedIds = Array.from(new Set(list.map(a => a.who).concat(projTasks.map(t => t.who))));
+    const maxLoad = Math.max(1, ...involvedIds.map(id => openT.filter(t => t.who === id).length));
+    const workload = involvedIds.map(id => {
+      const p = D.person(id);
+      if (!p) return null;
+      const mine = openT.filter(t => t.who === id);
+      const lateN = mine.filter(t => D.daysLeft(t.due) < 0).length;
+      const soonN = mine.filter(t => { const n = D.daysLeft(t.due); return n >= 0 && n <= 3; }).length;
+      const okN = mine.length - lateN - soonN;
+      const recentN = list.filter(a => a.who === id && a.d < 7).length;
+      const seg = (n, color, label) => n ? {
+        count: n, title: n + ' ' + label,
+        style: 'width:' + ((n / maxLoad) * 100) + '%;background:' + color + ';display:flex;align-items:center;justify-content:center;color:#fff;font-size:.7rem;font-weight:700;min-width:22px'
+      } : null;
+      return {
+        name: p.name, role: p.role, ini: p.ini, avatar: D.avatar(p, 34),
+        segments: [seg(lateN, '#dc2626', 'atrasada(s)'), seg(soonN, '#d97706', 'vencendo'), seg(okN, 'var(--brand)', 'no prazo')].filter(Boolean),
+        share: list.filter(a => a.who === id).length + ' de ' + list.length + ' registros do projeto',
+        loadLabel: mine.length === 0 ? 'livre' : mine.length + (mine.length === 1 ? ' tarefa' : ' tarefas'),
+        loadStyle: 'font-size:.82rem;font-weight:700;color:' + (lateN ? '#dc2626' : mine.length >= 3 ? '#d97706' : mine.length ? 'var(--brand)' : '#16a34a'),
+        recent: recentN + ' registros /7d',
+        _n: mine.length
+      };
+    }).filter(Boolean).sort((a, b) => b._n - a._n);
+
+    /* ── calendário do projeto ── */
+    const base = D.dateOf(0);
+    const cursor = new Date(base.getFullYear(), base.getMonth() + this.state.monthOff, 1);
+    const monthNames = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+    const firstDow = cursor.getDay();
+    const daysInMonth = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0).getDate();
+    const todayIso = D.isoPlus(0);
+    const cells = [];
+    for (let i = 0; i < firstDow; i++) cells.push({ num: '', numStyle: 'display:none', items: [], style: 'min-height:92px;min-width:0;border-radius:8px;background:var(--surface-3);border:1px dashed var(--border-soft)' });
+    for (let d = 1; d <= daysInMonth; d++) {
+      const iso = cursor.getFullYear() + '-' + String(cursor.getMonth() + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+      const isToday = iso === todayIso;
+      const dayTasks = projTasks.filter(t => t.due === iso);
+      const dayActs = list.filter(a => D.iso(a.d) === iso);
+      cells.push({
+        num: d,
+        numStyle: 'font-size:.75rem;font-weight:700;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;' +
+          (isToday ? 'background:var(--accent);color:#fff' : 'color:var(--text-muted)'),
+        style: 'min-height:92px;min-width:0;overflow:hidden;padding:7px 8px;border-radius:8px;border:1px solid ' + (isToday ? 'var(--tint-orange-bd)' : 'var(--border-soft)') + ';background:' + (isToday ? 'var(--tint-orange)' : 'var(--surface)'),
+        items: dayTasks.slice(0, 2).map(t => {
+          const info = D.dueInfo(t.due);
+          const p = D.person(t.who);
+          const color = t.done ? '#16a34a' : info.days < 0 ? '#dc2626' : D.cat(t.cat).fg;
+          return {
+            label: '◷ ' + t.title, full: 'Tarefa: ' + t.title + ' · ' + (p ? p.name : ''),
+            style: 'font-size:.68rem;font-weight:600;padding:3px 6px;border-radius:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:' + color +
+              ';background:' + D.soft(color, .1) + ';border-left:2px solid ' + color + (t.done ? ';text-decoration:line-through;opacity:.7' : '')
+          };
+        }).concat(dayActs.slice(0, 2).map(a => ({
+          label: a.title, full: 'Registro: ' + a.title,
+          style: 'font-size:.68rem;padding:3px 6px;border-radius:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text-muted);background:var(--surface-2);border-left:2px solid var(--border-strong)'
+        })))
+      });
+    }
+
+    /* ── gantt do projeto ── */
+    const gsorted = projTasks.slice().sort((a, b) => D.daysLeft(a.due) - D.daysLeft(b.due));
+    const spans = gsorted.map(t => {
+      const end = D.daysLeft(t.due);
+      const dur = { alta: 3, 'média': 6, baixa: 10 }[t.pri] || 5;
+      return { t: t, start: end - dur, end: end };
+    });
+    const minD = Math.min(-7, ...spans.map(s => s.start));
+    const maxD = Math.max(7, ...spans.map(s => s.end));
+    const total = Math.max(1, maxD - minD);
+    const pos = (d) => ((d - minD) / total) * 100;
+    const ticks = [];
+    for (let d = minD; d <= maxD; d += Math.max(2, Math.round(total / 7))) {
+      ticks.push({ label: D.dueLabel(D.isoPlus(d)), style: 'position:absolute;left:' + pos(d) + '%;font-size:.68rem;color:var(--text-faint);white-space:nowrap;font-family:ui-monospace,monospace' });
+    }
+
+    const f = this.state.tform;
+    const tf = f ? {
+      heading: f.mode === 'edit' ? 'Editar tarefa' : 'Nova tarefa em ' + name,
+      saveLabel: f.mode === 'edit' ? 'Salvar tarefa' : 'Criar tarefa',
+      isEdit: f.mode === 'edit', title: f.title, desc: f.desc, due: f.due, minDue: D.isoPlus(0),
+      hasError: !!f.error, error: f.error,
+      onTitle: (e) => this.setT({ title: e.target.value }),
+      onDesc: (e) => this.setT({ desc: e.target.value }),
+      onDue: (e) => this.setT({ due: e.target.value }),
+      people: D.people().filter(p => p.active).map(p => ({
+        label: p.name.split(' ')[0], ini: p.ini,
+        style: D.chip(f.who === p.id) + 'padding:4px 11px 4px 4px;font-size:.78rem;',
+        dot: 'width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:700;color:#fff;background:' + p.color,
+        onClick: () => this.setT({ who: p.id })
+      })),
+      quickDates: [['amanhã', 1], ['em 1 semana', 7], ['em 15 dias', 15], ['em 30 dias', 30]].map(q => ({
+        label: q[0], style: D.chip(f.due === D.isoPlus(q[1])) + 'font-size:.73rem;padding:4px 10px;',
+        onClick: () => this.setT({ due: D.isoPlus(q[1]) })
+      })),
+      cats: D.cats().map(cn => ({
+        label: cn, style: D.catStyle(cn) + ';padding:5px 11px;font-size:.76rem;cursor:pointer' + (f.cat === cn ? ';box-shadow:0 0 0 2px var(--brand)' : ''),
+        onClick: () => this.setT({ cat: cn })
+      })),
+      priorities: ['baixa', 'média', 'alta'].map(p => ({
+        label: p, style: D.chip(f.pri === p) + 'text-transform:capitalize;flex:1;justify-content:center;', onClick: () => this.setT({ pri: p })
+      })),
+      deleteLabel: this.state.tConfirm ? 'Confirmar exclusão' : 'Excluir tarefa',
+      deleteStyle: 'padding:9px 15px;border-radius:6px;font-size:.82rem;font-weight:600;cursor:pointer;border:1.5px solid ' +
+        (this.state.tConfirm ? '#dc2626;background:#dc2626;color:#fff' : 'var(--tint-red-bd);color:#dc2626'),
+      onDelete: () => {
+        if (!this.state.tConfirm) { this.setState({ tConfirm: true }); return; }
+        D.removeTask(f.id);
+        this.setState({ tform: null, tConfirm: false });
+        this.toast('Tarefa excluída', 'Saiu das pendências do projeto', 'error');
+        this.bump();
+      },
+      onSave: () => {
+        if (f.title.trim().length < 4) { this.setT({ error: 'Descreva a tarefa em um título curto.' }); return; }
+        if (!f.who) { this.setT({ error: 'Atribua a tarefa a um responsável.' }); return; }
+        if (!f.due) { this.setT({ error: 'Informe a data máxima de entrega.' }); return; }
+        if (f.mode === 'new' && D.daysLeft(f.due) < 0) { this.setT({ error: 'A data máxima precisa ser hoje ou no futuro.' }); return; }
+        const rec = { title: f.title.trim(), desc: f.desc.trim(), proj: name, who: f.who, due: f.due, pri: f.pri, cat: f.cat, by: u.id };
+        if (f.mode === 'edit') { D.updateTask(f.id, rec); this.toast('Tarefa atualizada', 'prazo ' + D.dueLabel(rec.due)); }
+        else { D.createTask(rec); this.toast('Tarefa criada', (D.person(rec.who) || u).name.split(' ')[0] + ' · prazo ' + D.dueLabel(rec.due)); }
+        this.setState({ tform: null, tConfirm: false, tab: 'tarefas' });
+        this.bump();
+      }
+    } : {};
+
+    return {
+      denied: denied,
+      tabsStyle: denied ? 'display:none' : 'display:flex;gap:2px;align-items:flex-end;border-bottom:1px solid var(--border);flex-wrap:wrap',
+      canPlan: canPlan && !denied,
+      tabs: [['timeline', 'Timeline', '≡', 0], ['tarefas', 'Tarefas', '◷', openT.length], ['workload', 'Workload', '◑', 0], ['calendario', 'Calendário', '▤', 0], ['gantt', 'Gantt', '▭', 0]].map(x => ({
+        label: x[1], icon: x[2], hasCount: x[3] > 0, count: x[3],
+        countStyle: 'font-size:.68rem;font-weight:800;padding:1px 7px;border-radius:20px;background:' + (lateT.length ? 'var(--tint-red);color:#dc2626' : 'var(--tint-orange);color:var(--accent)'),
+        style: 'display:inline-flex;align-items:center;gap:7px;padding:10px 16px;border-radius:8px 8px 0 0;font-size:.82rem;font-weight:600;cursor:pointer;border-bottom:2px solid ' +
+          (tab === x[0] ? 'var(--accent);color:var(--brand-text);background:var(--surface)' : 'transparent;color:var(--text-muted)'),
+        onClick: () => this.setState({ tab: x[0] })
+      })),
+      isTasks: !denied && tab === 'tarefas', isWorkload: !denied && tab === 'workload',
+      isCalendar: !denied && tab === 'calendario', isGantt: !denied && tab === 'gantt',
+      timelineStyle: (!denied && tab === 'timeline') ? 'display:flex;flex-direction:column;gap:22px' : 'display:none',
+      taskSummary: openT.length + ' em aberto · ' + lateT.length + ' atrasada(s) · ' + projTasks.filter(t => t.done).length + ' concluída(s)',
+      taskFilters: [['abertas', 'Em aberto'], ['atrasadas', 'Atrasadas'], ['concluidas', 'Concluídas']].map(x => ({
+        label: x[1], style: D.chip(this.state.taskFilter === x[0]) + 'font-size:.76rem;padding:5px 12px;',
+        onClick: () => this.setState({ taskFilter: x[0] })
+      })),
+      noTasks: shownT.length === 0,
+      tasks: shownT.map(t => {
+        const p = D.person(t.who) || u;
+        const by = D.person(t.by);
+        const info = D.dueInfo(t.due);
+        const cc = D.cat(t.cat);
+        return {
+          title: t.title, cat: t.cat, pri: t.pri, catStyle: D.catStyle(t.cat),
+          who: p.name.split(' ')[0], ini: p.ini, avatar: D.avatar(p, 20),
+          by: by ? by.name.split(' ')[0] : '—',
+          rowStyle: 'display:flex;align-items:center;gap:13px;padding:13px 18px;border-bottom:1px solid var(--border-soft);transition:background .12s;border-left:3px solid ' +
+            (t.done ? 'var(--border)' : info.days < 0 ? '#dc2626' : D.soft(cc.fg, .55)) + ';background:' + (t.done ? 'var(--surface-3)' : info.days < 0 ? 'rgba(220,38,38,.05)' : D.soft(cc.fg, .05)),
+          rowHover: 'background:' + (t.done ? 'var(--surface-2)' : info.days < 0 ? 'rgba(220,38,38,.1)' : D.soft(cc.fg, .12)),
+          titleStyle: 'font-size:.88rem;font-weight:600;line-height:1.4;text-wrap:pretty' + (t.done ? ';text-decoration:line-through;color:var(--text-faint)' : ''),
+          check: t.done ? '✓' : '',
+          checkStyle: 'width:22px;height:22px;flex:0 0 22px;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:.8rem;font-weight:800;' +
+            (t.done ? 'background:#16a34a;border:1.5px solid #16a34a;color:#fff' : 'background:var(--surface);border:1.5px solid var(--border-strong);color:transparent'),
+          onToggle: () => { D.updateTask(t.id, { done: !t.done }); this.toast(t.done ? 'Tarefa reaberta' : 'Tarefa concluída', t.title.slice(0, 46), t.done ? 'error' : 'success'); this.bump(); },
+          priStyle: 'font-size:.72rem;font-weight:700;text-transform:capitalize;color:' + D.priColor(t.pri),
+          dueLabel: t.done ? 'concluída' : info.label, dueDate: D.dueLabel(t.due),
+          dueStyle: 'font-size:.78rem;font-weight:700;white-space:nowrap;color:' + (t.done ? '#16a34a' : info.color),
+          canEdit: canPlan, onEdit: () => openForm(t)
+        };
+      }),
+      workload: workload, noWorkload: workload.length === 0,
+      cal: {
+        monthLabel: monthNames[cursor.getMonth()].replace(/^./, m => m.toUpperCase()) + ' de ' + cursor.getFullYear(),
+        weekdays: ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'], cells: cells,
+        onPrev: () => this.setState(s => ({ monthOff: s.monthOff - 1 })),
+        onNext: () => this.setState(s => ({ monthOff: s.monthOff + 1 })),
+        onToday: () => this.setState({ monthOff: 0 })
+      },
+      gantt: {
+        range: D.dueLabel(D.isoPlus(minD)) + ' → ' + D.dueLabel(D.isoPlus(maxD)) + ' · ' + gsorted.length + ' tarefas',
+        ticks: ticks, empty: gsorted.length === 0,
+        todayLine: 'position:absolute;top:-4px;bottom:-4px;left:' + pos(0) + '%;width:2px;background:var(--accent);opacity:.5',
+        rows: spans.map(s => {
+          const t = s.t;
+          const p = D.person(t.who) || u;
+          const info = D.dueInfo(t.due);
+          const color = t.done ? '#16a34a' : info.days < 0 ? '#dc2626' : 'var(--brand)';
+          return {
+            title: t.title, ini: p.ini, assignee: p.name,
+            titleStyle: 'font-size:.8rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis' + (t.done ? ';text-decoration:line-through;color:var(--text-faint)' : ''),
+            avatar: 'width:18px;height:18px;flex:0 0 18px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:.55rem;font-weight:700;color:#fff;background:' + p.color,
+            barStyle: 'position:absolute;top:5px;height:16px;border-radius:5px;left:' + pos(s.start) + '%;width:' + Math.max(3, pos(s.end) - pos(s.start)) + '%;background:' + color +
+              ';display:flex;align-items:center;padding:0 7px;color:#fff;font-size:.66rem;font-weight:700;white-space:nowrap;overflow:hidden' + (t.done ? ';opacity:.6' : ''),
+            barLabel: D.dueLabel(t.due),
+            tooltip: t.title + ' · ' + p.name + ' · prazo ' + D.dueLabel(t.due) + ' (' + info.label + ')'
+          };
+        })
+      },
+      taskModalOpen: !!f, tf: tf,
+      openTask: () => openForm(null),
+      closeTask: () => this.setState({ tform: null, tConfirm: false }),
+      toastOpen: !!this.state.toast,
+      toast: this.state.toast ? {
+        title: this.state.toast.title, sub: this.state.toast.sub, icon: this.state.toast.kind === 'error' ? '✕' : '✓',
+        style: 'display:flex;align-items:center;gap:12px;padding:13px 18px;border-radius:var(--radius);font-size:.86rem;box-shadow:0 8px 32px rgba(0,0,0,.16);min-width:280px;' +
+          (this.state.toast.kind === 'error' ? 'background:var(--tint-red);border:1px solid var(--tint-red-bd);color:var(--danger-text)' : 'background:var(--brand);border:1px solid var(--brand);color:#fff')
+      } : { style: '' },
+      name: name,
+      newHref: 'atividades.dc.html?nova=1&projeto=' + encodeURIComponent(name),
+      subtitle: D.plural(list.length) + ' · ' + new Set(list.map(a => a.who)).size + ' pessoas envolvidas · início em ' + (list.length ? D.fmt(list[list.length - 1].d) : '—'),
+      people: Array.from(new Set(list.map(a => a.who))).map(id => {
+        const p = D.person(id) || u;
+        return { ini: p.ini, name: p.name, href: 'colaborador.dc.html?id=' + p.id, avatar: D.avatar(p, 30) + ';text-decoration:none' };
+      }),
+      stats: [
+        card('Total', list.length, 'registros no projeto', 'blue'),
+        card('Esta semana', list.filter(a => a.d < 7).length, 'movimentação recente', 'orange'),
+        card('Entregas', list.filter(a => a.cat === 'Entrega').length, 'categoria Entrega', 'green'),
+        card('Correções', list.filter(a => a.cat === 'Correção').length, 'categoria Correção', 'info')
+      ],
+      isEmpty: !denied && tab === 'timeline' && list.length === 0,
+      groups: ['Hoje', 'Ontem', 'Esta semana', 'Semanas anteriores'].filter(k => map[k]).map(k => {
+        const items = map[k]; const t = tones[k];
+        const days = Array.from(new Set(items.map(a => a.d))).sort((x, y) => x - y);
+        return {
+          label: k, count: D.plural(items.length),
+          sub: k === 'Hoje' || k === 'Ontem' ? D.longDate(days[0]) : D.fmt(days[days.length - 1]) + ' — ' + D.fmt(days[0]),
+          headStyle: 'display:flex;align-items:center;gap:10px;padding:11px 18px;background:' + t[0] + ';border-bottom:1px solid ' + t[1] + '',
+          pillStyle: 'font-size:.73rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#fff;border-radius:20px;padding:3px 11px;background:' + t[2],
+          items: items.map(a => {
+            const p = D.person(a.who) || u;
+            return {
+              href: 'atividades.dc.html?editar=' + a.id, time: a.t, title: a.title, desc: a.desc, hasDesc: !!a.desc,
+              cat: a.cat, catStyle: D.catStyle(a.cat), who: p.name, ini: p.ini, miniAvatar: D.avatar(p, 20),
+              date: D.fmt(a.d), dur: a.dur,
+              dotStyle: 'position:absolute;left:3px;top:19px;width:16px;height:16px;border-radius:50%;border:3px solid #fff;background:' + D.cat(a.cat).fg
+            };
+          })
+        };
+      })
+    };
+  }
+}
+
+</script>
+</body>
+</html>

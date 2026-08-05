@@ -1,0 +1,12 @@
+.git
+**/node_modules
+backend/dist
+backend/.env
+backend/.env.*
+backend/storage
+backend/test-results
+backend/playwright-report
+backend/tests/e2e/*-snapshots
+screenshots
+uploads
+*.log

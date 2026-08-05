@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="assets/theme.css">
+<script src="assets/data.js"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);font-family:'Segoe UI',system-ui,-apple-system,sans-serif;color:var(--text);-webkit-font-smoothing:antialiased}
+  a{color:var(--accent);text-decoration:none}
+  a:hover{color:var(--brand-text)}
+  input,textarea,button,select{font-family:inherit;font-size:inherit;color:inherit}
+  @keyframes dvUp{from{transform:translateY(10px);opacity:0}to{transform:translateY(0);opacity:1}}
+  @keyframes dvFade{from{opacity:0}to{opacity:1}}
+  @keyframes dvSk{0%,100%{opacity:.5}50%{opacity:1}}
+  @keyframes dvToast{from{transform:translateY(14px);opacity:0}to{transform:translateY(0);opacity:1}}
+  ::-webkit-scrollbar{width:11px;height:11px}
+  ::-webkit-scrollbar-thumb{background:var(--border-strong);border:3px solid var(--bg);border-radius:8px}
+</style>
+</helmet>
+
+<x-import component-from-global-scope="app-shell" from="./assets/app-shell.js"
+  page="atividades" heading="Atividades" subtitle="Diário da equipe, do mais recente ao mais antigo" hint-size="100%,100%">
+
+  <div slot="actions" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:flex-end">
+    <a href="pesquisa.dc.html" style="display:flex;align-items:center;gap:9px;flex:0 1 280px;min-width:0;max-width:28vw;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;color:var(--text-faint);font-size:.82rem;background:var(--surface-2)" style-hover="border-color:var(--brand-text);color:var(--text-muted)">
+        <span style="font-size:.95rem">⌕</span>
+        <span style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Auditoria</span>
+        <span style="font-family:ui-monospace,monospace;font-size:.68rem;background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:1px 5px">⌘K</span>
+      </a>
+      <div onClick="{{ openNew }}" style="display:inline-flex;align-items:center;gap:7px;padding:10px 16px;border-radius:6px;background:var(--accent);color:#fff;font-size:.85rem;font-weight:600;cursor:pointer;white-space:nowrap" style-hover="filter:brightness(1.08)" style-active="transform:scale(.98)">
+        <span style="font-size:1rem;line-height:1">+</span> Nova atividade
+      </div>
+  </div>
+
+  <main data-screen-label="Lista de Atividades" style="flex:1;padding:26px 28px 64px;max-width:1360px;width:100%;display:flex;flex-direction:column;gap:16px;animation:dvUp .22s ease both">
+
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 18px;display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap">
+        <div style="width:250px;flex:0 1 250px;min-width:180px">
+          <div style="font-size:.7rem;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px">Buscar</div>
+          <input value="{{ q }}" onChange="{{ onQ }}" placeholder="Título, descrição ou tag…" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:6px;font-size:.84rem;outline:none;background:var(--surface)" style-focus="border-color:var(--brand-text)" />
+        </div>
+        <div style="width:160px;flex:0 1 160px">
+          <div style="font-size:.7rem;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px">Período</div>
+          <select value="{{ periodo }}" onChange="{{ onPeriodo }}" style="{{ selectStyle }}">
+            <sc-for list="{{ periodOptions }}" as="o" hint-placeholder-count="4">
+              <option value="{{ o.value }}">{{ o.label }}</option>
+            </sc-for>
+          </select>
+        </div>
+        <div style="width:180px;flex:0 1 180px">
+          <div style="font-size:.7rem;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px">Projeto</div>
+          <select value="{{ proj }}" onChange="{{ onProj }}" style="{{ selectStyle }}">
+            <sc-for list="{{ projOptions }}" as="o" hint-placeholder-count="5">
+              <option value="{{ o.value }}">{{ o.label }}</option>
+            </sc-for>
+          </select>
+        </div>
+        <div style="width:170px;flex:0 1 170px">
+          <div style="font-size:.7rem;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px">Categoria</div>
+          <select value="{{ cat }}" onChange="{{ onCat }}" style="{{ selectStyle }}">
+            <sc-for list="{{ catOptions }}" as="o" hint-placeholder-count="7">
+              <option value="{{ o.value }}">{{ o.label }}</option>
+            </sc-for>
+          </select>
+        </div>
+        <sc-if value="{{ seesAll }}" hint-placeholder-val="{{ true }}">
+          <div style="width:180px;flex:0 1 180px">
+            <div style="font-size:.7rem;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px">Pessoa</div>
+            <select value="{{ who }}" onChange="{{ onWho }}" style="{{ selectStyle }}">
+              <sc-for list="{{ whoOptions }}" as="o" hint-placeholder-count="6">
+                <option value="{{ o.value }}">{{ o.label }}</option>
+              </sc-for>
+            </select>
+          </div>
+        </sc-if>
+        <div style="flex:1;min-width:0"></div>
+        <sc-if value="{{ seesAll }}" hint-placeholder-val="{{ true }}">
+          <div onClick="{{ onlyMine }}" style="{{ mineStyle }}" style-hover="border-color:var(--brand-text)">Só meus registros</div>
+        </sc-if>
+        <div onClick="{{ clearFilters }}" style="font-size:.79rem;color:var(--text-muted);font-weight:600;cursor:pointer;padding:9px 13px;border:1.5px solid var(--border);border-radius:6px;white-space:nowrap" style-hover="border-color:var(--brand-text);color:var(--brand-text)">Limpar</div>
+      </div>
+
+      <sc-if value="{{ hasTasks }}" hint-placeholder-val="{{ false }}">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">
+          <div onClick="{{ toggleTasks }}" style="display:flex;align-items:center;gap:11px;padding:13px 18px;cursor:pointer;background:var(--surface-3);border-bottom:1px solid var(--border)">
+            <span style="{{ tasksIconStyle }}">◷</span>
+            <div style="min-width:0">
+              <div style="font-size:.85rem;font-weight:700">Tarefas pendentes</div>
+              <div style="font-size:.74rem;color:var(--text-muted);margin-top:1px">{{ tasksSummary }}</div>
+            </div>
+            <div style="flex:1"></div>
+            <a href="projetos.dc.html" style="font-size:.77rem;font-weight:600;color:var(--text-muted)" style-hover="color:var(--accent)">gerenciar em Projetos</a>
+            <span style="{{ tasksCaret }}">⌄</span>
+          </div>
+          <sc-if value="{{ tasksOpen }}" hint-placeholder-val="{{ true }}">
+            <div>
+              <sc-for list="{{ tasks }}" as="t" hint-placeholder-count="3">
+                <div style="{{ t.rowStyle }}" style-hover="{{ t.rowHover }}">
+                  <div onClick="{{ t.onToggle }}" style="{{ t.checkStyle }}" title="Marcar como concluída">{{ t.check }}</div>
+                  <div style="flex:1;min-width:0">
+                    <div style="font-size:.85rem;font-weight:600;line-height:1.4;text-wrap:pretty">{{ t.title }}</div>
+                    <div style="display:flex;align-items:center;gap:9px;margin-top:5px;flex-wrap:wrap">
+                      <a href="{{ t.projHref }}" style="font-size:.74rem;font-weight:700;color:var(--brand-text)" style-hover="color:var(--accent)">{{ t.proj }}</a>
+                      <span style="{{ t.catStyle }}">{{ t.cat }}</span>
+                      <span style="display:inline-flex;align-items:center;gap:5px;font-size:.74rem;color:var(--text-muted)">
+                        <span style="{{ t.avatar }}">{{ t.ini }}</span>{{ t.who }}
+                      </span>
+                      <span style="{{ t.priStyle }}">{{ t.pri }}</span>
+                    </div>
+                  </div>
+                  <div style="text-align:right;flex:0 0 auto">
+                    <div style="{{ t.dueStyle }}">{{ t.dueLabel }}</div>
+                    <div style="font-size:.71rem;color:var(--text-faint);margin-top:2px">prazo {{ t.dueDate }}</div>
+                  </div>
+                  <div onClick="{{ t.onRegister }}" style="font-size:.75rem;font-weight:600;color:var(--accent);padding:6px 11px;border:1.5px solid var(--tint-orange-bd);border-radius:6px;background:var(--surface);cursor:pointer;white-space:nowrap;flex:0 0 auto" style-hover="background:var(--surface)5f0">Registrar entrega</div>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+        </div>
+      </sc-if>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <span style="font-size:.78rem;color:var(--text-muted)">{{ resultLine }}</span>
+          <span style="font-size:.73rem;color:var(--text-faint);border-left:1px solid var(--border);padding-left:10px">{{ scopeNote }}</span>
+        </div>
+        <div style="display:flex;gap:7px">
+          <sc-for list="{{ groupModes }}" as="g" hint-placeholder-count="2">
+            <div onClick="{{ g.onClick }}" style="{{ g.style }}">{{ g.label }}</div>
+          </sc-for>
+        </div>
+      </div>
+
+      <sc-if value="{{ loading }}" hint-placeholder-val="{{ false }}">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:8px 20px">
+          <sc-for list="{{ skeletons }}" as="s" hint-placeholder-count="5">
+            <div style="display:flex;gap:14px;padding:16px 0;border-bottom:1px solid var(--border-soft);animation:dvSk 1.2s ease-in-out infinite">
+              <div style="width:34px;height:34px;border-radius:50%;background:var(--border);flex:0 0 34px"></div>
+              <div style="flex:1">
+                <div style="{{ s.bar1 }}"></div>
+                <div style="{{ s.bar2 }}"></div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isEmpty }}" hint-placeholder-val="{{ false }}">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:56px 24px;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center">
+          <div style="width:52px;height:52px;border-radius:calc(var(--radius) + 2px);background:var(--bg);display:flex;align-items:center;justify-content:center;color:var(--text-faint);font-size:1.4rem">◍</div>
+          <div style="font-size:.95rem;font-weight:700">Nenhuma atividade encontrada</div>
+          <div style="font-size:.82rem;color:var(--text-muted);max-width:380px;text-wrap:pretty">Ajuste os filtros ou registre a primeira atividade com este recorte — leva menos de 30 segundos.</div>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <div onClick="{{ clearFilters }}" style="padding:9px 16px;border:1.5px solid var(--brand);border-radius:6px;color:var(--brand-text);font-size:.83rem;font-weight:600;cursor:pointer">Limpar filtros</div>
+            <div onClick="{{ openNew }}" style="padding:9px 16px;background:var(--accent);color:#fff;border-radius:6px;font-size:.83rem;font-weight:600;cursor:pointer">+ Nova atividade</div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ showList }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;gap:0">
+          <sc-for list="{{ groups }}" as="g" hint-placeholder-count="4">
+            <div style="{{ g.wrapStyle }}">
+              <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.05)">
+                <div style="{{ g.headStyle }}">
+                  <span style="{{ g.pillStyle }}">{{ g.label }}</span>
+                  <span style="font-size:.76rem;color:var(--text-muted)">{{ g.sub }}</span>
+                  <div style="flex:1"></div>
+                  <span style="font-size:.75rem;font-weight:600;color:var(--text-faint)">{{ g.count }}</span>
+                  <sc-for list="{{ g.avatars }}" as="m" hint-placeholder-count="3">
+                    <div style="{{ m.avatar }}" title="{{ m.name }}">{{ m.ini }}</div>
+                  </sc-for>
+                </div>
+                <sc-for list="{{ g.items }}" as="a" hint-placeholder-count="3">
+                  <div onClick="{{ a.onOpen }}" style="{{ a.rowStyle }}" style-hover="{{ a.rowHover }}">
+                    <div style="width:70px;flex:0 0 70px;padding:15px 0 15px 15px;font-family:ui-monospace,monospace;font-size:.75rem;color:var(--text-faint)">{{ a.time }}</div>
+                    <div style="width:22px;flex:0 0 22px;position:relative">
+                      <div style="position:absolute;left:10px;top:0;bottom:0;width:2px;background:var(--border)"></div>
+                      <div style="{{ a.dotStyle }}"></div>
+                    </div>
+                    <div style="flex:1;min-width:0;padding:14px 18px 14px 10px;display:flex;gap:12px;align-items:flex-start">
+                      <div style="flex:1;min-width:0">
+                        <div style="font-size:.88rem;font-weight:600;line-height:1.4;text-wrap:pretty">{{ a.title }}</div>
+                        <sc-if value="{{ a.hasDesc }}" hint-placeholder-val="{{ true }}">
+                          <div style="{{ a.descStyle }}">{{ a.desc }}</div>
+                        </sc-if>
+                        <div style="display:flex;align-items:center;gap:9px;margin-top:8px;flex-wrap:wrap">
+                          <span style="{{ a.catStyle }}">{{ a.cat }}</span>
+                          <span style="font-size:.74rem;font-weight:600;color:var(--brand-text)">{{ a.proj }}</span>
+                          <span style="display:inline-flex;align-items:center;gap:5px;font-size:.74rem;color:var(--text-muted)">
+                            <span style="{{ a.miniAvatar }}">{{ a.ini }}</span>{{ a.who }}
+                          </span>
+                          <span style="{{ a.priStyle }}">{{ a.pri }}</span>
+                          <sc-if value="{{ a.hasFiles }}" hint-placeholder-val="{{ false }}">
+                            <span style="display:inline-flex;align-items:center;gap:4px;font-size:.71rem;font-weight:600;color:var(--brand-text);background:var(--surface);border:1px solid var(--tint-blue-bd);border-radius:4px;padding:1px 7px">◇ {{ a.filesLabel }}</span>
+                          </sc-if>
+                          <sc-for list="{{ a.tags }}" as="t" hint-placeholder-count="2">
+                            <span style="font-size:.71rem;color:var(--text-muted);background:var(--surface-2);border:1px solid var(--border);padding:1px 7px;border-radius:4px;font-family:ui-monospace,monospace">{{ t }}</span>
+                          </sc-for>
+                        </div>
+                      </div>
+                      <div style="display:flex;align-items:center;gap:12px;flex:0 0 auto">
+                        <div style="text-align:right">
+                          <div style="font-size:.75rem;color:var(--text-muted);font-weight:600;white-space:nowrap">{{ a.dur }}</div>
+                        </div>
+                        <div onClick="{{ a.onEdit }}" style="font-size:.75rem;color:var(--text-muted);font-weight:600;cursor:pointer;padding:5px 10px;border:1px solid var(--border);border-radius:5px;white-space:nowrap;background:var(--surface)" style-hover="border-color:var(--brand-text);color:var(--brand-text)">Editar</div>
+                      </div>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+              <sc-if value="{{ g.hasNext }}" hint-placeholder-val="{{ false }}">
+                <div style="{{ g.arrowWrap }}">
+                  <div style="width:2px;height:14px;background:var(--border-strong)"></div>
+                  <div style="display:flex;align-items:center;gap:7px;padding:4px 12px;border-radius:20px;background:var(--track);color:var(--text-muted);font-size:.73rem;font-weight:600">
+                    <span style="font-size:.9rem;line-height:1">↓</span> {{ g.nextLabel }}
+                  </div>
+                  <div style="width:2px;height:14px;background:var(--border-strong)"></div>
+                </div>
+              </sc-if>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+    </main>
+</x-import>
+
+<sc-if value="{{ detailOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;inset:0;z-index:65;display:flex;align-items:center;justify-content:center;padding:4vh 20px">
+      <div onClick="{{ closeDetail }}" style="position:absolute;inset:0;background:var(--overlay);animation:dvFade .16s ease both"></div>
+      <div style="position:relative;width:700px;max-width:96vw;max-height:92vh;background:var(--surface);border-radius:calc(var(--radius) + 2px);box-shadow:0 8px 32px rgba(0,0,0,.24);display:flex;flex-direction:column;overflow:hidden;animation:dvUp .18s cubic-bezier(.2,.8,.2,1) both">
+        <div style="{{ detail.headStyle }}">
+          <span style="{{ detail.catStyle }}">{{ detail.cat }}</span>
+          <div style="flex:1"></div>
+          <span style="font-size:.75rem;color:var(--text-muted);font-weight:600">{{ detail.when }}</span>
+          <div onClick="{{ closeDetail }}" style="width:30px;height:30px;border-radius:6px;display:flex;align-items:center;justify-content:center;color:var(--text-muted);cursor:pointer;font-size:1rem" style-hover="background:rgba(255,255,255,.7)">✕</div>
+        </div>
+
+        <div style="flex:1;overflow:auto;padding:20px 24px;display:flex;flex-direction:column;gap:18px">
+          <div style="font-size:1.15rem;font-weight:800;line-height:1.35;text-wrap:pretty">{{ detail.title }}</div>
+
+          <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--surface-2);border:1px solid var(--border);border-radius:8px">
+            <div style="{{ detail.avatar }}">{{ detail.ini }}</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:.85rem;font-weight:700">{{ detail.who }}</div>
+              <div style="font-size:.74rem;color:var(--text-muted)">{{ detail.role }}</div>
+            </div>
+            <a href="{{ detail.personHref }}" style="font-size:.76rem;font-weight:600">ver timeline</a>
+          </div>
+
+          <sc-if value="{{ detail.hasDesc }}" hint-placeholder-val="{{ true }}">
+            <div>
+              <div style="font-size:.72rem;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Descrição</div>
+              <div style="font-size:.88rem;color:var(--text);line-height:1.65;text-wrap:pretty">{{ detail.desc }}</div>
+            </div>
+          </sc-if>
+
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+            <sc-for list="{{ detail.fields }}" as="f" hint-placeholder-count="6">
+              <div style="padding:11px 13px;border:1px solid var(--border-soft);border-radius:8px">
+                <div style="font-size:.69rem;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em">{{ f.label }}</div>
+                <div style="{{ f.valueStyle }}">{{ f.value }}</div>
+              </div>
+            </sc-for>
+          </div>
+
+          <sc-if value="{{ detail.hasTags }}" hint-placeholder-val="{{ false }}">
+            <div>
+              <div style="font-size:.72rem;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:7px">Tags</div>
+              <div style="display:flex;gap:6px;flex-wrap:wrap">
+                <sc-for list="{{ detail.tags }}" as="t" hint-placeholder-count="2">
+                  <span style="font-size:.75rem;color:var(--text-muted);background:var(--surface-2);border:1px solid var(--border);padding:3px 9px;border-radius:5px;font-family:ui-monospace,monospace">{{ t }}</span>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+
+          <div>
+            <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:8px">
+              <span style="font-size:.72rem;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em">Anexos</span>
+              <span style="font-size:.73rem;color:var(--text-faint)">{{ detail.filesNote }}</span>
+            </div>
+            <sc-if value="{{ detail.hasFiles }}" hint-placeholder-val="{{ false }}">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                <sc-for list="{{ detail.files }}" as="file" hint-placeholder-count="2">
+                  <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface-2);border:1px solid var(--border);border-radius:8px">
+                    <span style="{{ file.iconStyle }}">{{ file.ext }}</span>
+                    <div style="flex:1;min-width:0">
+                      <div style="font-size:.8rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ file.name }}</div>
+                      <div style="font-size:.71rem;color:var(--text-faint)">{{ file.size }}</div>
+                    </div>
+                    <span onClick="{{ file.onOpen }}" style="font-size:.75rem;font-weight:600;color:var(--accent);cursor:pointer;white-space:nowrap">abrir</span>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-if>
+            <sc-if value="{{ detail.noFiles }}" hint-placeholder-val="{{ true }}">
+              <div style="padding:18px;border:1px dashed var(--border);border-radius:8px;text-align:center;font-size:.8rem;color:var(--text-faint)">Nenhum anexo neste registro — adicione ao editar.</div>
+            </sc-if>
+          </div>
+        </div>
+
+        <div style="padding:14px 24px;border-top:1px solid var(--border);background:var(--surface-2);display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <a href="{{ detail.projHref }}" style="font-size:.8rem;font-weight:600;padding:9px 14px;border:1.5px solid var(--border);border-radius:6px;color:var(--text-muted)" style-hover="border-color:var(--brand-text);color:var(--brand-text)">Abrir projeto</a>
+          <div style="flex:1"></div>
+          <div onClick="{{ closeDetail }}" style="font-size:.82rem;font-weight:600;padding:9px 14px;border:1.5px solid var(--border);border-radius:6px;color:var(--text-muted);cursor:pointer" style-hover="border-color:var(--brand-text);color:var(--brand-text)">Fechar</div>
+          <div onClick="{{ detail.onEdit }}" style="font-size:.85rem;font-weight:700;padding:10px 18px;background:var(--accent);color:#fff;border-radius:6px;cursor:pointer" style-hover="filter:brightness(1.08)">Editar atividade</div>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ drawerOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;inset:0;z-index:70;display:flex;align-items:center;justify-content:center;padding:4vh 20px">
+      <div onClick="{{ closeDrawer }}" style="position:absolute;inset:0;background:var(--overlay);animation:dvFade .16s ease both"></div>
+      <div style="position:relative;width:720px;max-width:96vw;max-height:92vh;background:var(--surface);border-radius:calc(var(--radius) + 2px);box-shadow:0 8px 32px rgba(0,0,0,.24);display:flex;flex-direction:column;overflow:hidden;animation:dvUp .18s cubic-bezier(.2,.8,.2,1) both">
+        <div style="padding:18px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px">
+          <div style="flex:1">
+            <div style="font-size:.98rem;font-weight:700">{{ form.heading }}</div>
+            <div style="font-size:.74rem;color:var(--text-muted);margin-top:2px">{{ form.subheading }}</div>
+          </div>
+          <div onClick="{{ closeDrawer }}" style="width:30px;height:30px;border-radius:6px;display:flex;align-items:center;justify-content:center;color:var(--text-muted);cursor:pointer;font-size:1rem" style-hover="background:var(--bg)">✕</div>
+        </div>
+
+        <div style="flex:1;overflow:auto;padding:22px 24px;display:flex;flex-direction:column;gap:18px">
+          <div style="display:flex;align-items:center;gap:11px;padding:11px 13px;background:var(--surface-2);border:1px solid var(--border);border-radius:8px">
+            <div style="{{ form.userAvatar }}">{{ form.userIni }}</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:.73rem;color:var(--text-muted)">Registrando como</div>
+              <div style="font-size:.85rem;font-weight:700">{{ form.userName }}</div>
+            </div>
+            <a href="usuario.dc.html" style="font-size:.74rem;font-weight:600">trocar</a>
+          </div>
+
+          <sc-if value="{{ form.hasError }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;gap:10px;padding:11px 13px;border-radius:6px;font-size:.82rem;background:var(--tint-red);border:1px solid var(--tint-red-bd);color:var(--danger-text)">✕ {{ form.error }}</div>
+          </sc-if>
+
+          <div>
+            <div style="font-size:.77rem;font-weight:700;margin-bottom:7px">Projeto</div>
+            <input value="{{ form.project }}" onChange="{{ onFormProject }}" placeholder="Digite para buscar ou criar…" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:6px;font-size:.88rem;outline:none" style-focus="border-color:var(--brand-text)" />
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">
+              <sc-for list="{{ form.projectSug }}" as="s" hint-placeholder-count="4">
+                <div onClick="{{ s.onClick }}" style="{{ s.style }}" style-hover="border-color:var(--brand-text)">{{ s.name }}</div>
+              </sc-for>
+            </div>
+          </div>
+
+          <div>
+            <div style="font-size:.77rem;font-weight:700;margin-bottom:7px">Categoria</div>
+            <div style="display:flex;flex-wrap:wrap;gap:7px">
+              <sc-for list="{{ form.cats }}" as="c" hint-placeholder-count="7">
+                <div onClick="{{ c.onClick }}" style="{{ c.style }}">{{ c.name }} <span style="font-family:ui-monospace,monospace;opacity:.55;font-size:.68rem">{{ c.kbd }}</span></div>
+              </sc-for>
+            </div>
+          </div>
+
+          <div>
+            <div style="font-size:.77rem;font-weight:700;margin-bottom:7px">Título da atividade</div>
+            <input value="{{ form.title }}" onChange="{{ onFormTitle }}" ref="{{ titleRef }}" placeholder="Ex.: Finalizei o filtro de período no relatório" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:6px;font-size:.92rem;font-weight:600;outline:none" style-focus="border-color:var(--brand-text)" />
+          </div>
+
+          <div>
+            <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:7px">
+              <span style="font-size:.77rem;font-weight:700">Descrição</span>
+              <span style="font-size:.72rem;color:var(--text-faint)">opcional</span>
+            </div>
+            <textarea value="{{ form.desc }}" onChange="{{ onFormDesc }}" placeholder="Detalhes, decisões tomadas, links, aprendizados…" style="width:100%;min-height:78px;padding:10px 12px;border:1.5px solid var(--border);border-radius:6px;font-size:.86rem;outline:none;resize:vertical;line-height:1.5" style-focus="border-color:var(--brand-text)"></textarea>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div>
+              <div style="font-size:.77rem;font-weight:700;margin-bottom:7px">Data</div>
+              <input type="date" value="{{ form.date }}" onChange="{{ onFormDate }}" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:6px;font-size:.85rem;outline:none" style-focus="border-color:var(--brand-text)" />
+            </div>
+            <div>
+              <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:7px">
+                <span style="font-size:.77rem;font-weight:700">Duração</span>
+                <span style="font-size:.72rem;color:var(--text-faint)">opcional</span>
+              </div>
+              <input value="{{ form.dur }}" onChange="{{ onFormDur }}" placeholder="2h 30m" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:6px;font-size:.85rem;outline:none" style-focus="border-color:var(--brand-text)" />
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start">
+            <div>
+              <div style="font-size:.77rem;font-weight:700;margin-bottom:7px">Prioridade</div>
+              <div style="display:flex;gap:7px">
+                <sc-for list="{{ form.priorities }}" as="p" hint-placeholder-count="3">
+                  <div onClick="{{ p.onClick }}" style="{{ p.style }}">{{ p.label }}</div>
+                </sc-for>
+              </div>
+            </div>
+            <div>
+              <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:7px">
+                <span style="font-size:.77rem;font-weight:700">Anexos</span>
+                <span style="font-size:.72rem;color:var(--text-faint)">print, log, PR, documento</span>
+              </div>
+              <label style="display:flex;align-items:center;justify-content:center;gap:8px;padding:11px;border:1.5px dashed var(--border-strong);border-radius:8px;font-size:.81rem;font-weight:600;color:var(--text-muted);cursor:pointer" style-hover="border-color:var(--accent);color:var(--accent)">
+                <span style="font-size:1rem;line-height:1">+</span> Adicionar anexo
+                <input type="file" multiple="multiple" onChange="{{ onPickFiles }}" style="display:none" />
+              </label>
+              <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px">
+                <sc-for list="{{ form.files }}" as="file" hint-placeholder-count="2">
+                  <div style="display:flex;align-items:center;gap:9px;padding:7px 10px;background:var(--surface-2);border:1px solid var(--border);border-radius:6px">
+                    <span style="{{ file.iconStyle }}">{{ file.ext }}</span>
+                    <div style="flex:1;min-width:0">
+                      <div style="font-size:.78rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ file.name }}</div>
+                      <div style="font-size:.7rem;color:var(--text-faint)">{{ file.size }}</div>
+                    </div>
+                    <span onClick="{{ file.onRemove }}" style="font-size:.78rem;color:#dc2626;font-weight:600;cursor:pointer">✕</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="padding:16px 24px;border-top:1px solid var(--border);background:var(--surface-2);display:flex;flex-direction:column;gap:10px">
+          <div onClick="{{ save }}" style="width:100%;padding:13px;background:var(--accent);color:#fff;border-radius:6px;font-size:.92rem;font-weight:700;text-align:center;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px" style-hover="filter:brightness(1.08)" style-active="transform:scale(.99)">
+            {{ form.saveLabel }} <span style="font-family:ui-monospace,monospace;font-size:.72rem;opacity:.8">⌘↵</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <div onClick="{{ saveAndNext }}" style="flex:1;padding:10px;border:1.5px solid var(--brand);color:var(--brand-text);border-radius:6px;font-size:.83rem;font-weight:600;text-align:center;cursor:pointer" style-hover="background:var(--tint-blue)">Salvar e registrar outra</div>
+            <sc-if value="{{ form.isEdit }}" hint-placeholder-val="{{ false }}">
+              <div onClick="{{ remove }}" style="padding:10px 14px;border:1.5px solid var(--tint-red-bd);color:#dc2626;border-radius:6px;font-size:.83rem;font-weight:600;cursor:pointer" style-hover="background:var(--tint-red)">Excluir</div>
+            </sc-if>
+          </div>
+          <div style="font-size:.71rem;color:var(--text-faint);text-align:center">Esc para fechar · Tab entre campos · categoria pelo número</div>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ toastOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;right:24px;bottom:24px;z-index:80;animation:dvToast .2s ease both">
+      <div style="{{ toast.style }}">
+        <span style="font-weight:700">{{ toast.icon }}</span>
+        <div>
+          <div style="font-weight:600">{{ toast.title }}</div>
+          <div style="font-size:.76rem;opacity:.8">{{ toast.sub }}</div>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:1000}}">
+class Component extends DCLogic {
+  state = { userMenu: false,
+    ready: false, collapsed: false, loading: true, grouping: 'periodo',
+    who: '', proj: '', cat: '', q: '', periodo: '', form: null, detail: null, toast: null, tick: 0, tasksOpen: true
+  };
+
+  componentDidMount() {
+    this.t = setInterval(() => {
+      if (!window.DV) return;
+      clearInterval(this.t);
+      const p = new URLSearchParams(window.location.search);
+      const patch = { ready: true };
+      if (p.get('pessoa')) patch.who = p.get('pessoa');
+      if (p.get('projeto') && !p.get('nova')) patch.proj = p.get('projeto');
+      if (p.get('cat')) patch.cat = p.get('cat');
+      if (p.get('q')) patch.q = p.get('q');
+      if (p.get('periodo')) patch.periodo = p.get('periodo');
+      this.setState(patch);
+      if (p.get('nova')) this.openNew(p.get('projeto') || '');
+      if (p.get('editar')) {
+        const a = DV.acts().find(x => x.id === p.get('editar'));
+        if (a) this.openEdit(a);
+      }
+      setTimeout(() => this.setState({ loading: false }), 380);
+    }, 25);
+
+    this.onKey = (e) => {
+      const typing = /input|textarea|select/i.test((e.target && e.target.tagName) || '');
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); window.location.href = 'pesquisa.dc.html'; return; }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && this.state.form) { e.preventDefault(); this.commit(false); return; }
+      if (e.key === 'Escape') { this.setState({ form: null, detail: null }); return; }
+      if (!typing && e.key.toLowerCase() === 'n' && !this.state.form) { e.preventDefault(); this.openNew(); return; }
+      if (this.state.form && !typing && /^[1-9]$/.test(e.key)) {
+        const c = DV.cats()[parseInt(e.key, 10) - 1];
+        if (c) this.setF('cat', c);
+      }
+    };
+    window.addEventListener('keydown', this.onKey);
+  }
+  componentWillUnmount() { clearInterval(this.t); window.removeEventListener('keydown', this.onKey); }
+
+  openNew(preProject) {
+    const u = DV.user();
+    this.setState({
+      detail: null,
+      form: { mode: 'new', id: null, project: preProject || this.state.proj || DV.ui().defaultProject || '', cat: null, title: '', desc: '', date: DV.iso(0), dur: '', pri: 'média', error: '', who: u.id, files: [] }
+    });
+  }
+  openEdit(a) {
+    this.setState({
+      detail: null,
+      form: { mode: 'edit', id: a.id, project: a.proj, cat: a.cat, title: a.title, desc: a.desc, date: DV.iso(a.d), dur: a.dur === '—' ? '' : a.dur, pri: a.pri, error: '', who: a.who, files: (a.files || []).slice() }
+    });
+  }
+  setF(k, v) {
+    const patch = { [k]: v };
+    if (k !== 'error') patch.error = '';
+    this.setState(s => ({ form: Object.assign({}, s.form, patch) }));
+  }
+  toast(title, sub, kind) {
+    clearTimeout(this._tt);
+    this.setState({ toast: { title: title, sub: sub, kind: kind || 'success' } });
+    this._tt = setTimeout(() => this.setState({ toast: null }), 3000);
+  }
+  commit(keepOpen) {
+    const f = this.state.form;
+    if (!f) return;
+    if (!f.project.trim()) { this.setF('error', 'Informe o projeto.'); return; }
+    if (!f.cat) { this.setF('error', 'Escolha uma categoria.'); return; }
+    if (f.title.trim().length < 4) { this.setF('error', 'Descreva a atividade em um título curto.'); return; }
+    const rec = {
+      who: f.who, proj: f.project.trim(), cat: f.cat, title: f.title.trim(), desc: f.desc.trim(),
+      d: DV.offsetOf(f.date), dur: f.dur.trim() || '—', pri: f.pri, tags: [], files: (f.files || []).slice()
+    };
+    if (f.mode === 'edit') {
+      DV.update(f.id, rec);
+      this.toast('Atividade atualizada', rec.proj + ' · ' + rec.cat, 'success');
+    } else {
+      rec.t = new Date().toTimeString().slice(0, 5);
+      DV.create(rec);
+      if (f.fromTask) DV.updateTask(f.fromTask, { done: true });
+      this.toast('Atividade registrada', rec.proj + ' · ' + rec.cat + (f.fromTask ? ' · tarefa concluída' : ''), 'success');
+    }
+    this.setState(s => ({
+      tick: s.tick + 1,
+      form: keepOpen ? { mode: 'new', id: null, project: f.project, cat: null, title: '', desc: '', date: f.date, dur: '', pri: 'média', error: '', who: f.who, files: [] } : null
+    }));
+  }
+
+  renderVals() {
+    const D = window.DV;
+    if (!D) return { nav: [], sb: {}, u: {}, form: { cats: [], priorities: [], projectSug: [], files: [] }, detail: { fields: [], files: [], tags: [] }, groups: [], groupModes: [], skeletons: [], periodOptions: [], projOptions: [], catOptions: [], whoOptions: [] };
+    const st = this.state;
+    const c = st.collapsed;
+    const u = D.user();
+    const seesAll = D.seesAll(u);
+    const acts = D.visibleActs(u);
+    const people = seesAll ? D.people() : [u];
+    const catList = D.cats();
+    const projects = D.projects();
+
+    const periodLimit = { hoje: 1, ontem: 2, semana: 7, mes: 30 }[st.periodo] || null;
+    const filtered = acts.filter(a =>
+      (!periodLimit || a.d < periodLimit) &&
+      (!st.who || a.who === st.who) && (!st.proj || a.proj === st.proj) && (!st.cat || a.cat === st.cat) &&
+      (!st.q || (a.title + ' ' + a.desc + ' ' + a.tags.join(' ')).toLowerCase().indexOf(st.q.toLowerCase()) > -1)
+    );
+
+    const selectStyle = 'width:100%;padding:9px 10px;border:1.5px solid var(--border);border-radius:6px;font-size:.84rem;background:var(--surface);outline:none;cursor:pointer;appearance:none;background-image:linear-gradient(45deg,transparent 50%,#94a3b8 50%),linear-gradient(135deg,#94a3b8 50%,transparent 50%);background-position:calc(100% - 15px) 52%,calc(100% - 10px) 52%;background-size:5px 5px,5px 5px;background-repeat:no-repeat';
+
+    const item = (a) => {
+      const p = D.person(a.who) || people[0];
+      const cc = D.cat(a.cat);
+      return {
+        time: a.t, title: a.title, desc: a.desc, hasDesc: !!a.desc,
+        who: p.name, ini: p.ini, miniAvatar: D.avatar(p, 20),
+        proj: a.proj, cat: a.cat, catStyle: D.catStyle(a.cat),
+        dotStyle: 'position:absolute;left:3px;top:19px;width:16px;height:16px;border-radius:50%;border:3px solid ' + D.soft(cc.fg, .06) + ';background:' + cc.fg,
+        rowStyle: 'display:flex;align-items:stretch;border-bottom:1px solid var(--border-soft);transition:background .12s;cursor:pointer;border-left:3px solid ' + D.soft(cc.fg, .55) + ';background:' + D.soft(cc.fg, .06),
+        rowHover: 'background:' + D.soft(cc.fg, .14),
+        descStyle: 'font-size:.8rem;color:var(--text-muted);line-height:1.55;margin-top:4px;text-wrap:pretty' + (D.ui().density === 'compacto' ? ';display:none' : ''),
+        dur: a.dur, pri: a.pri, tags: a.tags,
+        hasFiles: !!(a.files && a.files.length),
+        filesLabel: (a.files || []).length === 1 ? '1 anexo' : (a.files || []).length + ' anexos',
+        priStyle: 'font-size:.72rem;font-weight:600;text-transform:capitalize;color:' + D.priColor(a.pri),
+        onOpen: () => this.setState({ detail: a.id }),
+        onEdit: (e) => { if (e && e.stopPropagation) e.stopPropagation(); this.openEdit(a); }
+      };
+    };
+
+    /* agrupamento: por dia (com zigue-zague) ou por projeto */
+    const byProject = st.grouping === 'projeto';
+    const map = {}; const order = [];
+    filtered.forEach(a => {
+      const k = byProject ? a.proj : String(a.d);
+      if (!map[k]) { map[k] = []; order.push(k); }
+      map[k].push(a);
+    });
+    const seq = byProject ? order : order.slice().sort((x, y) => Number(x) - Number(y));
+    const dayLabel = (d) => d === 0 ? 'Hoje' : d === 1 ? 'Ontem' : D.longDate(d).split(',')[0].replace(/^./, m => m.toUpperCase());
+    const groups = seq.map((k, idx) => {
+      const list = map[k];
+      const d = byProject ? null : Number(k);
+      const left = idx % 2 === 0;
+      const tone = byProject
+        ? ['var(--surface-2)', 'var(--border)', 'var(--brand-text)']
+        : d === 0 ? ['var(--tint-orange)', 'var(--tint-orange-bd)', 'var(--accent)'] : d === 1 ? ['var(--tint-blue)', 'var(--tint-blue-bd)', 'var(--brand-text)'] : ['var(--surface-2)', 'var(--border)', '#64748b'];
+      const nextKey = seq[idx + 1];
+      return {
+        label: byProject ? k : dayLabel(d),
+        sub: byProject
+          ? new Set(list.map(a => a.who)).size + ' pessoas · último em ' + D.fmt(list[0].d)
+          : D.fmt(d) + ' de 2026',
+        count: D.plural(list.length),
+        wrapStyle: byProject
+          ? 'width:100%;display:flex;flex-direction:column;margin-bottom:20px'
+          : 'width:50%;min-width:420px;display:flex;flex-direction:column;' + (left ? 'margin-right:auto' : 'margin-left:auto'),
+        headStyle: 'display:flex;align-items:center;gap:10px;padding:11px 18px;background:' + tone[0] + ';border-bottom:1px solid ' + tone[1] + '',
+        pillStyle: 'font-size:.73rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#fff;border-radius:20px;padding:3px 11px;background:' + tone[2],
+        avatars: Array.from(new Set(list.map(a => a.who))).slice(0, 5).map(id => {
+          const p = D.person(id) || people[0];
+          return { ini: p.ini, name: p.name, avatar: D.avatar(p, 22) };
+        }),
+        items: list.map(item),
+        hasNext: !byProject && nextKey !== undefined,
+        nextLabel: nextKey === undefined ? '' : (Number(nextKey) - Number(k) > 1 ? dayLabel(Number(nextKey)) + ' · ' + D.fmt(Number(nextKey)) : 'dia anterior · ' + dayLabel(Number(nextKey))),
+        arrowWrap: 'display:flex;flex-direction:column;align-items:center;gap:0;padding:8px 0;' + (left ? 'margin-left:auto;margin-right:-8px' : 'margin-right:auto;margin-left:-8px')
+      };
+    });
+
+    /* modal de detalhe */
+    const da = filtered.concat(acts).find(a => a.id === st.detail);
+    const dp = da ? (D.person(da.who) || u) : null;
+    const detail = da ? {
+      title: da.title, cat: da.cat, catStyle: D.catStyle(da.cat) + ';padding:4px 12px;font-size:.76rem',
+      headStyle: 'display:flex;align-items:center;gap:12px;padding:16px 20px 16px 24px;border-bottom:1px solid ' + D.cat(da.cat).bd + ';background:' + D.soft(D.cat(da.cat).fg, .1),
+      when: D.longDate(da.d) + ' · ' + da.t,
+      who: dp.name, role: dp.role, ini: dp.ini, avatar: D.avatar(dp, 38),
+      personHref: 'colaborador.dc.html?id=' + dp.id,
+      projHref: 'projeto.dc.html?p=' + encodeURIComponent(da.proj),
+      hasDesc: !!da.desc, desc: da.desc,
+      fields: [
+        { label: 'Projeto', value: da.proj, valueStyle: 'font-size:.85rem;font-weight:700;color:var(--brand-text);margin-top:4px' },
+        { label: 'Categoria', value: da.cat, valueStyle: 'font-size:.85rem;font-weight:600;margin-top:4px;color:' + D.cat(da.cat).fg },
+        { label: 'Data', value: D.fmt(da.d) + ' · ' + da.t, valueStyle: 'font-size:.85rem;font-weight:600;margin-top:4px' },
+        { label: 'Duração', value: da.dur, valueStyle: 'font-size:.85rem;font-weight:600;margin-top:4px' },
+        { label: 'Prioridade', value: da.pri, valueStyle: 'font-size:.85rem;font-weight:700;margin-top:4px;text-transform:capitalize;color:' + D.priColor(da.pri) },
+        { label: 'Registro', value: '#' + String(da.id).replace(/^\D+/, ''), valueStyle: 'font-size:.85rem;font-weight:600;margin-top:4px;font-family:ui-monospace,monospace;color:var(--text-muted)' }
+      ],
+      hasTags: !!(da.tags && da.tags.length), tags: da.tags || [],
+      hasFiles: !!(da.files && da.files.length), noFiles: !(da.files && da.files.length),
+      filesNote: (da.files || []).length ? (da.files || []).length + ' arquivo(s)' : 'nenhum arquivo',
+      files: (da.files || []).map(fl => ({
+        name: fl.name, size: fl.size,
+        ext: (fl.name.split('.').pop() || '?').slice(0, 4).toUpperCase(),
+        iconStyle: 'width:38px;flex:0 0 38px;text-align:center;font-size:.62rem;font-weight:800;color:var(--brand-text);background:var(--tint-blue);border:1px solid var(--tint-blue-bd);border-radius:5px;padding:5px 0',
+        onOpen: () => this.toast('Anexo do protótipo', fl.name + ' seria aberto do storage', 'error')
+      })),
+      onEdit: () => this.openEdit(da)
+    } : { fields: [], files: [], tags: [] };
+
+    const f = st.form;
+    const form = f ? {
+      heading: f.mode === 'edit' ? 'Editar atividade' : 'Nova atividade',
+      subheading: f.mode === 'edit' ? 'Ajuste o registro e salve' : 'Quatro campos, um atalho, menos de 30 segundos',
+      isEdit: f.mode === 'edit', saveLabel: f.mode === 'edit' ? 'Salvar alterações' : 'Salvar atividade',
+      hasError: !!f.error, error: f.error,
+      project: f.project, title: f.title, desc: f.desc, date: f.date, dur: f.dur,
+      userName: (D.person(f.who) || u).name, userIni: (D.person(f.who) || u).ini, userAvatar: D.avatar(D.person(f.who) || u, 34),
+      projectSug: projects.filter(p => !f.project.trim() || p.toLowerCase().indexOf(f.project.trim().toLowerCase()) > -1).slice(0, 5).map(p => ({
+        name: p, style: D.chip(f.project === p) + 'font-size:.76rem;padding:4px 10px;', onClick: () => this.setF('project', p)
+      })),
+      cats: catList.map((cn, i) => ({
+        name: cn, kbd: String(i + 1),
+        style: D.catStyle(cn) + ';padding:6px 12px;font-size:.79rem;cursor:pointer' + (f.cat === cn ? ';box-shadow:0 0 0 2px var(--brand)' : ''),
+        onClick: () => this.setF('cat', cn)
+      })),
+      priorities: ['baixa', 'média', 'alta'].map(p => ({
+        label: p, style: D.chip(f.pri === p) + 'text-transform:capitalize;flex:1;justify-content:center;', onClick: () => this.setF('pri', p)
+      })),
+      files: (f.files || []).map((fl, i) => ({
+        name: fl.name, size: fl.size,
+        ext: (fl.name.split('.').pop() || '?').slice(0, 4).toUpperCase(),
+        iconStyle: 'width:34px;flex:0 0 34px;text-align:center;font-size:.6rem;font-weight:800;color:var(--brand-text);background:var(--tint-blue);border:1px solid var(--tint-blue-bd);border-radius:4px;padding:3px 0',
+        onRemove: () => this.setState(s => ({ form: Object.assign({}, s.form, { files: s.form.files.filter((x, j) => j !== i) }) }))
+      }))
+    } : { cats: [], priorities: [], projectSug: [], files: [] };
+
+    /* ── tarefas planejadas visíveis para o usuário ── */
+    const myTasks = D.tasks()
+      .filter(t => !t.done && (seesAll ? true : t.who === u.id))
+      .filter(t => (!st.proj || t.proj === st.proj) && (!st.who || t.who === st.who))
+      .sort((a, b) => D.daysLeft(a.due) - D.daysLeft(b.due));
+    const lateCount = myTasks.filter(t => D.daysLeft(t.due) < 0).length;
+
+    return {
+      hasTasks: myTasks.length > 0,
+      tasksOpen: st.tasksOpen,
+      toggleTasks: () => this.setState(s => ({ tasksOpen: !s.tasksOpen })),
+      tasksCaret: 'font-size:.9rem;color:var(--text-faint);transition:transform .15s;display:inline-block;transform:rotate(' + (st.tasksOpen ? '180deg' : '0deg') + ')',
+      tasksIconStyle: 'width:28px;height:28px;flex:0 0 28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.85rem;' +
+        (lateCount ? 'background:var(--tint-red);color:#dc2626;border:1px solid var(--tint-red-bd)' : 'background:var(--surface)5f0;color:var(--accent);border:1px solid var(--tint-orange-bd)'),
+      tasksSummary: myTasks.length + ' em aberto' + (lateCount ? ' · ' + lateCount + ' atrasada(s)' : '') +
+        (seesAll ? ' · da equipe' : ' · atribuídas a você'),
+      tasks: myTasks.map(t => {
+        const p = D.person(t.who) || u;
+        const info = D.dueInfo(t.due);
+        const cc = D.cat(t.cat);
+        return {
+          title: t.title, proj: t.proj, cat: t.cat, pri: t.pri, catStyle: D.catStyle(t.cat),
+          projHref: 'projeto.dc.html?p=' + encodeURIComponent(t.proj),
+          who: p.name.split(' ')[0], ini: p.ini, avatar: D.avatar(p, 20),
+          rowStyle: 'display:flex;align-items:center;gap:13px;padding:12px 18px;border-bottom:1px solid var(--border-soft);transition:background .12s;border-left:3px solid ' +
+            (info.days < 0 ? '#dc2626' : D.soft(cc.fg, .55)) + ';background:' + (info.days < 0 ? 'rgba(220,38,38,.05)' : D.soft(cc.fg, .05)),
+          rowHover: 'background:' + (info.days < 0 ? 'rgba(220,38,38,.1)' : D.soft(cc.fg, .12)),
+          check: '', checkStyle: 'width:22px;height:22px;flex:0 0 22px;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:.8rem;font-weight:800;background:var(--surface);border:1.5px solid var(--border-strong);color:transparent',
+          onToggle: () => { D.updateTask(t.id, { done: true }); this.toast('Tarefa concluída', t.title.slice(0, 46)); this.setState(s => ({ tick: s.tick + 1 })); },
+          priStyle: 'font-size:.72rem;font-weight:700;text-transform:capitalize;color:' + D.priColor(t.pri),
+          dueLabel: info.label, dueDate: D.dueLabel(t.due),
+          dueStyle: 'font-size:.78rem;font-weight:700;white-space:nowrap;color:' + info.color,
+          onRegister: () => this.setState({
+            detail: null,
+            form: { mode: 'new', id: null, project: t.proj, cat: t.cat, title: t.title, desc: t.desc || '', date: D.iso(0), dur: '', pri: t.pri, error: '', who: t.who, files: [], fromTask: t.id }
+          })
+        };
+      }),
+      seesAll: seesAll,
+      scopeNote: seesAll
+        ? 'Você vê os registros de toda a equipe (' + D.levelLabel(u) + ').'
+        : 'Seu nível de acesso (' + D.levelLabel(u) + ') mostra apenas os seus próprios registros.',
+      selectStyle: selectStyle,
+      q: st.q, onQ: (e) => this.setState({ q: e.target.value }),
+      periodo: st.periodo, proj: st.proj, cat: st.cat, who: st.who,
+      onPeriodo: (e) => this.setState({ periodo: e.target.value }),
+      onProj: (e) => this.setState({ proj: e.target.value }),
+      onCat: (e) => this.setState({ cat: e.target.value }),
+      onWho: (e) => this.setState({ who: e.target.value }),
+      periodOptions: [['', 'Todo o período'], ['hoje', 'Hoje'], ['ontem', 'Hoje e ontem'], ['semana', 'Últimos 7 dias'], ['mes', 'Últimos 30 dias']].map(o => ({ value: o[0], label: o[1] })),
+      projOptions: [{ value: '', label: 'Todos os projetos' }].concat(projects.map(p => ({ value: p, label: p }))),
+      catOptions: [{ value: '', label: 'Todas as categorias' }].concat(catList.map(cn => ({ value: cn, label: cn }))),
+      whoOptions: [{ value: '', label: 'Toda a equipe' }].concat(people.map(p => ({ value: p.id, label: p.name }))),
+      mineStyle: D.chip(st.who === u.id) + 'padding:9px 13px;',
+      onlyMine: () => this.setState({ who: st.who === u.id ? '' : u.id }),
+      clearFilters: () => this.setState({ who: '', proj: '', cat: '', q: '', periodo: '' }),
+      groupModes: [['periodo', 'Por dia'], ['projeto', 'Por projeto']].map(g => ({
+        label: g[1], style: D.chip(st.grouping === g[0]) + 'font-size:.76rem;padding:5px 12px;',
+        onClick: () => this.setState({ grouping: g[0] })
+      })),
+      resultLine: D.plural(filtered.length) + ' · ' + new Set(filtered.map(a => a.who)).size + ' pessoas · ' + new Set(filtered.map(a => a.proj)).size + ' projetos',
+      loading: st.loading,
+      isEmpty: !st.loading && filtered.length === 0,
+      showList: !st.loading && filtered.length > 0,
+      skeletons: [0, 1, 2, 3, 4].map(i => ({
+        bar1: 'height:11px;background:var(--border);border-radius:6px;width:' + (68 - i * 6) + '%',
+        bar2: 'height:9px;background:var(--border-soft);border-radius:6px;width:' + (42 - i * 4) + '%;margin-top:9px'
+      })),
+      groups: groups,
+      detailOpen: !!da, detail: detail,
+      closeDetail: () => this.setState({ detail: null }),
+      drawerOpen: !!f, form: form,
+      openNew: () => this.openNew(),
+      closeDrawer: () => this.setState({ form: null }),
+      titleRef: (el) => { if (el && !this._focused) { this._focused = true; setTimeout(() => { el.focus(); this._focused = false; }, 40); } },
+      save: () => this.commit(false),
+      saveAndNext: () => this.commit(true),
+      remove: () => {
+        DV.remove(f.id);
+        this.setState(s => ({ form: null, detail: null, tick: s.tick + 1 }));
+        this.toast('Registro excluído', 'A atividade saiu da timeline', 'error');
+      },
+      onPickFiles: (e) => {
+        const picked = Array.from(e.target.files || []).map(fl => ({
+          name: fl.name,
+          size: fl.size > 1048576 ? (fl.size / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(fl.size / 1024)) + ' KB'
+        }));
+        e.target.value = '';
+        if (picked.length) this.setState(s => ({ form: Object.assign({}, s.form, { files: (s.form.files || []).concat(picked), error: '' }) }));
+      },
+      onFormProject: (e) => this.setF('project', e.target.value),
+      onFormTitle: (e) => this.setF('title', e.target.value),
+      onFormDesc: (e) => this.setF('desc', e.target.value),
+      onFormDate: (e) => this.setF('date', e.target.value),
+      onFormDur: (e) => this.setF('dur', e.target.value),
+      toastOpen: !!st.toast,
+      toast: st.toast ? {
+        title: st.toast.title, sub: st.toast.sub, icon: st.toast.kind === 'error' ? '✕' : '✓',
+        style: 'display:flex;align-items:center;gap:12px;padding:13px 18px;border-radius:var(--radius);font-size:.86rem;box-shadow:0 8px 32px rgba(0,0,0,.16);min-width:280px;' +
+          (st.toast.kind === 'error' ? 'background:var(--tint-red);border:1px solid var(--tint-red-bd);color:var(--danger-text)' : 'background:var(--brand);border:1px solid var(--brand);color:#fff')
+      } : { style: '' }
+    };
+  }
+}
+
+</script>
+</body>
+</html>

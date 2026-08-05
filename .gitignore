@@ -1,0 +1,31 @@
+# Dependencias e build
+node_modules/
+backend/node_modules/
+dist/
+backend/dist/
+
+# Ambiente e segredos (NUNCA versionar)
+.env
+.env.local
+.env.*.local
+backend/.env
+backend/.env.local
+backend/.env.*.local
+
+# Logs e artefatos de runtime
+logs/
+*.log
+backend/storage/
+backend/test-results/
+backend/playwright-report/
+backend/coverage/
+backend/.playwright/
+backend/prisma/*.db
+uploads/
+.thumbnail
+
+# Sistema operacional / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

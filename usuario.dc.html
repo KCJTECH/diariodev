@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="assets/theme.css">
+<script src="assets/data.js"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);font-family:'Segoe UI',system-ui,-apple-system,sans-serif;color:var(--text);-webkit-font-smoothing:antialiased}
+  a{color:var(--accent);text-decoration:none}
+  a:hover{color:var(--brand-text)}
+  input,button{font-family:inherit;font-size:inherit;color:inherit}
+  @keyframes dvUp{from{transform:translateY(10px);opacity:0}to{transform:translateY(0);opacity:1}}
+  @keyframes dvFade{from{opacity:0}to{opacity:1}}
+  @keyframes dvToast{from{transform:translateY(14px);opacity:0}to{transform:translateY(0);opacity:1}}
+  ::-webkit-scrollbar{width:11px;height:11px}
+  ::-webkit-scrollbar-thumb{background:var(--border-strong);border:3px solid var(--bg);border-radius:8px}
+</style>
+</helmet>
+
+<x-import component-from-global-scope="app-shell" from="./assets/app-shell.js"
+  page="usuario" heading="Minha conta" subtitle="Dados, preferências e sessão" hint-size="100%,100%">
+
+  <div slot="actions" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:flex-end">
+    <a href="{{ myTimeline }}" style="font-size:.8rem;font-weight:600;color:var(--text-muted);padding:9px 14px;border:1.5px solid var(--border);border-radius:6px" style-hover="border-color:var(--brand-text);color:var(--brand-text)">Minha timeline</a>
+      <div onClick="{{ openPass }}" style="font-size:.8rem;font-weight:600;color:var(--brand-text);padding:9px 14px;border:1.5px solid var(--brand);border-radius:6px;cursor:pointer" style-hover="background:var(--tint-blue)">Alterar senha</div>
+      <div onClick="{{ logout }}" style="font-size:.8rem;font-weight:600;color:#dc2626;padding:9px 14px;border:1.5px solid var(--tint-red-bd);border-radius:6px;cursor:pointer" style-hover="background:var(--tint-red)">Sair</div>
+  </div>
+
+  <main data-screen-label="Usuário" style="flex:1;padding:26px 28px 64px;max-width:1000px;width:100%;display:flex;flex-direction:column;gap:18px;animation:dvUp .22s ease both">
+
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:22px 24px;display:flex;align-items:center;gap:18px">
+        <div style="{{ me.avatarXl }}">{{ me.ini }}</div>
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="font-size:1.15rem;font-weight:800">{{ me.name }}</div>
+            <span style="{{ me.badge }}">sessão ativa</span>
+            <span style="{{ me.levelBadge }}">{{ me.level }}</span>
+          </div>
+          <div style="font-size:.82rem;color:var(--text-muted);margin-top:2px">{{ me.role }} · {{ me.email }}</div>
+          <div style="font-size:.76rem;color:var(--text-faint);margin-top:4px">{{ me.scope }} · nível definido em Configurações</div>
+        </div>
+        <div style="display:flex;gap:22px;text-align:right">
+          <div>
+            <div style="font-size:1.3rem;font-weight:800;color:var(--accent)">{{ me.week }}</div>
+            <div style="font-size:.71rem;color:var(--text-muted)">na semana</div>
+          </div>
+          <div>
+            <div style="font-size:1.3rem;font-weight:800;color:var(--brand-text)">{{ me.month }}</div>
+            <div style="font-size:.71rem;color:var(--text-muted)">no mês</div>
+          </div>
+        </div>
+      </div>
+
+      <sc-if value="{{ noneToday }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;align-items:center;gap:12px;padding:13px 16px;border-radius:8px;font-size:.84rem;background:var(--surface)beb;border:1px solid var(--tint-amber-bd);color:var(--warn-text)">
+          <span>⚠ Você ainda não registrou nada hoje.</span>
+          <a href="atividades.dc.html?nova=1" style="font-weight:700;color:var(--warn-text);border-bottom:1px solid #d97706">registrar agora</a>
+        </div>
+      </sc-if>
+
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px">
+        <div style="font-size:.86rem;font-weight:700;margin-bottom:4px">Dados pessoais</div>
+        <div style="font-size:.74rem;color:var(--text-muted);margin-bottom:16px">Usados no registro das atividades e no login</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+          <div>
+            <div style="font-size:.77rem;font-weight:700;margin-bottom:7px">Nome</div>
+            <input value="{{ f.name }}" onChange="{{ onName }}" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:6px;font-size:.88rem;outline:none" style-focus="border-color:var(--brand-text)" />
+          </div>
+          <div>
+            <div style="font-size:.77rem;font-weight:700;margin-bottom:7px">Cargo</div>
+            <input value="{{ f.role }}" onChange="{{ onRole }}" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:6px;font-size:.88rem;outline:none" style-focus="border-color:var(--brand-text)" />
+          </div>
+          <div>
+            <div style="font-size:.77rem;font-weight:700;margin-bottom:7px">E-mail</div>
+            <input value="{{ f.email }}" onChange="{{ onEmail }}" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:6px;font-size:.88rem;outline:none" style-focus="border-color:var(--brand-text)" />
+          </div>
+          <div>
+            <div style="font-size:.77rem;font-weight:700;margin-bottom:7px">Projeto padrão do registro</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px">
+              <sc-for list="{{ projChips }}" as="p" hint-placeholder-count="5">
+                <div onClick="{{ p.onClick }}" style="{{ p.style }}" style-hover="border-color:var(--brand-text)">{{ p.name }}</div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+        <div onClick="{{ save }}" style="margin-top:18px;padding:11px 18px;background:var(--accent);color:#fff;border-radius:6px;font-size:.86rem;font-weight:700;cursor:pointer;width:fit-content" style-hover="filter:brightness(1.08)">Salvar alterações</div>
+      </div>
+
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px">
+        <div style="font-size:.86rem;font-weight:700;margin-bottom:14px">Preferências</div>
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <div style="display:flex;align-items:center;gap:14px">
+            <div style="flex:1">
+              <div style="font-size:.83rem;font-weight:600">Menu lateral recolhido</div>
+              <div style="font-size:.75rem;color:var(--text-muted)">Mais espaço para a timeline em telas menores</div>
+            </div>
+            <div onClick="{{ toggleSidebar }}" style="{{ collapsedSwitch }}"><div style="{{ collapsedKnob }}"></div></div>
+          </div>
+          <div style="height:1px;background:var(--track)"></div>
+          <div style="display:flex;align-items:center;gap:14px">
+            <div style="flex:1">
+              <div style="font-size:.83rem;font-weight:600">Densidade da timeline</div>
+              <div style="font-size:.75rem;color:var(--text-muted)">Compacto esconde a descrição na listagem</div>
+            </div>
+            <div style="display:flex;gap:7px">
+              <sc-for list="{{ densities }}" as="d" hint-placeholder-count="2">
+                <div onClick="{{ d.onClick }}" style="{{ d.style }}">{{ d.label }}</div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px">
+        <div style="font-size:.86rem;font-weight:700;margin-bottom:4px">Trocar de usuário</div>
+        <div style="font-size:.74rem;color:var(--text-muted);margin-bottom:14px">Atalho do protótipo — em produção isso passa pelo login</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <sc-for list="{{ accounts }}" as="a" hint-placeholder-count="5">
+            <div onClick="{{ a.onClick }}" style="{{ a.rowStyle }}" style-hover="border-color:var(--brand-text);background:var(--surface-2)">
+              <div style="{{ a.avatar }}">{{ a.ini }}</div>
+              <div style="flex:1;min-width:0">
+                <div style="font-size:.84rem;font-weight:600">{{ a.name }}</div>
+                <div style="font-size:.74rem;color:var(--text-muted)">{{ a.role }}</div>
+              </div>
+              <div style="font-size:.75rem;color:var(--text-faint)">{{ a.action }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </main>
+</x-import>
+
+<sc-if value="{{ passOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;inset:0;z-index:70;display:flex;align-items:center;justify-content:center;padding:4vh 20px">
+      <div onClick="{{ closePass }}" style="position:absolute;inset:0;background:var(--overlay);animation:dvFade .16s ease both"></div>
+      <div style="position:relative;width:460px;max-width:96vw;background:var(--surface);border-radius:calc(var(--radius) + 2px);box-shadow:0 8px 32px rgba(0,0,0,.24);display:flex;flex-direction:column;overflow:hidden;animation:dvUp .18s cubic-bezier(.2,.8,.2,1) both">
+        <div style="padding:18px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px">
+          <div style="flex:1">
+            <div style="font-size:.96rem;font-weight:700">Alterar minha senha</div>
+            <div style="font-size:.74rem;color:var(--text-muted);margin-top:2px">{{ me.email }}</div>
+          </div>
+          <div onClick="{{ closePass }}" style="width:30px;height:30px;border-radius:6px;display:flex;align-items:center;justify-content:center;color:var(--text-muted);cursor:pointer;font-size:1rem" style-hover="background:var(--bg)">✕</div>
+        </div>
+        <div style="padding:20px 22px;display:flex;flex-direction:column;gap:14px">
+          <sc-if value="{{ pass.hasError }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;gap:10px;padding:11px 13px;border-radius:6px;font-size:.82rem;background:var(--tint-red);border:1px solid var(--tint-red-bd);color:var(--danger-text)">✕ {{ pass.error }}</div>
+          </sc-if>
+          <div>
+            <div style="font-size:.77rem;font-weight:700;margin-bottom:6px">Senha atual</div>
+            <input type="password" value="{{ pass.atual }}" onChange="{{ pass.onAtual }}" placeholder="••••••••" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:6px;font-size:.88rem;outline:none" style-focus="border-color:var(--brand-text)" />
+          </div>
+          <div>
+            <div style="font-size:.77rem;font-weight:700;margin-bottom:6px">Nova senha</div>
+            <input type="password" value="{{ pass.nova }}" onChange="{{ pass.onNova }}" placeholder="mínimo 6 caracteres" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:6px;font-size:.88rem;outline:none" style-focus="border-color:var(--brand-text)" />
+            <div style="display:flex;align-items:center;gap:8px;margin-top:8px">
+              <div style="flex:1;height:5px;background:var(--track);border-radius:20px;overflow:hidden">
+                <div style="{{ pass.barStyle }}"></div>
+              </div>
+              <span style="{{ pass.strengthStyle }}">{{ pass.strength }}</span>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:.77rem;font-weight:700;margin-bottom:6px">Confirmar nova senha</div>
+            <input type="password" value="{{ pass.conf }}" onChange="{{ pass.onConf }}" placeholder="repita a nova senha" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:6px;font-size:.88rem;outline:none" style-focus="border-color:var(--brand-text)" />
+          </div>
+        </div>
+        <div style="padding:16px 22px;border-top:1px solid var(--border);background:var(--surface-2);display:flex;align-items:center;gap:10px">
+          <div style="flex:1"></div>
+          <div onClick="{{ closePass }}" style="font-size:.82rem;font-weight:600;padding:9px 14px;border:1.5px solid var(--border);border-radius:6px;color:var(--text-muted);cursor:pointer" style-hover="border-color:var(--brand-text);color:var(--brand-text)">Cancelar</div>
+          <div onClick="{{ pass.onSave }}" style="font-size:.86rem;font-weight:700;padding:10px 18px;background:var(--accent);color:#fff;border-radius:6px;cursor:pointer" style-hover="filter:brightness(1.08)">Salvar senha</div>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ toastOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;right:24px;bottom:24px;z-index:80;animation:dvToast .2s ease both">
+      <div style="display:flex;align-items:center;gap:12px;padding:13px 18px;border-radius:var(--radius);font-size:.86rem;box-shadow:0 8px 32px rgba(0,0,0,.16);min-width:280px;background:var(--brand);color:#fff">
+        <span style="font-weight:700">✓</span>
+        <div>
+          <div style="font-weight:600">{{ toast.title }}</div>
+          <div style="font-size:.76rem;opacity:.8">{{ toast.sub }}</div>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1200,&quot;height&quot;:980}}">
+class Component extends DCLogic {
+  state = { ready: false, collapsed: false, f: null, toast: null, tick: 0, pass: null };
+
+  componentDidMount() {
+    this.t = setInterval(() => {
+      if (!window.DV) return;
+      clearInterval(this.t);
+      const u = DV.user();
+      const ui = DV.ui();
+      const q = new URLSearchParams(window.location.search);
+      this.setState({
+        ready: true,
+        f: { name: u.name, role: u.role, email: u.email || '', proj: ui.defaultProject || '' },
+        pass: q.get('senha') ? { atual: '', nova: '', conf: '', error: '' } : null
+      });
+    }, 25);
+  }
+  componentWillUnmount() { clearInterval(this.t); }
+
+  toast(title, sub) {
+    clearTimeout(this._tt);
+    this.setState({ toast: { title: title, sub: sub } });
+    this._tt = setTimeout(() => this.setState({ toast: null }), 2800);
+  }
+  setF(k, v) { this.setState(s => ({ f: Object.assign({}, s.f, { [k]: v }) })); }
+
+  renderVals() {
+    const D = window.DV;
+    if (!D || !this.state.f) return { nav: [], sb: {}, u: {}, me: {}, f: {}, accounts: [], densities: [], projChips: [], toast: {} };
+    const u = D.user();
+    const f = this.state.f;
+    const acts = D.acts();
+    const mine = acts.filter(a => a.who === u.id);
+    const ui = D.ui();
+
+    const c = !!D.ui().collapsed;
+
+    return {
+      toggleSidebar: () => {
+        D.setUi({ collapsed: !D.ui().collapsed });
+        document.querySelectorAll('app-shell').forEach(el => el.render && el.render());
+        this.setState(s => ({ tick: (s.tick || 0) + 1 }));
+      },
+      collapsedSwitch: 'width:44px;height:24px;border-radius:20px;padding:3px;cursor:pointer;display:flex;transition:background .15s;background:' + (c ? 'var(--accent)' : 'var(--border)') + ';justify-content:' + (c ? 'flex-end' : 'flex-start'),
+      collapsedKnob: 'width:18px;height:18px;border-radius:50%;background:var(--surface);box-shadow:0 1px 3px rgba(0,0,0,.2)',
+      me: {
+        name: u.name, role: u.role, email: u.email || '—', ini: u.ini,
+        avatarXl: D.avatar(u, 56), badge: D.badge('green'),
+        level: D.levelLabel(u),
+        levelBadge: D.badge(D.levelOf(u) === 'ceo' ? 'orange' : D.levelOf(u) === 'gestor' ? 'blue' : 'gray'),
+        scope: D.seesAll(u) ? 'Vê os registros de toda a equipe' : 'Vê apenas os próprios registros',
+        week: mine.filter(a => a.d < 7).length, month: mine.filter(a => a.d < 30).length
+      },
+      noneToday: mine.filter(a => a.d === 0).length === 0,
+      myTimeline: 'colaborador.dc.html?id=' + u.id,
+      f: f,
+      onName: (e) => this.setF('name', e.target.value),
+      onRole: (e) => this.setF('role', e.target.value),
+      onEmail: (e) => this.setF('email', e.target.value),
+      projChips: D.projects().map(p => ({
+        name: p, style: D.chip(f.proj === p) + 'font-size:.76rem;padding:4px 10px;',
+        onClick: () => this.setF('proj', f.proj === p ? '' : p)
+      })),
+      save: () => {
+        const parts = f.name.trim().split(' ').filter(Boolean);
+        if (parts.length < 2) { this.toast('Nome incompleto', 'Informe nome e sobrenome'); return; }
+        D.setPeople(D.people().map(p => p.id === u.id ? Object.assign({}, p, {
+          name: f.name.trim(), role: f.role.trim() || p.role, email: f.email.trim() || p.email,
+          ini: (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+        }) : p));
+        D.setUi({ defaultProject: f.proj });
+        this.toast('Dados atualizados', 'Suas informações foram salvas');
+        this.setState(s => ({ tick: s.tick + 1 }));
+      },
+      densities: [['confortável', 'Confortável'], ['compacto', 'Compacto']].map(d => ({
+        label: d[1], style: D.chip((ui.density || 'confortável') === d[0]) + 'font-size:.76rem;padding:5px 12px;',
+        onClick: () => { D.setUi({ density: d[0] }); this.setState(s => ({ tick: s.tick + 1 })); }
+      })),
+      accounts: D.people().filter(p => p.active).map(p => ({
+        name: p.name, role: p.role, ini: p.ini, avatar: D.avatar(p, 30),
+        action: p.id === u.id ? 'em uso' : 'entrar →',
+        rowStyle: 'display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:8px;cursor:pointer;border:1px solid ' + (p.id === u.id ? 'var(--tint-orange-bd)' : 'var(--border)') + ';background:' + (p.id === u.id ? 'var(--tint-orange)' : 'var(--surface)'),
+        onClick: () => { D.setUser(p.id); window.location.reload(); }
+      })),
+      logout: () => { D.logout(); window.location.href = 'login.dc.html'; },
+      openPass: () => this.setState({ pass: { atual: '', nova: '', conf: '', error: '' }, userMenu: false }),
+      closePass: () => this.setState({ pass: null }),
+      passOpen: !!this.state.pass,
+      pass: this.state.pass ? (() => {
+        const p = this.state.pass;
+        const setP = (patch) => this.setState(s => ({ pass: Object.assign({}, s.pass, patch, patch.error === undefined ? { error: '' } : {}) }));
+        const score = Math.min(4, (p.nova.length >= 6 ? 1 : 0) + (p.nova.length >= 10 ? 1 : 0) + (/[A-Z]/.test(p.nova) ? 1 : 0) + (/[0-9!@#$%^&*]/.test(p.nova) ? 1 : 0));
+        const labels = ['muito fraca', 'fraca', 'razoável', 'boa', 'forte'];
+        const colors = ['#dc2626', '#dc2626', '#d97706', '#16a34a', 'var(--ok-text)'];
+        return {
+          atual: p.atual, nova: p.nova, conf: p.conf,
+          hasError: !!p.error, error: p.error,
+          onAtual: (e) => setP({ atual: e.target.value }),
+          onNova: (e) => setP({ nova: e.target.value }),
+          onConf: (e) => setP({ conf: e.target.value }),
+          barStyle: 'height:100%;width:' + (p.nova ? (score + 1) * 20 : 0) + '%;border-radius:20px;transition:width .15s;background:' + colors[score],
+          strength: p.nova ? labels[score] : '—',
+          strengthStyle: 'font-size:.72rem;font-weight:700;width:70px;text-align:right;color:' + (p.nova ? colors[score] : '#94a3b8'),
+          onSave: () => {
+            if (!p.atual) { setP({ error: 'Informe a senha atual.' }); return; }
+            if (p.nova.length < 6) { setP({ error: 'A nova senha precisa de ao menos 6 caracteres.' }); return; }
+            if (p.nova !== p.conf) { setP({ error: 'A confirmação não coincide com a nova senha.' }); return; }
+            this.setState({ pass: null });
+            this.toast('Senha atualizada', 'Use a nova senha no próximo acesso');
+          }
+        };
+      })() : {},
+      toastOpen: !!this.state.toast,
+      toast: this.state.toast || {}
+    };
+  }
+}
+
+</script>
+</body>
+</html>

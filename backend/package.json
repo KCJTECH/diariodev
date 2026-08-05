@@ -1,0 +1,67 @@
+{
+  "name": "diario-dev-backend",
+  "version": "0.1.0",
+  "description": "Backend do Diário Dev ITS — monólito modular Fastify + Prisma + PostgreSQL + Socket.IO",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "dev:worker": "tsx watch src/workers/index.ts",
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node dist/src/server.js",
+    "start:worker": "node dist/src/workers/index.js",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint \"src/**/*.ts\" \"tests/**/*.ts\"",
+    "test": "vitest run tests/unit",
+    "test:contract": "vitest run tests/contract",
+    "test:integration": "vitest run tests/integration",
+    "test:setup-db": "tsx tests/setup-testdb.ts",
+    "test:e2e": "playwright test",
+    "test:watch": "vitest",
+    "prisma:generate": "prisma generate",
+    "prisma:validate": "prisma validate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:deploy": "prisma migrate deploy",
+    "prisma:studio": "prisma studio",
+    "seed": "tsx prisma/seed.ts"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
+  "dependencies": {
+    "@fastify/cookie": "^11.0.2",
+    "@fastify/cors": "^10.0.2",
+    "@fastify/helmet": "^13.0.1",
+    "@fastify/multipart": "^9.0.3",
+    "@fastify/rate-limit": "^10.2.2",
+    "@fastify/static": "^8.3.0",
+    "@fastify/swagger": "^9.4.2",
+    "@fastify/swagger-ui": "^5.2.1",
+    "@node-rs/argon2": "^2.0.2",
+    "@prisma/client": "^6.3.1",
+    "@socket.io/redis-adapter": "^8.3.0",
+    "bullmq": "^5.34.10",
+    "fastify": "^5.2.1",
+    "fastify-plugin": "^5.0.1",
+    "file-type": "^19.6.0",
+    "ioredis": "^5.4.2",
+    "pino": "^9.6.0",
+    "socket.io": "^4.8.1",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.50.0",
+    "@types/node": "^22.10.7",
+    "eslint": "^9.18.0",
+    "pino-pretty": "^13.0.0",
+    "prisma": "^6.3.1",
+    "socket.io-client": "^4.8.3",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.21.0",
+    "vitest": "^2.1.8"
+  }
+}

@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="assets/theme.css">
+<script src="assets/data.js"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);font-family:'Segoe UI',system-ui,-apple-system,sans-serif;color:var(--text);-webkit-font-smoothing:antialiased}
+  a{color:var(--accent);text-decoration:none}
+  a:hover{color:var(--brand-text)}
+  input,button{font-family:inherit;font-size:inherit;color:inherit}
+  @keyframes dvUp{from{transform:translateY(10px);opacity:0}to{transform:translateY(0);opacity:1}}
+  ::-webkit-scrollbar{width:11px;height:11px}
+  ::-webkit-scrollbar-thumb{background:var(--border-strong);border:3px solid var(--bg);border-radius:8px}
+</style>
+</helmet>
+
+<x-import component-from-global-scope="app-shell" from="./assets/app-shell.js"
+  page="colaborador" heading="{{ p.name }}" subtitle="{{ p.role }} · timeline completa" hint-size="100%,100%">
+
+  <div slot="actions" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:flex-end">
+    <a href="colaboradores.dc.html" style="font-size:.8rem;font-weight:600;color:var(--text-muted);padding:9px 14px;border:1.5px solid var(--border);border-radius:6px" style-hover="border-color:var(--brand-text);color:var(--brand-text)">← Colaboradores</a>
+      <a href="{{ newHref }}" style="display:inline-flex;align-items:center;gap:7px;padding:10px 16px;border-radius:6px;background:var(--accent);color:#fff;font-size:.85rem;font-weight:600;white-space:nowrap" style-hover="filter:brightness(1.08);color:#ffffff">
+        <span style="font-size:1rem;line-height:1">+</span> Nova atividade
+      </a>
+  </div>
+
+  <main data-screen-label="Perfil do Colaborador" style="flex:1;padding:26px 28px 64px;max-width:1360px;width:100%;display:flex;flex-direction:column;gap:16px;animation:dvUp .22s ease both">
+
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:22px 24px;display:flex;align-items:center;gap:18px">
+        <div style="{{ p.avatarXl }}">{{ p.ini }}</div>
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="font-size:1.15rem;font-weight:800">{{ p.name }}</div>
+            <span style="{{ p.badge }}">{{ p.status }}</span>
+          </div>
+          <div style="font-size:.82rem;color:var(--text-muted);margin-top:2px">{{ p.role }} · {{ p.email }}</div>
+          <div style="font-size:.79rem;color:var(--text-muted);margin-top:6px">{{ p.projectsLine }}</div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px">
+        <sc-for list="{{ stats }}" as="s" hint-placeholder-count="4">
+          <div style="{{ s.style }}">
+            <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em">{{ s.label }}</div>
+            <div style="font-size:1.6rem;font-weight:800;margin-top:6px;line-height:1.1">{{ s.value }}</div>
+            <div style="font-size:.73rem;opacity:.85">{{ s.hint }}</div>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px">
+          <div style="font-size:.86rem;font-weight:700;margin-bottom:12px">Categorias mais frequentes</div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px">
+            <sc-for list="{{ cats }}" as="c" hint-placeholder-count="4">
+              <div style="{{ c.style }}">{{ c.name }} <span style="opacity:.65">{{ c.count }}</span></div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px">
+          <div style="font-size:.86rem;font-weight:700;margin-bottom:12px">Projetos em que atuou</div>
+          <div style="display:flex;flex-direction:column;gap:11px">
+            <sc-for list="{{ projs }}" as="pr" hint-placeholder-count="3">
+              <a href="{{ pr.href }}" style="color:var(--text);display:block" style-hover="color:var(--text);opacity:.75">
+                <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:5px">
+                  <span style="font-size:.8rem;font-weight:600">{{ pr.name }}</span>
+                  <span style="font-size:.73rem;color:var(--text-muted)">{{ pr.count }}</span>
+                </div>
+                <div style="height:7px;background:var(--track);border-radius:20px;overflow:hidden">
+                  <div style="{{ pr.barStyle }}"></div>
+                </div>
+              </a>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+
+      <sc-if value="{{ isEmpty }}" hint-placeholder-val="{{ false }}">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:52px 24px;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center">
+          <div style="width:48px;height:48px;border-radius:calc(var(--radius) + 2px);background:var(--bg);display:flex;align-items:center;justify-content:center;color:var(--text-faint);font-size:1.3rem">◍</div>
+          <div style="font-size:.95rem;font-weight:700">Sem registros ainda</div>
+          <div style="font-size:.82rem;color:var(--text-muted);max-width:360px;text-wrap:pretty">Quando esta pessoa registrar a primeira atividade, ela aparece aqui em ordem cronológica.</div>
+        </div>
+      </sc-if>
+
+      <div style="display:flex;flex-direction:column;gap:22px">
+        <sc-for list="{{ groups }}" as="g" hint-placeholder-count="3">
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">
+            <div style="{{ g.headStyle }}">
+              <span style="{{ g.pillStyle }}">{{ g.label }}</span>
+              <span style="font-size:.76rem;color:var(--text-muted)">{{ g.sub }}</span>
+              <div style="flex:1"></div>
+              <span style="font-size:.75rem;font-weight:600;color:var(--text-faint)">{{ g.count }}</span>
+            </div>
+            <sc-for list="{{ g.items }}" as="a" hint-placeholder-count="3">
+              <a href="{{ a.href }}" style="display:flex;align-items:stretch;border-bottom:1px solid var(--border-soft);color:var(--text)" style-hover="background:var(--surface-2);color:var(--text)">
+                <div style="width:74px;flex:0 0 74px;padding:15px 0 15px 18px;font-family:ui-monospace,monospace;font-size:.75rem;color:var(--text-faint)">{{ a.time }}</div>
+                <div style="width:22px;flex:0 0 22px;position:relative">
+                  <div style="position:absolute;left:10px;top:0;bottom:0;width:2px;background:var(--border)"></div>
+                  <div style="{{ a.dotStyle }}"></div>
+                </div>
+                <div style="flex:1;min-width:0;padding:14px 18px 14px 10px">
+                  <div style="font-size:.88rem;font-weight:600;line-height:1.4;text-wrap:pretty">{{ a.title }}</div>
+                  <sc-if value="{{ a.hasDesc }}" hint-placeholder-val="{{ true }}">
+                    <div style="font-size:.8rem;color:var(--text-muted);line-height:1.55;margin-top:4px;text-wrap:pretty">{{ a.desc }}</div>
+                  </sc-if>
+                  <div style="display:flex;align-items:center;gap:9px;margin-top:8px;flex-wrap:wrap">
+                    <span style="{{ a.catStyle }}">{{ a.cat }}</span>
+                    <span style="font-size:.74rem;font-weight:600;color:var(--brand-text)">{{ a.proj }}</span>
+                    <span style="font-size:.74rem;color:var(--text-faint)">{{ a.date }} · {{ a.dur }}</span>
+                  </div>
+                </div>
+              </a>
+            </sc-for>
+          </div>
+        </sc-for>
+      </div>
+    </main>
+</x-import>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:980}}">
+class Component extends DCLogic {
+  state = { ready: false, collapsed: false, id: null };
+  componentDidMount() {
+    this.t = setInterval(() => {
+      if (!window.DV) return;
+      clearInterval(this.t);
+      const q = new URLSearchParams(window.location.search);
+      this.setState({ ready: true, id: q.get('id') || DV.user().id });
+    }, 25);
+    this.onKey = (e) => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); window.location.href = 'pesquisa.dc.html'; } };
+    window.addEventListener('keydown', this.onKey);
+  }
+  componentWillUnmount() { clearInterval(this.t); window.removeEventListener('keydown', this.onKey); }
+
+  renderVals() {
+    const D = window.DV;
+    if (!D) return { nav: [], sb: {}, u: {}, p: {}, stats: [], cats: [], projs: [], groups: [] };
+    const u = D.user();
+    const per = D.person(this.state.id) || u;
+    const acts = D.acts();
+    const mine = acts.filter(a => a.who === per.id);
+    const myCats = {}; mine.forEach(a => { myCats[a.cat] = (myCats[a.cat] || 0) + 1; });
+    const myProjs = {}; mine.forEach(a => { myProjs[a.proj] = (myProjs[a.proj] || 0) + 1; });
+
+    const tone = (t) => ({
+      orange: ['var(--tint-orange)', 'var(--tint-orange-bd)', 'var(--accent)'], blue: ['var(--tint-blue)', 'var(--tint-blue-bd)', 'var(--brand-text)'],
+      green: ['var(--tint-green)', 'var(--tint-green-bd)', 'var(--ok-text)'], info: ['var(--tint-sky)', 'var(--tint-sky-bd)', 'var(--info-text)']
+    })[t];
+    const card = (label, value, hint, t) => {
+      const x = tone(t);
+      return { label: label, value: value, hint: hint, style: 'border-radius:var(--radius);padding:16px 18px;border:1px solid ' + x[1] + ';background:' + x[0] + ';color:' + x[2] };
+    };
+
+    const map = {};
+    mine.forEach(a => { const k = D.groupLabel(a.d); (map[k] = map[k] || []).push(a); });
+    const tones = { 'Hoje': ['var(--tint-orange)', 'var(--tint-orange-bd)', 'var(--accent)'], 'Ontem': ['var(--tint-blue)', 'var(--tint-blue-bd)', 'var(--brand-text)'], 'Esta semana': ['var(--surface-2)', 'var(--border)', 'var(--brand-text)'], 'Semanas anteriores': ['var(--surface-2)', 'var(--border)', '#64748b'] };
+    const groups = ['Hoje', 'Ontem', 'Esta semana', 'Semanas anteriores'].filter(k => map[k]).map(k => {
+      const list = map[k]; const t = tones[k];
+      const days = Array.from(new Set(list.map(a => a.d))).sort((x, y) => x - y);
+      return {
+        label: k, count: D.plural(list.length),
+        sub: k === 'Hoje' || k === 'Ontem' ? D.longDate(days[0]) : D.fmt(days[days.length - 1]) + ' — ' + D.fmt(days[0]),
+        headStyle: 'display:flex;align-items:center;gap:10px;padding:11px 18px;background:' + t[0] + ';border-bottom:1px solid ' + t[1] + '',
+        pillStyle: 'font-size:.73rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#fff;border-radius:20px;padding:3px 11px;background:' + t[2],
+        items: list.map(a => ({
+          href: 'atividades.dc.html?editar=' + a.id, time: a.t, title: a.title, desc: a.desc, hasDesc: !!a.desc,
+          cat: a.cat, catStyle: D.catStyle(a.cat), proj: a.proj, date: D.fmt(a.d), dur: a.dur,
+          dotStyle: 'position:absolute;left:3px;top:19px;width:16px;height:16px;border-radius:50%;border:3px solid #fff;background:' + D.cat(a.cat).fg
+        }))
+      };
+    });
+
+    const topCat = Object.keys(myCats).sort((a, b) => myCats[b] - myCats[a])[0] || '—';
+    return {
+      newHref: 'atividades.dc.html?nova=1',
+      p: {
+        name: per.name, role: per.role, ini: per.ini, email: per.email || '—',
+        avatarXl: D.avatar(per, 56), badge: D.badge(per.active ? 'green' : 'gray'), status: per.active ? 'ativo' : 'inativo',
+        projectsLine: Object.keys(myProjs).length + ' projetos · ' + D.plural(mine.length) + ' no total'
+      },
+      stats: [
+        card('No mês', mine.filter(a => a.d < 30).length, 'registros em julho', 'blue'),
+        card('Na semana', mine.filter(a => a.d < 7).length, 'últimos 7 dias', 'orange'),
+        card('Projetos ativos', new Set(mine.filter(a => a.d < 14).map(a => a.proj)).size, 'com registro recente', 'green'),
+        card('Categoria principal', topCat, 'mais frequente', 'info')
+      ],
+      cats: Object.keys(myCats).sort((a, b) => myCats[b] - myCats[a]).map(k => ({
+        name: k, count: myCats[k], style: D.catStyle(k) + ';padding:5px 12px;font-size:.78rem'
+      })),
+      projs: Object.keys(myProjs).sort((a, b) => myProjs[b] - myProjs[a]).map(k => ({
+        name: k, count: D.plural(myProjs[k]), href: 'projeto.dc.html?p=' + encodeURIComponent(k),
+        barStyle: 'height:100%;width:' + Math.max(6, Math.round((myProjs[k] / mine.length) * 100)) + '%;background:var(--brand);border-radius:20px'
+      })),
+      isEmpty: mine.length === 0,
+      groups: groups
+    };
+  }
+}
+
+</script>
+</body>
+</html>

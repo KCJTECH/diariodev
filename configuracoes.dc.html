@@ -1,0 +1,1486 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="assets/theme.css">
+<script src="assets/data.js"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);font-family:'Segoe UI',system-ui,-apple-system,sans-serif;color:var(--text);-webkit-font-smoothing:antialiased}
+  a{color:var(--accent);text-decoration:none}
+  a:hover{color:var(--brand-text)}
+  input,button,textarea{font-family:inherit;font-size:inherit;color:inherit}
+  @keyframes dvUp{from{transform:translateY(10px);opacity:0}to{transform:translateY(0);opacity:1}}
+  @keyframes dvSk{0%,100%{opacity:.5}50%{opacity:1}}
+  @keyframes dvFade{from{opacity:0}to{opacity:1}}
+  @keyframes dvToast{from{transform:translateY(14px);opacity:0}to{transform:translateY(0);opacity:1}}
+  ::-webkit-scrollbar{width:11px;height:11px}
+  ::-webkit-scrollbar-thumb{background:var(--border-strong);border:3px solid var(--bg);border-radius:8px}
+</style>
+</helmet>
+
+<x-import component-from-global-scope="app-shell" from="./assets/app-shell.js"
+  page="configuracoes" heading="Configurações" subtitle="{{ tabSubtitle }}" hint-size="100%,100%">
+
+  <div slot="actions" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:flex-end">
+    <div onClick="{{ resetData }}" style="font-size:.8rem;font-weight:600;color:var(--text-muted);padding:9px 14px;border:1.5px solid var(--border);border-radius:6px;cursor:pointer;white-space:nowrap" style-hover="border-color:#dc2626;color:#dc2626">Restaurar dados de exemplo</div>
+  </div>
+
+  <div slot="tabs">
+    <div style="display:flex;gap:2px;align-items:flex-end">
+        <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="4">
+          <div onClick="{{ t.onClick }}" style="{{ t.style }}">
+            <span style="font-size:.9rem">{{ t.icon }}</span>{{ t.label }}
+          </div>
+        </sc-for>
+      </div>
+  </div>
+
+  <main data-screen-label="Configurações" style="flex:1;padding:22px 28px 64px;max-width:1360px;width:100%;display:flex;flex-direction:column;gap:18px;animation:dvUp .22s ease both">
+
+      <sc-if value="{{ isCats }}" hint-placeholder-val="{{ true }}">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px">
+          <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:14px;flex-wrap:wrap">
+            <div>
+              <div style="font-size:.86rem;font-weight:700">Categorias de atividade</div>
+              <div style="font-size:.74rem;color:var(--text-muted);margin-top:2px">Tabela administrativa — alimenta o cadastro rápido</div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <select value="{{ cSort }}" onChange="{{ onCSort }}" style="{{ selectStyle }}" title="Ordenar">
+                <sc-for list="{{ cSortOptions }}" as="o" hint-placeholder-count="4">
+                  <option value="{{ o.value }}">{{ o.label }}</option>
+                </sc-for>
+              </select>
+              <input value="{{ newCat }}" onChange="{{ onNewCat }}" placeholder="Nova categoria" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:6px;font-size:.83rem;outline:none;width:190px" style-focus="border-color:var(--brand-text)" />
+              <div onClick="{{ addCat }}" style="padding:8px 14px;background:var(--brand);color:#fff;border-radius:6px;font-size:.82rem;font-weight:600;cursor:pointer;white-space:nowrap" style-hover="filter:brightness(1.15)">Adicionar</div>
+            </div>
+          </div>
+          <div style="overflow-x:auto;max-width:100%"><table style="width:100%;border-collapse:collapse;font-size:.84rem">
+            <thead>
+              <tr>
+                <th style="background:var(--brand);color:#fff;padding:9px 14px;text-align:left;font-size:.71rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;border-radius:8px 0 0 0">Categoria</th>
+                <th style="background:var(--brand);color:#fff;padding:9px 14px;text-align:left;font-size:.71rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Uso</th>
+                <th style="background:var(--brand);color:#fff;padding:9px 14px;text-align:left;font-size:.71rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Cor na timeline</th>
+                <th style="background:var(--brand);color:#fff;padding:9px 14px;text-align:left;font-size:.71rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Atalho</th>
+                <th style="background:var(--brand);color:#fff;padding:9px 14px;text-align:right;font-size:.71rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;border-radius:0 8px 0 0">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              <sc-for list="{{ catRows }}" as="c" hint-placeholder-count="6">
+                <tr style-hover="background:var(--surface-2)">
+                  <td style="padding:10px 14px;border-bottom:1px solid var(--border)"><span style="{{ c.badge }}">{{ c.name }}</span></td>
+                  <td style="padding:10px 14px;border-bottom:1px solid var(--border);color:var(--text-muted)">{{ c.count }}</td>
+                  <td style="padding:10px 14px;border-bottom:1px solid var(--border)">
+                    <div style="{{ c.swatch }}">exemplo de linha</div>
+                  </td>
+                  <td style="padding:10px 14px;border-bottom:1px solid var(--border)"><span style="font-family:ui-monospace,monospace;font-size:.72rem;color:var(--text-muted);background:var(--surface-2);border:1px solid var(--border);border-radius:4px;padding:1px 6px">{{ c.kbd }}</span></td>
+                  <td style="padding:10px 14px;border-bottom:1px solid var(--border);text-align:right">
+                    <span onClick="{{ c.onRemove }}" style="font-size:.78rem;color:#dc2626;font-weight:600;cursor:pointer">Remover</span>
+                  </td>
+                </tr>
+              </sc-for>
+            </tbody>
+          </table></div>
+          <div style="display:flex;align-items:center;gap:12px;padding:12px 2px 0;flex-wrap:wrap">
+            <span style="font-size:.76rem;color:var(--text-muted)">{{ cPg.countLabel }}</span>
+            <div style="flex:1"></div>
+            <sc-if value="{{ cPg.many }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;align-items:center;gap:6px">
+                <div onClick="{{ cPg.onPrev }}" style="{{ cPg.prevStyle }}">‹</div>
+                <sc-for list="{{ cPg.numbers }}" as="n" hint-placeholder-count="2">
+                  <div onClick="{{ n.onClick }}" style="{{ n.style }}">{{ n.label }}</div>
+                </sc-for>
+                <div onClick="{{ cPg.onNext }}" style="{{ cPg.nextStyle }}">›</div>
+              </div>
+            </sc-if>
+          </div>
+
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isPeople }}" hint-placeholder-val="{{ false }}">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px">
+          <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:14px;flex-wrap:wrap">
+            <div>
+              <div style="font-size:.86rem;font-weight:700">Cadastro de colaboradores</div>
+              <div style="font-size:.74rem;color:var(--text-muted);margin-top:2px">O e-mail é usado para entrar no sistema · clique no nível para alterná-lo</div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <select value="{{ pSort }}" onChange="{{ onPSort }}" style="{{ selectStyle }}" title="Ordenar">
+                <sc-for list="{{ pSortOptions }}" as="o" hint-placeholder-count="4">
+                  <option value="{{ o.value }}">{{ o.label }}</option>
+                </sc-for>
+              </select>
+              <input value="{{ newPName }}" onChange="{{ onNewPName }}" placeholder="Nome completo" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:6px;font-size:.83rem;outline:none;width:180px" style-focus="border-color:var(--brand-text)" />
+              <input value="{{ newPRole }}" onChange="{{ onNewPRole }}" placeholder="Cargo" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:6px;font-size:.83rem;outline:none;width:150px" style-focus="border-color:var(--brand-text)" />
+              <input value="{{ newPMail }}" onChange="{{ onNewPMail }}" placeholder="e-mail" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:6px;font-size:.83rem;outline:none;width:180px" style-focus="border-color:var(--brand-text)" />
+              <div onClick="{{ addPerson }}" style="padding:8px 14px;background:var(--accent);color:#fff;border-radius:6px;font-size:.82rem;font-weight:600;cursor:pointer;white-space:nowrap" style-hover="filter:brightness(1.08)">+ Colaborador</div>
+            </div>
+          </div>
+          <div style="overflow-x:auto;max-width:100%"><table style="width:100%;border-collapse:collapse;font-size:.84rem">
+            <thead>
+              <tr>
+                <th style="background:var(--brand);color:#fff;padding:9px 14px;text-align:left;font-size:.71rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;border-radius:8px 0 0 0">Nome</th>
+                <th style="background:var(--brand);color:#fff;padding:9px 14px;text-align:left;font-size:.71rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Cargo</th>
+                <th style="background:var(--brand);color:#fff;padding:9px 14px;text-align:left;font-size:.71rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em">E-mail</th>
+                <th style="background:var(--brand);color:#fff;padding:9px 14px;text-align:left;font-size:.71rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Nível de acesso</th>
+                <th style="background:var(--brand);color:#fff;padding:9px 14px;text-align:left;font-size:.71rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Status</th>
+                <th style="background:var(--brand);color:#fff;padding:9px 14px;text-align:right;font-size:.71rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;border-radius:0 8px 0 0">Registros</th>
+              </tr>
+            </thead>
+            <tbody>
+              <sc-for list="{{ peopleRows }}" as="p" hint-placeholder-count="6">
+                <tr onClick="{{ p.onOpen }}" style="cursor:pointer" style-hover="background:var(--surface-2)">
+                  <td style="padding:10px 14px;border-bottom:1px solid var(--border)">
+                    <div style="display:flex;align-items:center;gap:9px;color:var(--text)">
+                      <div style="{{ p.avatar }}">{{ p.ini }}</div>
+                      <span style="font-weight:600">{{ p.name }}</span>
+                    </div>
+                  </td>
+                  <td style="padding:10px 14px;border-bottom:1px solid var(--border);color:var(--text-muted)">{{ p.role }}</td>
+                  <td style="padding:10px 14px;border-bottom:1px solid var(--border);color:var(--text-muted);font-size:.79rem;word-break:break-all;min-width:150px">{{ p.email }}</td>
+                  <td style="padding:10px 14px;border-bottom:1px solid var(--border)">
+                    <span onClick="{{ p.onLevel }}" style="{{ p.levelStyle }}" title="Clique para alternar o nível">{{ p.level }}</span>
+                  </td>
+                  <td style="padding:10px 14px;border-bottom:1px solid var(--border)"><span style="{{ p.badge }}">{{ p.status }}</span></td>
+                  <td style="padding:10px 14px;border-bottom:1px solid var(--border);text-align:right">
+                    <div style="display:flex;align-items:center;justify-content:flex-end;gap:14px">
+                      <span style="font-weight:600">{{ p.total }}</span>
+                      <span onClick="{{ p.onToggle }}" style="font-size:.78rem;color:var(--text-muted);font-weight:600;cursor:pointer" style-hover="color:var(--brand-text)">{{ p.toggleLabel }}</span>
+                    </div>
+                  </td>
+                </tr>
+              </sc-for>
+            </tbody>
+          </table></div>
+          <div style="display:flex;align-items:center;gap:12px;padding:12px 2px 0;flex-wrap:wrap">
+            <span style="font-size:.76rem;color:var(--text-muted)">{{ pPg.countLabel }}</span>
+            <div style="flex:1"></div>
+            <sc-if value="{{ pPg.many }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;align-items:center;gap:6px">
+                <div onClick="{{ pPg.onPrev }}" style="{{ pPg.prevStyle }}">‹</div>
+                <sc-for list="{{ pPg.numbers }}" as="n" hint-placeholder-count="2">
+                  <div onClick="{{ n.onClick }}" style="{{ n.style }}">{{ n.label }}</div>
+                </sc-for>
+                <div onClick="{{ pPg.onNext }}" style="{{ pPg.nextStyle }}">›</div>
+              </div>
+            </sc-if>
+          </div>
+
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isGroups }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 20px">
+            <div style="flex:1;min-width:0">
+              <div style="font-size:.86rem;font-weight:700">Grupos de acesso</div>
+              <div style="font-size:.74rem;color:var(--text-muted);margin-top:2px">{{ groupSummary }} · definem o que cada usuário vê e pode fazer</div>
+            </div>
+            <select value="{{ gSort }}" onChange="{{ onGSort }}" style="{{ selectStyle }}" title="Ordenar">
+              <sc-for list="{{ gSortOptions }}" as="o" hint-placeholder-count="4">
+                <option value="{{ o.value }}">{{ o.label }}</option>
+              </sc-for>
+            </select>
+            <div style="display:flex;gap:4px;padding:3px;background:var(--bg);border-radius:8px">
+              <sc-for list="{{ gViews }}" as="v" hint-placeholder-count="2">
+                <div onClick="{{ v.onClick }}" style="{{ v.style }}"><span style="font-size:.9rem">{{ v.icon }}</span>{{ v.label }}</div>
+              </sc-for>
+            </div>
+            <div onClick="{{ addGroup }}" style="padding:9px 15px;background:var(--accent);color:#fff;border-radius:6px;font-size:.83rem;font-weight:600;cursor:pointer;white-space:nowrap" style-hover="filter:brightness(1.08)">+ Novo grupo</div>
+          </div>
+
+          <sc-if value="{{ gIsList }}" hint-placeholder-val="{{ true }}">
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">
+              <div style="overflow-x:auto;max-width:100%">
+                <table style="width:100%;border-collapse:collapse;font-size:.84rem">
+                  <thead>
+                    <tr>
+                      <th style="background:var(--brand);color:#fff;padding:10px 16px;text-align:left;font-size:.71rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Grupo</th>
+                      <th style="background:var(--brand);color:#fff;padding:10px 16px;text-align:left;font-size:.71rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Nível base</th>
+                      <th style="background:var(--brand);color:#fff;padding:10px 16px;text-align:left;font-size:.71rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Permissões</th>
+                      <th style="background:var(--brand);color:#fff;padding:10px 16px;text-align:left;font-size:.71rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Membros</th>
+                      <th style="background:var(--brand);color:#fff;padding:10px 16px;text-align:right;font-size:.71rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <sc-for list="{{ groupRows }}" as="r" hint-placeholder-count="4">
+                      <tr style-hover="background:var(--surface-2)">
+                        <td style="padding:11px 16px;border-bottom:1px solid var(--border)">
+                          <div style="display:flex;align-items:center;gap:10px">
+                            <div style="{{ r.iconStyle }}">{{ r.abbr }}</div>
+                            <div style="min-width:0">
+                              <div style="font-weight:700">{{ r.name }}</div>
+                              <div style="font-size:.73rem;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:280px">{{ r.desc }}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td style="padding:11px 16px;border-bottom:1px solid var(--border)"><span style="{{ r.levelBadge }}">{{ r.levelLabel }}</span></td>
+                        <td style="padding:11px 16px;border-bottom:1px solid var(--border);color:var(--text-muted)">{{ r.permCount }}</td>
+                        <td style="padding:11px 16px;border-bottom:1px solid var(--border)">
+                          <div style="display:flex;gap:4px;align-items:center">
+                            <sc-for list="{{ r.avatars }}" as="m" hint-placeholder-count="2">
+                              <div style="{{ m.avatar }}" title="{{ m.name }}">{{ m.ini }}</div>
+                            </sc-for>
+                            <span style="font-size:.73rem;color:var(--text-muted);margin-left:4px">{{ r.memberCount }}</span>
+                          </div>
+                        </td>
+                        <td style="padding:11px 16px;border-bottom:1px solid var(--border);text-align:right">
+                          <div style="display:flex;gap:12px;justify-content:flex-end">
+                            <span onClick="{{ r.onEdit }}" style="font-size:.78rem;font-weight:600;color:var(--brand-text);cursor:pointer">Editar</span>
+                            <span onClick="{{ r.onDelete }}" style="{{ r.deleteStyle }}">{{ r.deleteLabel }}</span>
+                          </div>
+                        </td>
+                      </tr>
+                    </sc-for>
+                  </tbody>
+                </table>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-top:1px solid var(--border);flex-wrap:wrap">
+                <span style="font-size:.76rem;color:var(--text-muted)">{{ gPg.countLabel }}</span>
+                <div style="flex:1"></div>
+                <sc-if value="{{ gPg.many }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:flex;align-items:center;gap:6px">
+                    <div onClick="{{ gPg.onPrev }}" style="{{ gPg.prevStyle }}">‹</div>
+                    <sc-for list="{{ gPg.numbers }}" as="n" hint-placeholder-count="2">
+                      <div onClick="{{ n.onClick }}" style="{{ n.style }}">{{ n.label }}</div>
+                    </sc-for>
+                    <div onClick="{{ gPg.onNext }}" style="{{ gPg.nextStyle }}">›</div>
+                  </div>
+                </sc-if>
+              </div>
+            </div>
+          </sc-if>
+
+          <div style="{{ gGridStyle }}">
+            <sc-for list="{{ groups }}" as="g" hint-placeholder-count="4">
+              <div style="{{ g.cardStyle }}">
+                <div style="display:flex;align-items:center;gap:12px">
+                  <div style="{{ g.iconStyle }}">{{ g.abbr }}</div>
+                  <div style="flex:1;min-width:0">
+                    <div style="font-size:.88rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ g.name }}</div>
+                    <div style="font-size:.74rem;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ g.memberLine }}</div>
+                  </div>
+                  <span style="{{ g.levelBadge }}">{{ g.levelLabel }}</span>
+                </div>
+
+                <sc-if value="{{ g.isView }}" hint-placeholder-val="{{ true }}">
+                  <div style="display:flex;flex-direction:column;gap:12px">
+                    <sc-if value="{{ g.hasDesc }}" hint-placeholder-val="{{ false }}">
+                      <div style="font-size:.8rem;color:var(--text-muted);line-height:1.5;text-wrap:pretty">{{ g.desc }}</div>
+                    </sc-if>
+                    <div>
+                      <div style="font-size:.7rem;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:7px">Permissões</div>
+                      <div style="display:flex;flex-wrap:wrap;gap:6px">
+                        <sc-for list="{{ g.permBadges }}" as="p" hint-placeholder-count="3">
+                          <span style="{{ p.style }}">{{ p.label }}</span>
+                        </sc-for>
+                      </div>
+                    </div>
+                    <div>
+                      <div style="font-size:.7rem;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:7px">Membros</div>
+                      <div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center">
+                        <sc-for list="{{ g.memberAvatars }}" as="m" hint-placeholder-count="3">
+                          <a href="{{ m.href }}" title="{{ m.name }}" style="{{ m.avatar }}">{{ m.ini }}</a>
+                        </sc-for>
+                        <sc-if value="{{ g.noMembers }}" hint-placeholder-val="{{ false }}">
+                          <span style="font-size:.78rem;color:var(--text-faint)">Nenhum usuário neste grupo</span>
+                        </sc-if>
+                      </div>
+                    </div>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap">
+                      <div onClick="{{ g.onEdit }}" style="padding:8px 14px;border:1.5px solid var(--brand);color:var(--brand-text);border-radius:6px;font-size:.81rem;font-weight:600;cursor:pointer" style-hover="background:var(--tint-blue)">Editar</div>
+                      <div onClick="{{ g.onDuplicate }}" style="padding:8px 14px;border:1.5px solid var(--border);color:var(--text-muted);border-radius:6px;font-size:.81rem;font-weight:600;cursor:pointer" style-hover="border-color:var(--brand-text);color:var(--brand-text)">Duplicar</div>
+                      <div style="flex:1"></div>
+                      <div onClick="{{ g.onDelete }}" style="{{ g.deleteStyle }}">{{ g.deleteLabel }}</div>
+                    </div>
+                  </div>
+                </sc-if>
+
+                <sc-if value="{{ g.isEditing }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:flex;flex-direction:column;gap:13px">
+                    <div>
+                      <div style="font-size:.77rem;font-weight:700;margin-bottom:6px">Nome do grupo</div>
+                      <input value="{{ g.draft.name }}" onChange="{{ g.onName }}" placeholder="Gestão de squad" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:6px;font-size:.85rem;outline:none" style-focus="border-color:var(--brand-text)" />
+                    </div>
+                    <div>
+                      <div style="font-size:.77rem;font-weight:700;margin-bottom:6px">Descrição</div>
+                      <input value="{{ g.draft.desc }}" onChange="{{ g.onDesc }}" placeholder="Para quem é este grupo" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:6px;font-size:.85rem;outline:none" style-focus="border-color:var(--brand-text)" />
+                    </div>
+                    <div>
+                      <div style="font-size:.77rem;font-weight:700;margin-bottom:7px">Nível base</div>
+                      <div style="display:flex;gap:6px;flex-wrap:wrap">
+                        <sc-for list="{{ g.levelChips }}" as="l" hint-placeholder-count="3">
+                          <div onClick="{{ l.onClick }}" style="{{ l.style }}">{{ l.label }}</div>
+                        </sc-for>
+                      </div>
+                    </div>
+                    <div>
+                      <div style="font-size:.77rem;font-weight:700;margin-bottom:7px">Permissões</div>
+                      <div style="display:flex;gap:6px;flex-wrap:wrap">
+                        <sc-for list="{{ g.permChips }}" as="p" hint-placeholder-count="8">
+                          <div onClick="{{ p.onClick }}" style="{{ p.style }}">{{ p.label }}</div>
+                        </sc-for>
+                      </div>
+                    </div>
+                    <div>
+                      <div style="font-size:.77rem;font-weight:700;margin-bottom:7px">Usuários do grupo</div>
+                      <div style="display:flex;gap:6px;flex-wrap:wrap">
+                        <sc-for list="{{ g.memberChips }}" as="m" hint-placeholder-count="6">
+                          <div onClick="{{ m.onClick }}" style="{{ m.style }}">
+                            <span style="{{ m.dot }}">{{ m.ini }}</span>{{ m.first }}
+                          </div>
+                        </sc-for>
+                      </div>
+                    </div>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap">
+                      <div onClick="{{ g.onSave }}" style="padding:9px 15px;background:var(--accent);color:#fff;border-radius:6px;font-size:.82rem;font-weight:600;cursor:pointer" style-hover="filter:brightness(1.08)">Salvar grupo</div>
+                      <div onClick="{{ g.onCancel }}" style="padding:9px 15px;border:1.5px solid var(--border);color:var(--text-muted);border-radius:6px;font-size:.82rem;font-weight:600;cursor:pointer" style-hover="border-color:var(--brand-text);color:var(--brand-text)">Cancelar</div>
+                      <div style="flex:1"></div>
+                      <div onClick="{{ g.onDelete }}" style="{{ g.deleteStyle }}">{{ g.deleteLabel }}</div>
+                    </div>
+                  </div>
+                </sc-if>
+              </div>
+            </sc-for>
+          </div>
+
+          <sc-if value="{{ gIsCards }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+              <span style="font-size:.76rem;color:var(--text-muted)">{{ gPg.countLabel }}</span>
+              <div style="flex:1"></div>
+              <sc-if value="{{ gPg.many }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;align-items:center;gap:6px">
+                  <div onClick="{{ gPg.onPrev }}" style="{{ gPg.prevStyle }}">‹</div>
+                  <sc-for list="{{ gPg.numbers }}" as="n" hint-placeholder-count="2">
+                    <div onClick="{{ n.onClick }}" style="{{ n.style }}">{{ n.label }}</div>
+                  </sc-for>
+                  <div onClick="{{ gPg.onNext }}" style="{{ gPg.nextStyle }}">›</div>
+                </div>
+              </sc-if>
+            </div>
+          </sc-if>
+
+          <div style="display:flex;gap:10px;padding:13px 16px;border-radius:8px;font-size:.82rem;background:var(--tint-sky);border:1px solid var(--tint-sky-bd);color:var(--info-text)">
+            ℹ O nível base do grupo é o que vale na aplicação: define se o usuário vê apenas seus registros (Desenvolvedor), toda a equipe (Gestor) ou também a visão executiva (Diretoria).
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isIntegra }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;gap:16px">
+
+          <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 20px">
+            <div style="flex:1;min-width:0">
+              <div style="font-size:.86rem;font-weight:700">Integrações</div>
+              <div style="font-size:.74rem;color:var(--text-muted);margin-top:2px">{{ integSummary }} · tudo editável e removível</div>
+            </div>
+            <select value="{{ iSort }}" onChange="{{ onISort }}" style="{{ selectStyle }}" title="Ordenar">
+              <sc-for list="{{ iSortOptions }}" as="o" hint-placeholder-count="4">
+                <option value="{{ o.value }}">{{ o.label }}</option>
+              </sc-for>
+            </select>
+            <div style="display:flex;gap:4px;padding:3px;background:var(--bg);border-radius:8px">
+              <sc-for list="{{ iViews }}" as="v" hint-placeholder-count="2">
+                <div onClick="{{ v.onClick }}" style="{{ v.style }}"><span style="font-size:.9rem">{{ v.icon }}</span>{{ v.label }}</div>
+              </sc-for>
+            </div>
+            <div onClick="{{ addInteg }}" style="padding:9px 15px;background:var(--accent);color:#fff;border-radius:6px;font-size:.83rem;font-weight:600;cursor:pointer;white-space:nowrap" style-hover="filter:brightness(1.08)">+ Nova integração</div>
+          </div>
+
+          <sc-if value="{{ iIsList }}" hint-placeholder-val="{{ true }}">
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">
+              <div style="overflow-x:auto;max-width:100%">
+                <table style="width:100%;border-collapse:collapse;font-size:.84rem">
+                  <thead>
+                    <tr>
+                      <th style="background:var(--brand);color:#fff;padding:10px 16px;text-align:left;font-size:.71rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Integração</th>
+                      <th style="background:var(--brand);color:#fff;padding:10px 16px;text-align:left;font-size:.71rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Tipo</th>
+                      <th style="background:var(--brand);color:#fff;padding:10px 16px;text-align:left;font-size:.71rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Endpoint</th>
+                      <th style="background:var(--brand);color:#fff;padding:10px 16px;text-align:left;font-size:.71rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Eventos</th>
+                      <th style="background:var(--brand);color:#fff;padding:10px 16px;text-align:left;font-size:.71rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Situação</th>
+                      <th style="background:var(--brand);color:#fff;padding:10px 16px;text-align:right;font-size:.71rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <sc-for list="{{ integRows }}" as="r" hint-placeholder-count="4">
+                      <tr style-hover="background:var(--surface-2)">
+                        <td style="padding:11px 16px;border-bottom:1px solid var(--border)">
+                          <div style="display:flex;align-items:center;gap:10px">
+                            <div style="{{ r.iconStyle }}">{{ r.abbr }}</div>
+                            <span style="font-weight:700">{{ r.name }}</span>
+                          </div>
+                        </td>
+                        <td style="padding:11px 16px;border-bottom:1px solid var(--border);color:var(--text-muted)">{{ r.typeLabel }}</td>
+                        <td style="padding:11px 16px;border-bottom:1px solid var(--border);color:var(--text-muted);font-family:ui-monospace,monospace;font-size:.76rem;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ r.endpoint }}</td>
+                        <td style="padding:11px 16px;border-bottom:1px solid var(--border);color:var(--text-muted)">{{ r.eventCount }}</td>
+                        <td style="padding:11px 16px;border-bottom:1px solid var(--border)"><span style="{{ r.stateBadge }}">{{ r.stateLabel }}</span></td>
+                        <td style="padding:11px 16px;border-bottom:1px solid var(--border);text-align:right">
+                          <div style="display:flex;gap:12px;justify-content:flex-end">
+                            <span onClick="{{ r.onToggle }}" style="font-size:.78rem;font-weight:600;color:var(--text-muted);cursor:pointer">{{ r.toggleLabel }}</span>
+                            <span onClick="{{ r.onEdit }}" style="font-size:.78rem;font-weight:600;color:var(--brand-text);cursor:pointer">Editar</span>
+                            <span onClick="{{ r.onDelete }}" style="{{ r.deleteStyle }}">{{ r.deleteLabel }}</span>
+                          </div>
+                        </td>
+                      </tr>
+                    </sc-for>
+                  </tbody>
+                </table>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-top:1px solid var(--border);flex-wrap:wrap">
+                <span style="font-size:.76rem;color:var(--text-muted)">{{ iPg.countLabel }}</span>
+                <div style="flex:1"></div>
+                <sc-if value="{{ iPg.many }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:flex;align-items:center;gap:6px">
+                    <div onClick="{{ iPg.onPrev }}" style="{{ iPg.prevStyle }}">‹</div>
+                    <sc-for list="{{ iPg.numbers }}" as="n" hint-placeholder-count="2">
+                      <div onClick="{{ n.onClick }}" style="{{ n.style }}">{{ n.label }}</div>
+                    </sc-for>
+                    <div onClick="{{ iPg.onNext }}" style="{{ iPg.nextStyle }}">›</div>
+                  </div>
+                </sc-if>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ integEmpty }}" hint-placeholder-val="{{ false }}">
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:52px 24px;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center">
+              <div style="width:48px;height:48px;border-radius:calc(var(--radius) + 2px);background:var(--bg);display:flex;align-items:center;justify-content:center;color:var(--text-faint);font-size:1.3rem">⇄</div>
+              <div style="font-size:.95rem;font-weight:700">Nenhuma integração cadastrada</div>
+              <div style="font-size:.82rem;color:var(--text-muted);max-width:400px;text-wrap:pretty">Crie uma para receber registros por WhatsApp, disparar webhooks no n8n ou publicar o resumo em outro canal.</div>
+              <div onClick="{{ addInteg }}" style="margin-top:8px;padding:9px 16px;background:var(--accent);color:#fff;border-radius:6px;font-size:.83rem;font-weight:600;cursor:pointer">+ Nova integração</div>
+            </div>
+          </sc-if>
+
+          <div style="{{ iGridStyle }}">
+            <sc-for list="{{ integrations }}" as="g" hint-placeholder-count="4">
+              <div style="{{ g.cardStyle }}">
+                <div style="display:flex;align-items:center;gap:12px">
+                  <div style="{{ g.iconStyle }}">{{ g.abbr }}</div>
+                  <div style="flex:1;min-width:0">
+                    <div style="font-size:.88rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ g.name }}</div>
+                    <div style="font-size:.74rem;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ g.typeLabel }} · {{ g.stateLabel }}</div>
+                  </div>
+                  <div onClick="{{ g.onToggle }}" style="{{ g.switch }}" title="Ativar ou pausar"><div style="{{ g.knob }}"></div></div>
+                </div>
+
+                <sc-if value="{{ g.isView }}" hint-placeholder-val="{{ true }}">
+                  <div style="display:flex;flex-direction:column;gap:12px">
+                    <div style="display:flex;flex-direction:column;gap:7px">
+                      <sc-for list="{{ g.rows }}" as="r" hint-placeholder-count="3">
+                        <div style="display:flex;gap:10px;align-items:baseline">
+                          <span style="width:96px;flex:0 0 96px;font-size:.72rem;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.05em">{{ r.label }}</span>
+                          <span style="{{ r.valueStyle }}">{{ r.value }}</span>
+                        </div>
+                      </sc-for>
+                    </div>
+                    <div style="display:flex;flex-wrap:wrap;gap:6px">
+                      <sc-for list="{{ g.eventBadges }}" as="e" hint-placeholder-count="3">
+                        <span style="{{ e.style }}">{{ e.label }}</span>
+                      </sc-for>
+                    </div>
+                    <sc-if value="{{ g.hasNotes }}" hint-placeholder-val="{{ false }}">
+                      <div style="font-size:.79rem;color:var(--text-muted);line-height:1.5;text-wrap:pretty;padding:10px 12px;background:var(--surface-2);border:1px solid var(--border-soft);border-radius:7px">{{ g.notes }}</div>
+                    </sc-if>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap">
+                      <div onClick="{{ g.onEdit }}" style="padding:8px 14px;border:1.5px solid var(--brand);color:var(--brand-text);border-radius:6px;font-size:.81rem;font-weight:600;cursor:pointer" style-hover="background:var(--tint-blue)">Editar</div>
+                      <div onClick="{{ g.onTest }}" style="padding:8px 14px;border:1.5px solid var(--border);color:var(--text-muted);border-radius:6px;font-size:.81rem;font-weight:600;cursor:pointer" style-hover="border-color:var(--brand-text);color:var(--brand-text)">Testar</div>
+                      <div onClick="{{ g.onDuplicate }}" style="padding:8px 14px;border:1.5px solid var(--border);color:var(--text-muted);border-radius:6px;font-size:.81rem;font-weight:600;cursor:pointer" style-hover="border-color:var(--brand-text);color:var(--brand-text)">Duplicar</div>
+                      <div style="flex:1"></div>
+                      <div onClick="{{ g.onDelete }}" style="{{ g.deleteStyle }}">{{ g.deleteLabel }}</div>
+                    </div>
+                  </div>
+                </sc-if>
+
+                <sc-if value="{{ g.isEditing }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:flex;flex-direction:column;gap:13px">
+                    <div style="display:grid;grid-template-columns:1fr 78px;gap:10px">
+                      <div>
+                        <div style="font-size:.77rem;font-weight:700;margin-bottom:6px">Nome</div>
+                        <input value="{{ g.draft.name }}" onChange="{{ g.onName }}" placeholder="WhatsApp do time" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:6px;font-size:.85rem;outline:none" style-focus="border-color:var(--brand-text)" />
+                      </div>
+                      <div>
+                        <div style="font-size:.77rem;font-weight:700;margin-bottom:6px">Sigla</div>
+                        <input value="{{ g.draft.abbr }}" onChange="{{ g.onAbbr }}" placeholder="WA" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:6px;font-size:.85rem;outline:none;text-align:center;font-weight:700" style-focus="border-color:var(--brand-text)" />
+                      </div>
+                    </div>
+                    <div>
+                      <div style="font-size:.77rem;font-weight:700;margin-bottom:7px">Tipo</div>
+                      <div style="display:flex;flex-wrap:wrap;gap:6px">
+                        <sc-for list="{{ g.typeChips }}" as="t" hint-placeholder-count="5">
+                          <div onClick="{{ t.onClick }}" style="{{ t.style }}">{{ t.label }}</div>
+                        </sc-for>
+                      </div>
+                    </div>
+                    <div>
+                      <div style="font-size:.77rem;font-weight:700;margin-bottom:6px">{{ g.endpointLabel }}</div>
+                      <input value="{{ g.draft.endpoint }}" onChange="{{ g.onEndpoint }}" placeholder="{{ g.endpointHint }}" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:6px;font-size:.85rem;outline:none;font-family:ui-monospace,monospace" style-focus="border-color:var(--brand-text)" />
+                    </div>
+                    <div>
+                      <div style="font-size:.77rem;font-weight:700;margin-bottom:6px">Credencial / assinatura</div>
+                      <input value="{{ g.draft.secret }}" onChange="{{ g.onSecret }}" placeholder="token, secret ou chave" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:6px;font-size:.85rem;outline:none;font-family:ui-monospace,monospace" style-focus="border-color:var(--brand-text)" />
+                    </div>
+                    <div>
+                      <div style="font-size:.77rem;font-weight:700;margin-bottom:7px">Eventos assinados</div>
+                      <div style="display:flex;flex-wrap:wrap;gap:6px">
+                        <sc-for list="{{ g.eventChips }}" as="e" hint-placeholder-count="4">
+                          <div onClick="{{ e.onClick }}" style="{{ e.style }}">{{ e.label }}</div>
+                        </sc-for>
+                      </div>
+                      <div style="display:flex;gap:8px;margin-top:8px">
+                        <input value="{{ g.draft.newEvent }}" onChange="{{ g.onNewEvent }}" placeholder="evento.personalizado" style="flex:1;padding:8px 11px;border:1.5px solid var(--border);border-radius:6px;font-size:.8rem;outline:none;font-family:ui-monospace,monospace" style-focus="border-color:var(--brand-text)" />
+                        <div onClick="{{ g.onAddEvent }}" style="padding:8px 13px;border:1.5px solid var(--brand);color:var(--brand-text);border-radius:6px;font-size:.8rem;font-weight:600;cursor:pointer;white-space:nowrap" style-hover="background:var(--tint-blue)">Adicionar</div>
+                      </div>
+                    </div>
+                    <div>
+                      <div style="font-size:.77rem;font-weight:700;margin-bottom:6px">Observação</div>
+                      <textarea value="{{ g.draft.notes }}" onChange="{{ g.onNotes }}" placeholder="Como o time usa essa integração no dia a dia" style="width:100%;min-height:62px;padding:9px 12px;border:1.5px solid var(--border);border-radius:6px;font-size:.83rem;outline:none;resize:vertical;line-height:1.5" style-focus="border-color:var(--brand-text)"></textarea>
+                    </div>
+                    <div style="background:#0f172a;border-radius:8px;overflow:hidden">
+                      <div style="padding:7px 12px;background:rgba(255,255,255,.05);font-size:.7rem;color:var(--text-muted);display:flex;justify-content:space-between">
+                        <span>{{ g.payloadTitle }}</span><span>{{ g.payloadType }}</span>
+                      </div>
+                      <pre style="padding:12px 14px;font-family:ui-monospace,'Cascadia Code',monospace;font-size:.71rem;color:var(--border);line-height:1.6;overflow-x:auto">{{ g.payload }}</pre>
+                    </div>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap">
+                      <div onClick="{{ g.onSave }}" style="padding:9px 15px;background:var(--accent);color:#fff;border-radius:6px;font-size:.82rem;font-weight:600;cursor:pointer" style-hover="filter:brightness(1.08)">Salvar integração</div>
+                      <div onClick="{{ g.onCancel }}" style="padding:9px 15px;border:1.5px solid var(--border);color:var(--text-muted);border-radius:6px;font-size:.82rem;font-weight:600;cursor:pointer" style-hover="border-color:var(--brand-text);color:var(--brand-text)">Cancelar</div>
+                      <div style="flex:1"></div>
+                      <div onClick="{{ g.onDelete }}" style="{{ g.deleteStyle }}">{{ g.deleteLabel }}</div>
+                    </div>
+                  </div>
+                </sc-if>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px">
+            <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:14px;gap:12px;flex-wrap:wrap">
+              <div>
+                <div style="font-size:.86rem;font-weight:700">Últimas execuções</div>
+                <div style="font-size:.74rem;color:var(--text-muted);margin-top:2px">Histórico dos disparos das integrações cadastradas</div>
+              </div>
+              <div onClick="{{ clearRuns }}" style="font-size:.78rem;font-weight:600;color:var(--text-muted);cursor:pointer;padding:7px 12px;border:1.5px solid var(--border);border-radius:6px" style-hover="border-color:#dc2626;color:#dc2626">Limpar histórico</div>
+            </div>
+            <sc-if value="{{ runsEmpty }}" hint-placeholder-val="{{ false }}">
+              <div style="padding:32px 12px;text-align:center">
+                <div style="font-size:.86rem;font-weight:700">Sem execuções registradas</div>
+                <div style="font-size:.79rem;color:var(--text-muted);margin-top:4px">Use “Testar” em uma integração para gerar o primeiro disparo.</div>
+              </div>
+            </sc-if>
+            <table style="width:100%;border-collapse:collapse;font-size:.83rem">
+              <tbody>
+                <sc-for list="{{ runs }}" as="r" hint-placeholder-count="4">
+                  <tr style-hover="background:var(--surface-2)">
+                    <td style="padding:10px 14px;border-bottom:1px solid var(--border);font-weight:600">{{ r.source }}</td>
+                    <td style="padding:10px 14px;border-bottom:1px solid var(--border);font-family:ui-monospace,monospace;font-size:.77rem;color:var(--text-muted)">{{ r.event }}</td>
+                    <td style="padding:10px 14px;border-bottom:1px solid var(--border);color:var(--text-muted)">{{ r.when }}</td>
+                    <td style="padding:10px 14px;border-bottom:1px solid var(--border);text-align:right"><span style="{{ r.badge }}">{{ r.status }}</span></td>
+                  </tr>
+                </sc-for>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isBrand }}" hint-placeholder-val="{{ false }}">
+        <div style="display:grid;grid-template-columns:1.15fr 1fr;gap:16px;align-items:start">
+
+          <div style="display:flex;flex-direction:column;gap:16px">
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;display:flex;flex-direction:column;gap:16px">
+              <div>
+                <div style="font-size:.86rem;font-weight:700">Marca</div>
+                <div style="font-size:.74rem;color:var(--text-muted);margin-top:2px">Ícone e textos que aparecem no topo da barra lateral</div>
+              </div>
+
+              <div style="display:flex;align-items:center;gap:14px;padding:14px;background:var(--brand);border-radius:calc(var(--radius) - 1px)">
+                <div style="{{ bd.markStyle }}">{{ bd.markText }}</div>
+                <div style="min-width:0">
+                  <div style="color:#fff;font-weight:700;font-size:.87rem;line-height:1.25">{{ bd.name }}</div>
+                  <div style="color:rgba(255,255,255,.4);font-size:.67rem">{{ bd.sub }}</div>
+                </div>
+              </div>
+
+              <div style="display:grid;grid-template-columns:100px 1fr;gap:12px;align-items:end">
+                <div>
+                  <div style="font-size:.77rem;font-weight:700;margin-bottom:6px">Sigla</div>
+                  <input value="{{ bd.mark }}" onChange="{{ bd.onMark }}" maxLength="3" placeholder="ITS" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:6px;font-size:.9rem;font-weight:800;text-align:center;outline:none;background:var(--surface)" style-focus="border-color:var(--brand)" />
+                </div>
+                <div>
+                  <div style="font-size:.77rem;font-weight:700;margin-bottom:6px">Ou envie um logo (PNG/SVG)</div>
+                  <div style="display:flex;gap:8px">
+                    <label style="flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:9px;border:1.5px dashed var(--border-strong);border-radius:6px;font-size:.81rem;font-weight:600;color:var(--text-muted);cursor:pointer" style-hover="border-color:var(--accent);color:var(--accent)">
+                      <span style="font-size:1rem;line-height:1">+</span> {{ bd.uploadLabel }}
+                      <input type="file" accept="image/*" onChange="{{ bd.onUpload }}" style="display:none" />
+                    </label>
+                    <sc-if value="{{ bd.hasImg }}" hint-placeholder-val="{{ false }}">
+                      <div onClick="{{ bd.onClearImg }}" style="padding:9px 13px;border:1.5px solid var(--tint-red-bd);color:#dc2626;border-radius:6px;font-size:.81rem;font-weight:600;cursor:pointer">Remover</div>
+                    </sc-if>
+                  </div>
+                </div>
+              </div>
+
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                <div>
+                  <div style="font-size:.77rem;font-weight:700;margin-bottom:6px">Nome do sistema</div>
+                  <input value="{{ bd.name }}" onChange="{{ bd.onName }}" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:6px;font-size:.86rem;outline:none;background:var(--surface)" style-focus="border-color:var(--brand)" />
+                </div>
+                <div>
+                  <div style="font-size:.77rem;font-weight:700;margin-bottom:6px">Descrição curta</div>
+                  <input value="{{ bd.sub }}" onChange="{{ bd.onSub }}" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:6px;font-size:.86rem;outline:none;background:var(--surface)" style-focus="border-color:var(--brand)" />
+                </div>
+              </div>
+            </div>
+
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;display:flex;flex-direction:column;gap:16px">
+              <div>
+                <div style="font-size:.86rem;font-weight:700">Cores</div>
+                <div style="font-size:.74rem;color:var(--text-muted);margin-top:2px">Valem para os dois temas — a barra lateral e os destaques do sistema</div>
+              </div>
+              <div>
+                <div style="font-size:.77rem;font-weight:700;margin-bottom:8px">Cor da barra lateral</div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+                  <sc-for list="{{ bd.brandSwatches }}" as="sw" hint-placeholder-count="5">
+                    <div onClick="{{ sw.onClick }}" style="{{ sw.style }}" title="{{ sw.label }}"></div>
+                  </sc-for>
+                  <input type="color" value="{{ bd.brandColor }}" onChange="{{ bd.onBrandColor }}" style="width:38px;height:34px;border:1.5px solid var(--border);border-radius:8px;background:var(--surface);cursor:pointer;padding:2px" />
+                </div>
+              </div>
+              <div>
+                <div style="font-size:.77rem;font-weight:700;margin-bottom:8px">Cor de destaque (botões e alertas)</div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+                  <sc-for list="{{ bd.accentSwatches }}" as="sw" hint-placeholder-count="5">
+                    <div onClick="{{ sw.onClick }}" style="{{ sw.style }}" title="{{ sw.label }}"></div>
+                  </sc-for>
+                  <input type="color" value="{{ bd.accentColor }}" onChange="{{ bd.onAccentColor }}" style="width:38px;height:34px;border:1.5px solid var(--border);border-radius:8px;background:var(--surface);cursor:pointer;padding:2px" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:16px">
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;display:flex;flex-direction:column;gap:16px">
+              <div>
+                <div style="font-size:.86rem;font-weight:700">Interface</div>
+                <div style="font-size:.74rem;color:var(--text-muted);margin-top:2px">Como o sistema abre para todo mundo</div>
+              </div>
+              <div>
+                <div style="font-size:.77rem;font-weight:700;margin-bottom:7px">Tema padrão</div>
+                <div style="display:flex;gap:7px">
+                  <sc-for list="{{ bd.themes }}" as="t" hint-placeholder-count="2">
+                    <div onClick="{{ t.onClick }}" style="{{ t.style }}">{{ t.label }}</div>
+                  </sc-for>
+                </div>
+              </div>
+              <div>
+                <div style="font-size:.77rem;font-weight:700;margin-bottom:7px">Densidade da timeline</div>
+                <div style="display:flex;gap:7px">
+                  <sc-for list="{{ bd.densities }}" as="d2" hint-placeholder-count="2">
+                    <div onClick="{{ d2.onClick }}" style="{{ d2.style }}">{{ d2.label }}</div>
+                  </sc-for>
+                </div>
+                <div style="font-size:.73rem;color:var(--text-faint);margin-top:6px">No modo compacto a descrição das atividades fica oculta na listagem.</div>
+              </div>
+              <div>
+                <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:7px">
+                  <span style="font-size:.77rem;font-weight:700">Arredondamento dos cartões</span>
+                  <span style="font-size:.73rem;color:var(--text-muted);font-family:ui-monospace,monospace">{{ bd.radiusLabel }}</span>
+                </div>
+                <div style="display:flex;gap:7px">
+                  <sc-for list="{{ bd.radii }}" as="r2" hint-placeholder-count="4">
+                    <div onClick="{{ r2.onClick }}" style="{{ r2.style }}">{{ r2.label }}</div>
+                  </sc-for>
+                </div>
+              </div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;padding-top:4px">
+                <div onClick="{{ bd.onSave }}" style="padding:10px 16px;background:var(--accent);color:#fff;border-radius:6px;font-size:.84rem;font-weight:700;cursor:pointer" style-hover="filter:brightness(1.08)">Salvar aparência</div>
+                <div onClick="{{ bd.onReset }}" style="padding:10px 16px;border:1.5px solid var(--border);color:var(--text-muted);border-radius:6px;font-size:.83rem;font-weight:600;cursor:pointer" style-hover="border-color:#dc2626;color:#dc2626">Restaurar padrão ITS</div>
+              </div>
+            </div>
+
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px">
+              <div style="font-size:.86rem;font-weight:700;margin-bottom:4px">Prévia</div>
+              <div style="font-size:.74rem;color:var(--text-muted);margin-bottom:14px">Amostra dos componentes com as cores atuais</div>
+              <div style="display:flex;flex-direction:column;gap:12px">
+                <div style="display:flex;gap:8px;flex-wrap:wrap">
+                  <div style="padding:9px 15px;background:var(--accent);color:#fff;border-radius:6px;font-size:.83rem;font-weight:700">Nova atividade</div>
+                  <div style="padding:9px 15px;background:var(--brand);color:#fff;border-radius:6px;font-size:.83rem;font-weight:600">Salvar</div>
+                  <div style="padding:9px 15px;border:1.5px solid var(--border);color:var(--text-muted);border-radius:6px;font-size:.83rem;font-weight:600">Cancelar</div>
+                </div>
+                <div style="{{ bd.previewCard }}">
+                  <div style="font-size:.83rem;font-weight:700">Cartão de exemplo</div>
+                  <div style="font-size:.78rem;color:var(--text-muted);margin-top:3px">Arredondamento e cores aplicados em tempo real.</div>
+                </div>
+                <div style="display:flex;gap:7px;flex-wrap:wrap">
+                  <span style="{{ bd.chipBrand }}">nível</span>
+                  <span style="{{ bd.chipAccent }}">destaque</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isStates }}" hint-placeholder-val="{{ false }}">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px">
+          <div style="font-size:.86rem;font-weight:700;margin-bottom:14px">Estados do sistema</div>
+          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px">
+            <div style="border:1px dashed var(--border);border-radius:8px;padding:18px;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center">
+              <div style="width:40px;height:40px;border-radius:var(--radius);background:var(--bg);display:flex;align-items:center;justify-content:center;color:var(--text-faint)">◍</div>
+              <div style="font-size:.83rem;font-weight:700">Estado vazio</div>
+              <div style="font-size:.76rem;color:var(--text-muted)">Nenhum registro para este recorte ainda.</div>
+            </div>
+            <div style="border:1px dashed var(--border);border-radius:8px;padding:18px">
+              <div style="font-size:.83rem;font-weight:700;margin-bottom:12px">Estado de carregamento</div>
+              <div style="animation:dvSk 1.2s ease-in-out infinite;display:flex;flex-direction:column;gap:8px">
+                <div style="height:10px;background:var(--border);border-radius:6px;width:75%"></div>
+                <div style="height:10px;background:var(--border);border-radius:6px;width:55%"></div>
+                <div style="height:10px;background:var(--border);border-radius:6px;width:65%"></div>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div style="display:flex;gap:10px;padding:12px 14px;border-radius:6px;font-size:.83rem;background:var(--tint-red);border:1px solid var(--tint-red-bd);color:var(--danger-text)">✕ Erro ao salvar a atividade. Tente novamente.</div>
+              <div style="display:flex;gap:10px;padding:12px 14px;border-radius:6px;font-size:.83rem;background:var(--tint-green);border:1px solid var(--tint-green-bd);color:var(--ok-text)">✓ Atividade registrada com sucesso.</div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div style="display:flex;gap:10px;padding:12px 14px;border-radius:6px;font-size:.83rem;background:var(--surface)beb;border:1px solid var(--tint-amber-bd);color:var(--warn-text)">⚠ Você ainda não registrou nada hoje.</div>
+              <div onClick="{{ demoToast }}" style="padding:9px 14px;background:var(--brand);color:#fff;border-radius:6px;font-size:.82rem;font-weight:600;cursor:pointer;width:fit-content">Ver toast</div>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+    </main>
+</x-import>
+
+<sc-if value="{{ userModalOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;inset:0;z-index:70;display:flex;align-items:center;justify-content:center;padding:4vh 20px">
+      <div onClick="{{ closeUser }}" style="position:absolute;inset:0;background:var(--overlay);animation:dvFade .16s ease both"></div>
+      <div style="position:relative;width:620px;max-width:96vw;max-height:92vh;background:var(--surface);border-radius:calc(var(--radius) + 2px);box-shadow:0 8px 32px rgba(0,0,0,.24);display:flex;flex-direction:column;overflow:hidden;animation:dvUp .18s cubic-bezier(.2,.8,.2,1) both">
+        <div style="padding:18px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:13px">
+          <div style="{{ um.avatar }}">{{ um.ini }}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:.98rem;font-weight:700">{{ um.heading }}</div>
+            <div style="font-size:.74rem;color:var(--text-muted);margin-top:2px">{{ um.sub }}</div>
+          </div>
+          <div onClick="{{ closeUser }}" style="width:30px;height:30px;border-radius:6px;display:flex;align-items:center;justify-content:center;color:var(--text-muted);cursor:pointer;font-size:1rem" style-hover="background:var(--bg)">✕</div>
+        </div>
+
+        <div style="flex:1;overflow:auto;padding:22px 24px;display:flex;flex-direction:column;gap:18px">
+          <sc-if value="{{ um.hasError }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;gap:10px;padding:11px 13px;border-radius:6px;font-size:.82rem;background:var(--tint-red);border:1px solid var(--tint-red-bd);color:var(--danger-text)">✕ {{ um.error }}</div>
+          </sc-if>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+            <div>
+              <div style="font-size:.77rem;font-weight:700;margin-bottom:6px">Nome completo</div>
+              <input value="{{ um.name }}" onChange="{{ um.onName }}" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:6px;font-size:.86rem;outline:none" style-focus="border-color:var(--brand-text)" />
+            </div>
+            <div>
+              <div style="font-size:.77rem;font-weight:700;margin-bottom:6px">Cargo</div>
+              <input value="{{ um.role }}" onChange="{{ um.onRole }}" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:6px;font-size:.86rem;outline:none" style-focus="border-color:var(--brand-text)" />
+            </div>
+            <div>
+              <div style="font-size:.77rem;font-weight:700;margin-bottom:6px">E-mail de acesso</div>
+              <input value="{{ um.email }}" onChange="{{ um.onEmail }}" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:6px;font-size:.86rem;outline:none" style-focus="border-color:var(--brand-text)" />
+            </div>
+            <div>
+              <div style="font-size:.77rem;font-weight:700;margin-bottom:6px">Situação</div>
+              <div style="display:flex;align-items:center;gap:12px;padding:7px 0">
+                <div onClick="{{ um.onToggleActive }}" style="{{ um.switch }}"><div style="{{ um.knob }}"></div></div>
+                <span style="font-size:.83rem;font-weight:600;color:var(--text-muted)">{{ um.activeLabel }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div style="font-size:.77rem;font-weight:700;margin-bottom:7px">Nível de acesso</div>
+            <div style="display:flex;gap:7px;flex-wrap:wrap">
+              <sc-for list="{{ um.levelChips }}" as="l" hint-placeholder-count="3">
+                <div onClick="{{ l.onClick }}" style="{{ l.style }}">{{ l.label }}</div>
+              </sc-for>
+            </div>
+            <div style="font-size:.75rem;color:var(--text-faint);margin-top:7px">{{ um.levelHint }}</div>
+          </div>
+
+          <div>
+            <div style="font-size:.77rem;font-weight:700;margin-bottom:7px">Grupos de acesso</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+              <sc-for list="{{ um.groupChips }}" as="gc" hint-placeholder-count="4">
+                <div onClick="{{ gc.onClick }}" style="{{ gc.style }}">{{ gc.label }}</div>
+              </sc-for>
+            </div>
+          </div>
+
+          <div style="padding:16px;border:1px solid var(--border);border-radius:calc(var(--radius) - 1px);background:var(--surface-2)">
+            <div style="font-size:.83rem;font-weight:700;margin-bottom:2px">Alteração de senha</div>
+            <div style="font-size:.74rem;color:var(--text-muted);margin-bottom:12px">Deixe em branco para manter a senha atual</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+              <div>
+                <div style="font-size:.76rem;font-weight:700;margin-bottom:6px">Nova senha</div>
+                <input type="password" value="{{ um.pass1 }}" onChange="{{ um.onPass1 }}" placeholder="••••••••" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:6px;font-size:.86rem;outline:none;background:var(--surface)" style-focus="border-color:var(--brand-text)" />
+              </div>
+              <div>
+                <div style="font-size:.76rem;font-weight:700;margin-bottom:6px">Confirmar senha</div>
+                <input type="password" value="{{ um.pass2 }}" onChange="{{ um.onPass2 }}" placeholder="••••••••" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:6px;font-size:.86rem;outline:none;background:var(--surface)" style-focus="border-color:var(--brand-text)" />
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;margin-top:12px;flex-wrap:wrap">
+              <div onClick="{{ um.onResetLink }}" style="font-size:.79rem;font-weight:600;color:var(--brand-text);cursor:pointer;padding:7px 12px;border:1.5px solid var(--border);border-radius:6px;background:var(--surface)" style-hover="border-color:var(--brand-text)">Enviar link de redefinição</div>
+              <span style="font-size:.74rem;color:var(--text-faint)">{{ um.passNote }}</span>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:20px;padding-top:4px">
+            <sc-for list="{{ um.stats }}" as="s" hint-placeholder-count="3">
+              <div>
+                <div style="font-size:1.1rem;font-weight:800;color:var(--brand-text);line-height:1.1">{{ s.value }}</div>
+                <div style="font-size:.71rem;color:var(--text-muted)">{{ s.label }}</div>
+              </div>
+            </sc-for>
+            <div style="flex:1"></div>
+            <a href="{{ um.href }}" style="font-size:.78rem;font-weight:600;align-self:center">ver timeline completa →</a>
+          </div>
+        </div>
+
+        <div style="padding:16px 24px;border-top:1px solid var(--border);background:var(--surface-2);display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <div onClick="{{ um.onDelete }}" style="{{ um.deleteStyle }}">{{ um.deleteLabel }}</div>
+          <div style="flex:1"></div>
+          <div onClick="{{ closeUser }}" style="font-size:.82rem;font-weight:600;padding:9px 14px;border:1.5px solid var(--border);border-radius:6px;color:var(--text-muted);cursor:pointer" style-hover="border-color:var(--brand-text);color:var(--brand-text)">Cancelar</div>
+          <div onClick="{{ um.onSave }}" style="font-size:.86rem;font-weight:700;padding:10px 18px;background:var(--accent);color:#fff;border-radius:6px;cursor:pointer" style-hover="filter:brightness(1.08)">Salvar usuário</div>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ toastOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;right:24px;bottom:24px;z-index:80;animation:dvToast .2s ease both">
+      <div style="{{ toast.style }}">
+        <span style="font-weight:700">{{ toast.icon }}</span>
+        <div>
+          <div style="font-weight:600">{{ toast.title }}</div>
+          <div style="font-size:.76rem;opacity:.8">{{ toast.sub }}</div>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:1000}}">
+class Component extends DCLogic {
+  state = { userMenu: false,
+    ready: false, collapsed: false, tab: 'cats',
+    newCat: '', newP: { name: '', role: '', mail: '' },
+    list: null, editing: null, draft: null, confirmDelete: null,
+    groups: null, gEditing: null, gDraft: null, gConfirm: null,
+    userDraft: null, userConfirm: false,
+    gView: 'lista', gSort: 'az', gPage: 1,
+    iView: 'lista', iSort: 'az', iPage: 1,
+    pView: 'lista', pSort: 'az', pPage: 1, cPage: 1, cSort: 'az',
+    bd: null,
+    runs: null, toast: null, tick: 0
+  };
+
+  types = [
+    { id: 'whatsapp', label: 'WhatsApp', tone: 'green', endpoint: 'Número do bot', hint: '+55 62 90000-0000' },
+    { id: 'webhook', label: 'Webhook / n8n', tone: 'orange', endpoint: 'URL do webhook', hint: 'https://n8n.itscs.com.br/webhook/diario-dev' },
+    { id: 'chat', label: 'Chat (Slack, Google Chat)', tone: 'blue', endpoint: 'URL do canal', hint: 'https://hooks.slack.com/services/…' },
+    { id: 'email', label: 'E-mail', tone: 'gray', endpoint: 'Destinatários', hint: 'gestao@itscs.com.br' },
+    { id: 'outro', label: 'Outro', tone: 'gray', endpoint: 'Endpoint', hint: 'endereço ou identificador' }
+  ];
+
+  seed = [
+    { id: 'i1', name: 'WhatsApp do time', abbr: 'WA', type: 'whatsapp', enabled: true, endpoint: '+55 62 99999-0000', secret: '', events: ['mensagem.recebida', 'resumo.diario'], notes: 'Registra atividade mandando “Projeto | Categoria | Título | Duração” para o bot; responde confirmando.' },
+    { id: 'i2', name: 'n8n — automações', abbr: 'n8n', type: 'webhook', enabled: true, endpoint: 'https://n8n.itscs.com.br/webhook/diario-dev', secret: 'X-DiarioDev-Secret', events: ['atividade.criada', 'atividade.editada', 'resumo.diario'], notes: 'Dispara o fluxo que cruza registros com o board e alimenta o Power BI.' },
+    { id: 'i3', name: 'Slack #dev-diario', abbr: 'SL', type: 'chat', enabled: false, endpoint: 'https://hooks.slack.com/services/T000/B000/xxx', secret: '', events: ['resumo.diario'], notes: 'Publica o resumo do dia às 18h no canal do time.' },
+    { id: 'i4', name: 'Digest para gestão', abbr: '@', type: 'email', enabled: true, endpoint: 'gestao@itscs.com.br; diretoria@itscs.com.br', secret: '', events: ['resumo.semanal'], notes: 'E-mail semanal com entregas por projeto, gerado do relatório.' }
+  ];
+
+  baseEvents = ['atividade.criada', 'atividade.editada', 'atividade.excluida', 'mensagem.recebida', 'resumo.diario', 'resumo.semanal'];
+
+  perms = [
+    'registrar.atividade', 'ver.proprios', 'ver.equipe', 'relatorio.equipe',
+    'relatorio.executivo', 'exportar.dados', 'gerenciar.usuarios', 'gerenciar.integracoes'
+  ];
+
+  seedGroups = [
+    { id: 'g1', name: 'Desenvolvimento', desc: 'Time que registra o dia a dia do produto.', level: 'dev', perms: ['registrar.atividade', 'ver.proprios'], members: ['elaine', 'julio', 'camila', 'rafael'] },
+    { id: 'g2', name: 'Liderança técnica', desc: 'Acompanha a equipe e prepara a retrospectiva.', level: 'gestor', perms: ['registrar.atividade', 'ver.equipe', 'relatorio.equipe', 'exportar.dados'], members: ['laerty'] },
+    { id: 'g3', name: 'Diretoria', desc: 'Visão executiva de volume, entregas e carteira.', level: 'ceo', perms: ['ver.equipe', 'relatorio.equipe', 'relatorio.executivo', 'exportar.dados'], members: ['marcelo'] },
+    { id: 'g4', name: 'Administração', desc: 'Mantém usuários, categorias e integrações.', level: 'gestor', perms: ['ver.equipe', 'gerenciar.usuarios', 'gerenciar.integracoes'], members: ['laerty'] }
+  ];
+
+  componentDidMount() {
+    this.t = setInterval(() => {
+      if (!window.DV) return;
+      clearInterval(this.t);
+      const ui = DV.ui();
+      const saved = Array.isArray(ui.integrations) ? ui.integrations : null;
+      this.setState({
+        ready: true,
+        bd: Object.assign({}, DV.brand(), { density: ui.density || 'confortável', theme: DV.theme() }),
+        list: saved || this.seed.map(x => Object.assign({}, x, { events: x.events.slice() })),
+        groups: Array.isArray(ui.groups) ? ui.groups : this.seedGroups.map(x => Object.assign({}, x, { perms: x.perms.slice(), members: x.members.slice() })),
+        runs: Array.isArray(ui.integrationRuns) ? ui.integrationRuns : [
+          { source: 'n8n — automações', event: 'atividade.criada', when: 'hoje 16:41', ok: true },
+          { source: 'WhatsApp do time', event: 'mensagem.recebida', when: 'hoje 15:07', ok: true },
+          { source: 'n8n — automações', event: 'resumo.diario', when: 'ontem 18:00', ok: true },
+          { source: 'Digest para gestão', event: 'resumo.semanal', when: 'sexta 08:00', ok: false }
+        ]
+      });
+    }, 25);
+    this.onKey = (e) => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); window.location.href = 'pesquisa.dc.html'; } };
+    window.addEventListener('keydown', this.onKey);
+  }
+  componentWillUnmount() { clearInterval(this.t); window.removeEventListener('keydown', this.onKey); }
+
+  toast(title, sub, kind) {
+    clearTimeout(this._tt);
+    this.setState({ toast: { title: title, sub: sub, kind: kind || 'success' } });
+    this._tt = setTimeout(() => this.setState({ toast: null }), 3000);
+  }
+  bump() { this.setState(s => ({ tick: s.tick + 1 })); }
+  persist(list) { DV.setUi({ integrations: list }); this.setState({ list: list }); }
+  persistRuns(runs) { DV.setUi({ integrationRuns: runs }); this.setState({ runs: runs }); }
+  setD(patch) { this.setState(s => ({ draft: Object.assign({}, s.draft, patch) })); }
+  setG(patch) { this.setState(s => ({ gDraft: Object.assign({}, s.gDraft, patch) })); }
+  persistGroups(groups) { DV.setUi({ groups: groups }); this.setState({ groups: groups }); }
+
+  addPerson() {
+    const n = this.state.newP.name.trim();
+    const parts = n.split(' ').filter(Boolean);
+    if (parts.length < 2) { this.toast('Informe nome e sobrenome', 'Ex.: Marina Costa', 'error'); return; }
+    const colors = ['var(--brand)', 'var(--accent)', '#0284c7', '#16a34a', '#d97706', '#64748b'];
+    const list = DV.people();
+    const first = parts[0].toLowerCase().normalize('NFD').replace(/[^a-z]/g, '');
+    DV.setPeople(list.concat([{
+      id: 'p' + Date.now(), name: n, role: this.state.newP.role.trim() || 'Desenvolvedor',
+      email: this.state.newP.mail.trim() || first + '@itscs.com.br',
+      ini: (parts[0][0] + parts[parts.length - 1][0]).toUpperCase(),
+      color: colors[list.length % colors.length], active: true, level: 'dev'
+    }]));
+    this.setState({ newP: { name: '', role: '', mail: '' } });
+    this.toast('Colaborador cadastrado', n + ' já pode entrar e registrar', 'success');
+    this.bump();
+  }
+
+  renderVals() {
+    const D = window.DV;
+    if (!D || !this.state.list) return { nav: [], sb: {}, u: {}, tabs: [], catRows: [], peopleRows: [], integrations: [], runs: [], toast: { style: '' } };
+    const u = D.user();
+    const acts = D.acts();
+    const catList = D.cats();
+    const list = this.state.list;
+    const runs = this.state.runs || [];
+    const catCounts = {}; acts.forEach(a => { catCounts[a.cat] = (catCounts[a.cat] || 0) + 1; });
+
+    const toneOf = (t) => ({
+      green: ['var(--tint-green)', 'var(--tint-green-bd)', 'var(--ok-text)'], orange: ['var(--tint-orange)', 'var(--tint-orange-bd)', 'var(--accent)'],
+      blue: ['var(--tint-blue)', 'var(--tint-blue-bd)', 'var(--brand-text)'], gray: ['var(--surface-2)', 'var(--border)', '#64748b']
+    })[t];
+    const typeOf = (id) => this.types.find(t => t.id === id) || this.types[4];
+    const sw = (on) => 'width:44px;height:24px;border-radius:20px;padding:3px;cursor:pointer;display:flex;transition:background .15s;background:' +
+      (on ? '#16a34a' : 'var(--border)') + ';justify-content:' + (on ? 'flex-end' : 'flex-start');
+    const knob = 'width:18px;height:18px;border-radius:50%;background:var(--surface);box-shadow:0 1px 3px rgba(0,0,0,.2)';
+
+    const payloadFor = (g) => g.type === 'whatsapp'
+      ? 'Portal ITS | Entrega | Filtro de período publicado | 3h\n→ ✓ Registrado em Portal ITS como Entrega (id 1042)'
+      : g.type === 'email'
+        ? 'Assunto: Diário Dev — resumo de 22 a 29 de julho\nCorpo: 24 registros · 11 entregas · 5 correções · 5 projetos'
+        : '{\n  "event": "' + (g.events[0] || 'atividade.criada') + '",\n  "at": "2026-07-29T17:55:00-03:00",\n  "activity": {\n    "id": "1042",\n    "person": { "id": "elaine", "name": "Elaine Ribeiro" },\n    "project": "Portal ITS",\n    "category": "Entrega",\n    "title": "Filtro de período publicado",\n    "attachments": 1\n  }\n}';
+
+    const blank = () => ({
+      id: 'i' + Date.now(), name: '', abbr: '', type: 'webhook', enabled: true,
+      endpoint: '', secret: '', events: ['atividade.criada'], notes: '', newEvent: ''
+    });
+
+    const startEdit = (g) => this.setState({ editing: g.id, draft: Object.assign({ newEvent: '' }, g, { events: (g.events || []).slice() }), confirmDelete: null });
+    const remove = (id) => {
+      if (this.state.confirmDelete !== id) { this.setState({ confirmDelete: id }); return; }
+      const g = list.find(x => x.id === id);
+      this.persist(list.filter(x => x.id !== id));
+      this.setState({ confirmDelete: null, editing: this.state.editing === id ? null : this.state.editing });
+      this.toast('Integração excluída', (g ? g.name : '') + ' saiu da lista', 'error');
+    };
+
+    const iCounted = list.map(g => Object.assign({}, g, { _n: (g.events || []).length }));
+    const iSorted = D.sortList(iCounted, this.state.iSort, 'name', '_n');
+    const iPg = D.paginate(iSorted, this.state.iPage, 6, 'integrações', (n) => this.setState({ iPage: n }));
+    const integrations = (this.state.iView === 'cards' || this.state.editing ? iPg.items : []).map(g => {
+      const t = typeOf(g.type);
+      const x = toneOf(t.tone);
+      const editing = this.state.editing === g.id;
+      const d = editing ? this.state.draft : g;
+      const confirming = this.state.confirmDelete === g.id;
+      return {
+        name: g.name || 'Sem nome', abbr: (g.abbr || g.name || '?').slice(0, 3).toUpperCase(),
+        typeLabel: t.label, stateLabel: g.enabled ? 'ativa' : 'pausada',
+        cardStyle: 'background:var(--surface);border:1px solid ' + (editing ? 'var(--tint-blue-bd)' : 'var(--border)') + ';border-radius:var(--radius);padding:18px 20px;display:flex;flex-direction:column;gap:14px;min-width:0' + (g.enabled ? '' : ';opacity:.72'),
+        iconStyle: 'width:38px;height:38px;flex:0 0 38px;border-radius:calc(var(--radius) - 1px);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.72rem;background:' + x[0] + ';border:1px solid ' + x[1] + ';color:' + x[2],
+        switch: sw(g.enabled), knob: knob,
+        onToggle: () => this.persist(list.map(y => y.id === g.id ? Object.assign({}, y, { enabled: !y.enabled }) : y)),
+        isView: !editing, isEditing: editing,
+        rows: [
+          { label: t.endpoint, value: g.endpoint || '— não configurado', valueStyle: 'flex:1;min-width:0;font-size:.79rem;font-family:ui-monospace,monospace;color:' + (g.endpoint ? 'var(--brand)' : '#94a3b8') + ';word-break:break-all' },
+          { label: 'Credencial', value: g.secret ? '•••••••• ' + g.secret.slice(-4) : '— sem credencial', valueStyle: 'flex:1;font-size:.79rem;color:var(--text-muted);font-family:ui-monospace,monospace' }
+        ],
+        eventBadges: (g.events || []).map(e => ({
+          label: e, style: 'font-family:ui-monospace,monospace;font-size:.71rem;color:var(--brand-text);background:var(--tint-blue);border:1px solid var(--tint-blue-bd);border-radius:4px;padding:2px 7px'
+        })),
+        hasNotes: !!g.notes, notes: g.notes,
+        onEdit: () => startEdit(g),
+        onTest: () => {
+          const rec = { source: g.name || 'Integração', event: (g.events || [])[0] || 'teste.manual', when: 'agora', ok: g.enabled };
+          this.persistRuns([rec].concat(runs).slice(0, 12));
+          this.toast(g.enabled ? 'Disparo de teste enviado' : 'Integração pausada', g.enabled ? rec.event + ' · 200 OK' : 'Ative para disparar eventos', g.enabled ? 'success' : 'error');
+        },
+        onDuplicate: () => {
+          const copy = Object.assign({}, g, { id: 'i' + Date.now(), name: (g.name || 'Integração') + ' (cópia)', enabled: false, events: (g.events || []).slice() });
+          this.persist(list.concat([copy]));
+          this.toast('Integração duplicada', 'Ajuste o endpoint e ative quando quiser', 'success');
+        },
+        onDelete: () => remove(g.id),
+        deleteLabel: confirming ? 'Confirmar exclusão' : 'Excluir',
+        deleteStyle: 'padding:8px 14px;border-radius:6px;font-size:.81rem;font-weight:600;cursor:pointer;border:1.5px solid ' +
+          (confirming ? '#dc2626;background:#dc2626;color:#fff' : 'var(--tint-red-bd);color:#dc2626'),
+        draft: editing ? { name: d.name, abbr: d.abbr, endpoint: d.endpoint, secret: d.secret, notes: d.notes, newEvent: d.newEvent || '' } : {},
+        endpointLabel: typeOf(d.type).endpoint, endpointHint: typeOf(d.type).hint,
+        typeChips: this.types.map(tt => ({
+          label: tt.label, style: D.chip(d.type === tt.id) + 'font-size:.76rem;',
+          onClick: () => this.setD({ type: tt.id })
+        })),
+        eventChips: Array.from(new Set(this.baseEvents.concat(d.events || []))).map(e => ({
+          label: e, style: D.chip((d.events || []).indexOf(e) > -1) + 'font-size:.75rem;font-family:ui-monospace,monospace;',
+          onClick: () => this.setD({ events: (d.events || []).indexOf(e) > -1 ? d.events.filter(y => y !== e) : (d.events || []).concat([e]) })
+        })),
+        onName: (e) => this.setD({ name: e.target.value }),
+        onAbbr: (e) => this.setD({ abbr: e.target.value.slice(0, 3) }),
+        onEndpoint: (e) => this.setD({ endpoint: e.target.value }),
+        onSecret: (e) => this.setD({ secret: e.target.value }),
+        onNotes: (e) => this.setD({ notes: e.target.value }),
+        onNewEvent: (e) => this.setD({ newEvent: e.target.value }),
+        onAddEvent: () => {
+          const v = (this.state.draft.newEvent || '').trim();
+          if (!v) return;
+          if ((this.state.draft.events || []).indexOf(v) > -1) { this.setD({ newEvent: '' }); return; }
+          this.setD({ events: (this.state.draft.events || []).concat([v]), newEvent: '' });
+        },
+        payloadTitle: d.type === 'whatsapp' ? 'Mensagem de exemplo' : d.type === 'email' ? 'E-mail de exemplo' : 'POST · payload de exemplo',
+        payloadType: d.type === 'webhook' || d.type === 'chat' ? 'application/json' : 'texto',
+        payload: payloadFor(d),
+        onSave: () => {
+          const dr = this.state.draft;
+          if (!(dr.name || '').trim()) { this.toast('Dê um nome à integração', 'Ex.: WhatsApp do time', 'error'); return; }
+          if (!(dr.endpoint || '').trim()) { this.toast('Informe o ' + typeOf(dr.type).endpoint.toLowerCase(), typeOf(dr.type).hint, 'error'); return; }
+          const rec = {
+            id: dr.id, name: dr.name.trim(), abbr: (dr.abbr || dr.name).trim().slice(0, 3).toUpperCase(),
+            type: dr.type, enabled: dr.enabled, endpoint: dr.endpoint.trim(), secret: (dr.secret || '').trim(),
+            events: (dr.events || []).slice(), notes: (dr.notes || '').trim()
+          };
+          this.persist(list.some(y => y.id === rec.id) ? list.map(y => y.id === rec.id ? rec : y) : list.concat([rec]));
+          this.setState({ editing: null, draft: null });
+          this.toast('Integração salva', rec.name + ' · ' + rec.events.length + ' evento(s)', 'success');
+        },
+        onCancel: () => {
+          const isNew = !list.some(y => y.id === g.id && (y.name || y.endpoint));
+          this.setState({ editing: null, draft: null, confirmDelete: null });
+          if (isNew && !g.name && !g.endpoint) this.persist(list.filter(y => y.id !== g.id));
+        }
+      };
+    });
+
+    const tabDefs = [['cats', 'Categorias', '◈'], ['people', 'Usuários', '◍'], ['grupos', 'Grupos de acesso', '⛨'], ['integra', 'Integrações', '⇄'], ['brand', 'Aparência', '◐'], ['states', 'Estados', '◔']];
+    const subtitles = {
+      cats: 'Tabela administrativa de categorias',
+      people: 'Cadastro de usuários, níveis de acesso e status',
+      grupos: 'Grupos de acesso e permissões',
+      integra: 'Canais e webhooks — todos editáveis',
+      brand: 'Marca, cores e comportamento visual do sistema',
+      states: 'Referência visual dos estados da interface'
+    };
+
+    /* ── grupos de acesso ── */
+    const glist = this.state.groups || [];
+    const levelTone = (lv) => lv === 'ceo' ? 'orange' : lv === 'gestor' ? 'blue' : 'gray';
+    const gRemove = (id) => {
+      if (this.state.gConfirm !== id) { this.setState({ gConfirm: id }); return; }
+      const g = glist.find(x => x.id === id);
+      this.persistGroups(glist.filter(x => x.id !== id));
+      this.setState({ gConfirm: null, gEditing: this.state.gEditing === id ? null : this.state.gEditing });
+      this.toast('Grupo excluído', (g ? g.name : '') + ' saiu da lista', 'error');
+    };
+    const gCounted = glist.map(g => Object.assign({}, g, { _n: (g.members || []).length }));
+    const gSorted = D.sortList(gCounted, this.state.gSort, 'name', '_n');
+    const gPg = D.paginate(gSorted, this.state.gPage, 6, 'grupos', (n) => this.setState({ gPage: n }));
+    const gVisible = this.state.gView === 'cards' ? gPg.items : gPg.items;
+    const groups = (this.state.gView === 'cards' || this.state.gEditing ? gVisible : []).map(g => {
+      const editing = this.state.gEditing === g.id;
+      const d = editing ? this.state.gDraft : g;
+      const confirming = this.state.gConfirm === g.id;
+      const x = { orange: ['var(--tint-orange)', 'var(--tint-orange-bd)', 'var(--accent)'], blue: ['var(--tint-blue)', 'var(--tint-blue-bd)', 'var(--brand-text)'], gray: ['var(--surface-2)', 'var(--border)', '#64748b'] }[levelTone(g.level)];
+      return {
+        name: g.name || 'Sem nome', abbr: (g.name || '?').slice(0, 2).toUpperCase(),
+        levelLabel: (D.LEVELS[g.level] || D.LEVELS.dev).label, levelBadge: D.badge(levelTone(g.level)),
+        memberLine: (g.members || []).length + ' usuário(s) · ' + (g.perms || []).length + ' permissão(ões)',
+        cardStyle: 'background:var(--surface);border:1px solid ' + (editing ? 'var(--tint-blue-bd)' : 'var(--border)') + ';border-radius:var(--radius);padding:18px 20px;display:flex;flex-direction:column;gap:14px;min-width:0',
+        iconStyle: 'width:38px;height:38px;flex:0 0 38px;border-radius:calc(var(--radius) - 1px);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.72rem;background:' + x[0] + ';border:1px solid ' + x[1] + ';color:' + x[2],
+        isView: !editing, isEditing: editing,
+        hasDesc: !!g.desc, desc: g.desc,
+        permBadges: (g.perms || []).map(p => ({
+          label: p, style: 'font-family:ui-monospace,monospace;font-size:.71rem;color:var(--brand-text);background:var(--tint-blue);border:1px solid var(--tint-blue-bd);border-radius:4px;padding:2px 7px'
+        })),
+        memberAvatars: (g.members || []).map(id => {
+          const p = D.person(id);
+          return p ? { ini: p.ini, name: p.name, href: 'colaborador.dc.html?id=' + p.id, avatar: D.avatar(p, 28) + ';text-decoration:none' } : null;
+        }).filter(Boolean),
+        noMembers: (g.members || []).length === 0,
+        onEdit: () => this.setState({ gEditing: g.id, gDraft: Object.assign({}, g, { perms: (g.perms || []).slice(), members: (g.members || []).slice() }), gConfirm: null }),
+        onDuplicate: () => {
+          this.persistGroups(glist.concat([Object.assign({}, g, { id: 'g' + Date.now(), name: g.name + ' (cópia)', perms: (g.perms || []).slice(), members: [] })]));
+          this.toast('Grupo duplicado', 'Ajuste as permissões e os membros', 'success');
+        },
+        onDelete: () => gRemove(g.id),
+        deleteLabel: confirming ? 'Confirmar exclusão' : 'Excluir',
+        deleteStyle: 'padding:8px 14px;border-radius:6px;font-size:.81rem;font-weight:600;cursor:pointer;border:1.5px solid ' +
+          (confirming ? '#dc2626;background:#dc2626;color:#fff' : 'var(--tint-red-bd);color:#dc2626'),
+        draft: editing ? { name: d.name, desc: d.desc } : {},
+        levelChips: ['dev', 'gestor', 'ceo'].map(lv => ({
+          label: D.LEVELS[lv].label, style: D.chip(d.level === lv) + 'font-size:.77rem;',
+          onClick: () => this.setG({ level: lv })
+        })),
+        permChips: this.perms.map(p => ({
+          label: p, style: D.chip((d.perms || []).indexOf(p) > -1) + 'font-size:.74rem;font-family:ui-monospace,monospace;',
+          onClick: () => this.setG({ perms: (d.perms || []).indexOf(p) > -1 ? d.perms.filter(y => y !== p) : (d.perms || []).concat([p]) })
+        })),
+        memberChips: D.people().map(p => ({
+          first: p.name.split(' ')[0], ini: p.ini,
+          style: D.chip((d.members || []).indexOf(p.id) > -1) + 'padding:4px 11px 4px 4px;font-size:.77rem;',
+          dot: 'width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:700;color:#fff;background:' + p.color,
+          onClick: () => this.setG({ members: (d.members || []).indexOf(p.id) > -1 ? d.members.filter(y => y !== p.id) : (d.members || []).concat([p.id]) })
+        })),
+        onName: (e) => this.setG({ name: e.target.value }),
+        onDesc: (e) => this.setG({ desc: e.target.value }),
+        onSave: () => {
+          const dr = this.state.gDraft;
+          if (!(dr.name || '').trim()) { this.toast('Dê um nome ao grupo', 'Ex.: Liderança técnica', 'error'); return; }
+          const rec = {
+            id: dr.id, name: dr.name.trim(), desc: (dr.desc || '').trim(), level: dr.level || 'dev',
+            perms: (dr.perms || []).slice(), members: (dr.members || []).slice()
+          };
+          this.persistGroups(glist.some(y => y.id === rec.id) ? glist.map(y => y.id === rec.id ? rec : y) : glist.concat([rec]));
+          D.setPeople(D.people().map(p => rec.members.indexOf(p.id) > -1 ? Object.assign({}, p, { level: rec.level }) : p));
+          this.setState({ gEditing: null, gDraft: null });
+          this.toast('Grupo salvo', rec.name + ' · ' + rec.members.length + ' usuário(s) com nível ' + (D.LEVELS[rec.level] || D.LEVELS.dev).label, 'success');
+        },
+        onCancel: () => {
+          const isNew = !g.name;
+          this.setState({ gEditing: null, gDraft: null, gConfirm: null });
+          if (isNew) this.persistGroups(glist.filter(y => y.id !== g.id));
+        }
+      };
+    });
+
+    const cRows = catList.map(cn => ({ name: cn, _n: catCounts[cn] || 0 }));
+    const cPg = D.paginate(D.sortList(cRows, this.state.cSort, 'name', '_n'), this.state.cPage, 6, 'categorias', (n) => this.setState({ cPage: n }));
+    const pRows = D.people().map(p => Object.assign({}, p, { _n: acts.filter(a => a.who === p.id).length }));
+    const pPg = D.paginate(D.sortList(pRows, this.state.pSort, 'name', '_n'), this.state.pPage, 8, 'usuários', (n) => this.setState({ pPage: n }));
+
+    /* ── aparência ── */
+    const b = this.state.bd || Object.assign({}, D.brand(), { density: 'confortável', theme: D.theme() });
+    const setB = (patch) => {
+      const next = Object.assign({}, this.state.bd, patch);
+      this.setState({ bd: next });
+      D.setBrand({ mark: next.mark, markImg: next.markImg, name: next.name, sub: next.sub, brand: next.brand, accent: next.accent, radius: next.radius });
+    };
+    const swatch = (val, cur, on) => ({
+      style: 'width:34px;height:34px;border-radius:8px;cursor:pointer;background:' + val + ';border:3px solid ' + (cur === val ? 'var(--accent)' : 'var(--border)'),
+      label: val, onClick: on
+    });
+    const bd = {
+      mark: b.mark, name: b.name, sub: b.sub,
+      markText: b.markImg ? '' : (b.mark || 'ITS').slice(0, 3),
+      markStyle: 'width:38px;height:38px;flex:0 0 38px;border-radius:calc(var(--radius) - 1px);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:12px;color:#fff;overflow:hidden;background:' +
+        (b.markImg ? '#fff url(' + b.markImg + ') center/contain no-repeat' : 'var(--accent)'),
+      hasImg: !!b.markImg,
+      uploadLabel: b.markImg ? 'Trocar logo' : 'Enviar logo',
+      onMark: (e) => setB({ mark: e.target.value.toUpperCase().slice(0, 3) }),
+      onName: (e) => setB({ name: e.target.value }),
+      onSub: (e) => setB({ sub: e.target.value }),
+      onUpload: (e) => {
+        const file = (e.target.files || [])[0];
+        e.target.value = '';
+        if (!file) return;
+        if (file.size > 400000) { this.toast('Imagem muito grande', 'Use um arquivo de até 400 KB', 'error'); return; }
+        const fr = new FileReader();
+        fr.onload = () => { setB({ markImg: fr.result }); this.toast('Logo atualizado', 'Aparece na barra lateral de todas as telas'); };
+        fr.readAsDataURL(file);
+      },
+      onClearImg: () => { setB({ markImg: '' }); this.toast('Logo removido', 'Voltamos para a sigla', 'error'); },
+      brandColor: b.brand, accentColor: b.accent,
+      brandSwatches: ['#183c5a', '#0f2f47', '#1f2937', '#134e4a', '#3b2f63'].map(v => swatch(v, b.brand, () => setB({ brand: v }))),
+      accentSwatches: ['#E85928', '#d97706', '#dc2626', '#16a34a', '#0284c7'].map(v => swatch(v, b.accent, () => setB({ accent: v }))),
+      onBrandColor: (e) => setB({ brand: e.target.value }),
+      onAccentColor: (e) => setB({ accent: e.target.value }),
+      themes: [['light', 'Claro'], ['dark', 'Escuro']].map(t => ({
+        label: t[1], style: D.chip(b.theme === t[0]) + 'flex:1;justify-content:center;',
+        onClick: () => { D.setTheme(t[0]); this.setState({ bd: Object.assign({}, this.state.bd, { theme: t[0] }) }); }
+      })),
+      densities: ['confortável', 'compacto'].map(v => ({
+        label: v, style: D.chip(b.density === v) + 'flex:1;justify-content:center;text-transform:capitalize;',
+        onClick: () => { D.setUi({ density: v }); this.setState({ bd: Object.assign({}, this.state.bd, { density: v }) }); }
+      })),
+      radiusLabel: b.radius + 'px',
+      radii: [['reto', 2], ['suave', 6], ['padrão', 10], ['arredondado', 16]].map(r => ({
+        label: r[0], style: D.chip(Number(b.radius) === r[1]) + 'flex:1;justify-content:center;font-size:.76rem;',
+        onClick: () => setB({ radius: r[1] })
+      })),
+      previewCard: 'padding:14px 16px;border:1px solid var(--border);background:var(--surface-2);border-radius:' + b.radius + 'px',
+      chipBrand: 'display:inline-flex;padding:3px 11px;border-radius:20px;font-size:.73rem;font-weight:700;color:#fff;background:var(--brand)',
+      chipAccent: 'display:inline-flex;padding:3px 11px;border-radius:20px;font-size:.73rem;font-weight:700;color:#fff;background:var(--accent)',
+      onSave: () => this.toast('Aparência salva', 'Aplicada em todas as telas do sistema'),
+      onReset: () => {
+        D.resetBrand();
+        this.setState({ bd: Object.assign({}, D.brand(), { density: D.ui().density || 'confortável', theme: D.theme() }) });
+        this.toast('Aparência restaurada', 'De volta ao padrão ITS', 'error');
+      }
+    };
+
+    /* ── modal de usuário ── */
+    const ud = this.state.userDraft;
+    const setU = (patch) => this.setState(s => ({ userDraft: Object.assign({}, s.userDraft, patch, patch.error === undefined ? { error: '' } : {}) }));
+    const uStats = ud ? D.acts().filter(a => a.who === ud.id) : [];
+    const um = ud ? {
+      heading: ud.name || 'Novo usuário', sub: (D.LEVELS[ud.level] || D.LEVELS.dev).label + ' · ' + (ud.active ? 'acesso liberado' : 'acesso suspenso'),
+      ini: ud.ini, avatar: D.avatar({ color: ud.color }, 40),
+      name: ud.name, role: ud.role, email: ud.email, pass1: ud.pass1 || '', pass2: ud.pass2 || '',
+      hasError: !!ud.error, error: ud.error,
+      onName: (e) => setU({ name: e.target.value }),
+      onRole: (e) => setU({ role: e.target.value }),
+      onEmail: (e) => setU({ email: e.target.value }),
+      onPass1: (e) => setU({ pass1: e.target.value }),
+      onPass2: (e) => setU({ pass2: e.target.value }),
+      switch: sw(ud.active), knob: knob,
+      activeLabel: ud.active ? 'Ativo — pode entrar e registrar' : 'Inativo — acesso bloqueado',
+      onToggleActive: () => setU({ active: !ud.active }),
+      levelChips: ['dev', 'gestor', 'ceo'].map(lv => ({
+        label: D.LEVELS[lv].label, style: D.chip(ud.level === lv) + 'font-size:.78rem;',
+        onClick: () => setU({ level: lv })
+      })),
+      levelHint: ud.level === 'dev' ? 'Vê e registra apenas as próprias atividades.' : ud.level === 'gestor' ? 'Vê a equipe inteira e o relatório de time.' : 'Vê a equipe e a visão executiva completa.',
+      groupChips: (this.state.groups || []).map(gr => ({
+        label: gr.name || 'Sem nome',
+        style: D.chip((gr.members || []).indexOf(ud.id) > -1) + 'font-size:.77rem;',
+        onClick: () => {
+          const inIt = (gr.members || []).indexOf(ud.id) > -1;
+          this.persistGroups((this.state.groups || []).map(y => y.id === gr.id
+            ? Object.assign({}, y, { members: inIt ? y.members.filter(m => m !== ud.id) : (y.members || []).concat([ud.id]) })
+            : y));
+          if (!inIt) setU({ level: gr.level });
+        }
+      })),
+      passNote: (ud.pass1 || ud.pass2) ? 'a senha será substituída ao salvar' : 'nenhuma alteração de senha pendente',
+      onResetLink: () => this.toast('Link enviado', 'Redefinição de senha enviada para ' + (ud.email || 'o e-mail cadastrado'), 'success'),
+      stats: [
+        { value: uStats.length, label: 'registros no total' },
+        { value: uStats.filter(a => a.d < 7).length, label: 'nos últimos 7 dias' },
+        { value: new Set(uStats.map(a => a.proj)).size, label: 'projetos tocados' }
+      ],
+      href: 'colaborador.dc.html?id=' + ud.id,
+      deleteLabel: this.state.userConfirm ? 'Confirmar exclusão do usuário' : 'Excluir usuário',
+      deleteStyle: 'padding:9px 15px;border-radius:6px;font-size:.82rem;font-weight:600;cursor:pointer;border:1.5px solid ' +
+        (this.state.userConfirm ? '#dc2626;background:#dc2626;color:#fff' : 'var(--tint-red-bd);color:#dc2626'),
+      onDelete: () => {
+        if (!this.state.userConfirm) { this.setState({ userConfirm: true }); return; }
+        if (ud.id === u.id) { setU({ error: 'Você não pode excluir o próprio usuário logado.' }); this.setState({ userConfirm: false }); return; }
+        D.setPeople(D.people().filter(p => p.id !== ud.id));
+        this.persistGroups((this.state.groups || []).map(gr => Object.assign({}, gr, { members: (gr.members || []).filter(m => m !== ud.id) })));
+        this.setState({ userDraft: null, userConfirm: false });
+        this.toast('Usuário excluído', ud.name + ' perdeu o acesso', 'error');
+      },
+      onSave: () => {
+        const parts = (ud.name || '').trim().split(' ').filter(Boolean);
+        if (parts.length < 2) { setU({ error: 'Informe nome e sobrenome.' }); return; }
+        if (!(ud.email || '').trim() || (ud.email || '').indexOf('@') < 0) { setU({ error: 'Informe um e-mail válido de acesso.' }); return; }
+        if ((ud.pass1 || ud.pass2) && ud.pass1 !== ud.pass2) { setU({ error: 'As senhas não coincidem.' }); return; }
+        if (ud.pass1 && ud.pass1.length < 6) { setU({ error: 'A senha precisa de ao menos 6 caracteres.' }); return; }
+        D.setPeople(D.people().map(p => p.id === ud.id ? Object.assign({}, p, {
+          name: ud.name.trim(), role: (ud.role || '').trim() || p.role, email: ud.email.trim(),
+          ini: (parts[0][0] + parts[parts.length - 1][0]).toUpperCase(), active: ud.active, level: ud.level
+        }) : p));
+        this.setState({ userDraft: null, userConfirm: false });
+        this.toast('Usuário salvo', ud.name + (ud.pass1 ? ' · senha atualizada' : ''), 'success');
+      }
+    } : { levelChips: [], groupChips: [], stats: [] };
+
+    return {
+      userModalOpen: !!ud, um: um,
+      closeUser: () => this.setState({ userDraft: null, userConfirm: false }),
+      tabs: tabDefs.map(t => ({
+        label: t[1], icon: t[2],
+        style: 'display:inline-flex;align-items:center;gap:7px;padding:10px 15px;border-radius:8px 8px 0 0;font-size:.82rem;font-weight:600;cursor:pointer;border-bottom:2px solid ' +
+          (this.state.tab === t[0] ? 'var(--accent);color:var(--brand-text);background:var(--surface-2)' : 'transparent;color:var(--text-muted)'),
+        onClick: () => this.setState({ tab: t[0] })
+      })),
+      tabSubtitle: subtitles[this.state.tab],
+      isCats: this.state.tab === 'cats', isPeople: this.state.tab === 'people',
+      isGroups: this.state.tab === 'grupos',
+      isBrand: this.state.tab === 'brand',
+      bd: bd,
+      isIntegra: this.state.tab === 'integra', isStates: this.state.tab === 'states',
+      groups: groups,
+      selectStyle: D.selectStyle,
+      gSort: this.state.gSort, gSortOptions: D.sortOptions('Membros'),
+      onGSort: (e) => this.setState({ gSort: e.target.value, gPage: 1 }),
+      gViews: [['lista', 'Lista', '≡'], ['cards', 'Cards', '▦']].map(v => ({
+        label: v[1], icon: v[2],
+        style: 'display:inline-flex;align-items:center;gap:6px;padding:7px 13px;border-radius:6px;font-size:.8rem;font-weight:600;cursor:pointer;' +
+          (this.state.gView === v[0] ? 'background:var(--surface);color:var(--brand-text);box-shadow:0 1px 3px rgba(0,0,0,.08)' : 'color:var(--text-muted)'),
+        onClick: () => this.setState({ gView: v[0], gEditing: null, gDraft: null })
+      })),
+      gIsList: this.state.gView === 'lista' && !this.state.gEditing,
+      gIsCards: this.state.gView === 'cards',
+      gGridStyle: (this.state.gView === 'cards' || this.state.gEditing) ? 'display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start' : 'display:none',
+      gPg: gPg,
+      groupRows: gPg.items.map(g => {
+        const x = { orange: ['var(--tint-orange)', 'var(--tint-orange-bd)', 'var(--accent)'], blue: ['var(--tint-blue)', 'var(--tint-blue-bd)', 'var(--brand-text)'], gray: ['var(--surface-2)', 'var(--border)', 'var(--text-muted)'] }[levelTone(g.level)];
+        const confirming = this.state.gConfirm === g.id;
+        return {
+          name: g.name || 'Sem nome', desc: g.desc || '—', abbr: (g.name || '?').slice(0, 2).toUpperCase(),
+          iconStyle: 'width:30px;height:30px;flex:0 0 30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.68rem;background:' + x[0] + ';border:1px solid ' + x[1] + ';color:' + x[2],
+          levelLabel: (D.LEVELS[g.level] || D.LEVELS.dev).label, levelBadge: D.badge(levelTone(g.level)),
+          permCount: (g.perms || []).length + ((g.perms || []).length === 1 ? ' permissão' : ' permissões'),
+          memberCount: (g.members || []).length,
+          avatars: (g.members || []).slice(0, 4).map(id => {
+            const p = D.person(id);
+            return p ? { ini: p.ini, name: p.name, avatar: D.avatar(p, 24) } : null;
+          }).filter(Boolean),
+          onEdit: () => this.setState({ gView: 'cards', gEditing: g.id, gDraft: Object.assign({}, g, { perms: (g.perms || []).slice(), members: (g.members || []).slice() }), gConfirm: null }),
+          deleteLabel: confirming ? 'Confirmar' : 'Excluir',
+          deleteStyle: 'font-size:.78rem;font-weight:600;cursor:pointer;color:' + (confirming ? '#fff;background:#dc2626;padding:2px 8px;border-radius:5px' : '#dc2626'),
+          onDelete: () => gRemove(g.id)
+        };
+      }),
+      groupSummary: glist.length + (glist.length === 1 ? ' grupo' : ' grupos'),
+      addGroup: () => {
+        const g = { id: 'g' + Date.now(), name: '', desc: '', level: 'dev', perms: ['registrar.atividade', 'ver.proprios'], members: [] };
+        this.persistGroups(glist.concat([g]));
+        this.setState({ gEditing: g.id, gDraft: g, gConfirm: null, tab: 'grupos', gView: 'cards' });
+      },
+
+      newCat: this.state.newCat,
+      onNewCat: (e) => this.setState({ newCat: e.target.value }),
+      addCat: () => {
+        const v = this.state.newCat.trim();
+        if (!v || catList.indexOf(v) > -1) { this.toast('Categoria inválida', 'Nome vazio ou já existente', 'error'); return; }
+        D.setCats(catList.concat([v]));
+        this.setState({ newCat: '' });
+        this.toast('Categoria criada', v + ' já aparece no cadastro rápido', 'success');
+        this.bump();
+      },
+      cSort: this.state.cSort, cSortOptions: D.sortOptions('Uso'),
+      onCSort: (e) => this.setState({ cSort: e.target.value, cPage: 1 }),
+      cPg: cPg,
+      pSort: this.state.pSort, pSortOptions: D.sortOptions('Registros'),
+      onPSort: (e) => this.setState({ pSort: e.target.value, pPage: 1 }),
+      pPg: pPg,
+      catRows: cPg.items.map(o => o.name).map(cn => ({
+        name: cn, badge: D.catStyle(cn) + ';padding:3px 11px', count: D.plural(catCounts[cn] || 0),
+        kbd: catList.indexOf(cn) < 9 ? String(catList.indexOf(cn) + 1) : '—',
+        swatch: 'font-size:.73rem;color:var(--text-muted);padding:5px 10px;border-radius:4px;border-left:3px solid ' + D.soft(D.cat(cn).fg, .55) + ';background:' + D.soft(D.cat(cn).fg, .06),
+        onRemove: () => { D.setCats(catList.filter(x => x !== cn)); this.toast('Categoria removida', cn, 'error'); this.bump(); }
+      })),
+
+      newPName: this.state.newP.name, newPRole: this.state.newP.role, newPMail: this.state.newP.mail,
+      onNewPName: (e) => { const v = e.target.value; this.setState(s => ({ newP: Object.assign({}, s.newP, { name: v }) })); },
+      onNewPRole: (e) => { const v = e.target.value; this.setState(s => ({ newP: Object.assign({}, s.newP, { role: v }) })); },
+      onNewPMail: (e) => { const v = e.target.value; this.setState(s => ({ newP: Object.assign({}, s.newP, { mail: v }) })); },
+      addPerson: () => this.addPerson(),
+      peopleRows: pPg.items.map(p => ({
+        name: p.name, role: p.role, ini: p.ini, email: p.email || '—', href: 'colaborador.dc.html?id=' + p.id,
+        onOpen: () => this.setState({
+          userDraft: { id: p.id, name: p.name, role: p.role, email: p.email || '', ini: p.ini, color: p.color, active: !!p.active, level: D.levelOf(p), pass1: '', pass2: '', error: '' },
+          userConfirm: false
+        }),
+        avatar: D.avatar(p, 26), badge: D.badge(p.active ? 'green' : 'gray'), status: p.active ? 'ativo' : 'inativo',
+        total: acts.filter(a => a.who === p.id).length,
+        level: D.levelLabel(p),
+        levelStyle: D.badge(D.levelOf(p) === 'ceo' ? 'orange' : D.levelOf(p) === 'gestor' ? 'blue' : 'gray') + ';cursor:pointer',
+        onLevel: (e) => {
+          if (e && e.stopPropagation) e.stopPropagation();
+          const seq = ['dev', 'gestor', 'ceo'];
+          const next = seq[(seq.indexOf(D.levelOf(p)) + 1) % 3];
+          D.setPeople(D.people().map(x => x.id === p.id ? Object.assign({}, x, { level: next }) : x));
+          this.toast('Nível alterado', p.name.split(' ')[0] + ' agora é ' + D.LEVELS[next].label, 'success');
+          this.bump();
+        },
+        toggleLabel: p.active ? 'Desativar' : 'Reativar',
+        onToggle: (e) => { if (e && e.stopPropagation) e.stopPropagation(); D.setPeople(D.people().map(x => x.id === p.id ? Object.assign({}, x, { active: !x.active }) : x)); this.bump(); }
+      })),
+
+      integSummary: list.length + (list.length === 1 ? ' integração' : ' integrações') + ' · ' + list.filter(g => g.enabled).length + ' ativa(s)',
+      integEmpty: list.length === 0,
+      integrations: integrations,
+      iSort: this.state.iSort, iSortOptions: D.sortOptions('Eventos'),
+      onISort: (e) => this.setState({ iSort: e.target.value, iPage: 1 }),
+      iViews: [['lista', 'Lista', '≡'], ['cards', 'Cards', '▦']].map(v => ({
+        label: v[1], icon: v[2],
+        style: 'display:inline-flex;align-items:center;gap:6px;padding:7px 13px;border-radius:6px;font-size:.8rem;font-weight:600;cursor:pointer;' +
+          (this.state.iView === v[0] ? 'background:var(--surface);color:var(--brand-text);box-shadow:0 1px 3px rgba(0,0,0,.08)' : 'color:var(--text-muted)'),
+        onClick: () => this.setState({ iView: v[0], editing: null, draft: null })
+      })),
+      iIsList: this.state.iView === 'lista' && !this.state.editing && list.length > 0,
+      iGridStyle: (this.state.iView === 'cards' || this.state.editing) ? 'display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start' : 'display:none',
+      iPg: iPg,
+      integRows: iPg.items.map(g => {
+        const t = typeOf(g.type);
+        const x = toneOf(t.tone);
+        const confirming = this.state.confirmDelete === g.id;
+        return {
+          name: g.name || 'Sem nome', abbr: (g.abbr || g.name || '?').slice(0, 3).toUpperCase(),
+          typeLabel: t.label, endpoint: g.endpoint || '— não configurado',
+          eventCount: (g.events || []).length,
+          iconStyle: 'width:30px;height:30px;flex:0 0 30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.66rem;background:' + x[0] + ';border:1px solid ' + x[1] + ';color:' + x[2],
+          stateLabel: g.enabled ? 'ativa' : 'pausada', stateBadge: D.badge(g.enabled ? 'green' : 'gray'),
+          toggleLabel: g.enabled ? 'Pausar' : 'Ativar',
+          onToggle: () => this.persist(list.map(y => y.id === g.id ? Object.assign({}, y, { enabled: !y.enabled }) : y)),
+          onEdit: () => this.setState({ iView: 'cards', editing: g.id, draft: Object.assign({ newEvent: '' }, g, { events: (g.events || []).slice() }), confirmDelete: null }),
+          deleteLabel: confirming ? 'Confirmar' : 'Excluir',
+          deleteStyle: 'font-size:.78rem;font-weight:600;cursor:pointer;color:' + (confirming ? '#fff;background:#dc2626;padding:2px 8px;border-radius:5px' : '#dc2626'),
+          onDelete: () => remove(g.id)
+        };
+      }),
+      addInteg: () => {
+        const g = blank();
+        this.persist(list.concat([g]));
+        this.setState({ editing: g.id, draft: g, tab: 'integra', confirmDelete: null, iView: 'cards' });
+      },
+      runs: runs.map(r => ({
+        source: r.source, event: r.event, when: r.when,
+        status: r.ok ? '200 OK' : '500 falhou',
+        badge: r.ok ? D.badge('green') : D.badge('gray') + ';background:var(--tint-red);color:#dc2626;border-color:var(--tint-red-bd)'
+      })),
+      runsEmpty: runs.length === 0,
+      clearRuns: () => { this.persistRuns([]); this.toast('Histórico limpo', 'Nenhuma execução registrada', 'success'); },
+
+      resetData: () => { D.reset(); this.toast('Dados restaurados', 'Voltamos ao conteúdo de exemplo', 'success'); this.bump(); },
+      demoToast: () => this.toast('Atividade registrada', 'Portal ITS · Entrega', 'success'),
+      toastOpen: !!this.state.toast,
+      toast: this.state.toast ? {
+        title: this.state.toast.title, sub: this.state.toast.sub, icon: this.state.toast.kind === 'error' ? '✕' : '✓',
+        style: 'display:flex;align-items:center;gap:12px;padding:13px 18px;border-radius:var(--radius);font-size:.86rem;box-shadow:0 8px 32px rgba(0,0,0,.16);min-width:280px;' +
+          (this.state.toast.kind === 'error' ? 'background:var(--tint-red);border:1px solid var(--tint-red-bd);color:var(--danger-text)' : 'background:var(--brand);border:1px solid var(--brand);color:#fff')
+      } : { style: '' }
+    };
+  }
+}
+
+</script>
+</body>
+</html>

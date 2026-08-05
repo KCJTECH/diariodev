@@ -1,0 +1,343 @@
+openapi: 3.0.3
+info:
+  title: Diário Dev API
+  version: "1.0"
+  description: >
+    API do Diário Dev. Autenticação por cookie httpOnly (dv_access / dv_refresh).
+    Envelopes padronizados de sucesso e erro. Prefixo /api/v1.
+servers:
+  - url: http://localhost:3333/api/v1
+    description: Desenvolvimento (mesma origem do frontend)
+tags:
+  - name: auth
+  - name: bootstrap
+  - name: activities
+  - name: attachments
+  - name: tasks
+  - name: admin
+  - name: reports
+  - name: search
+  - name: settings
+  - name: health
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: dv_access
+  schemas:
+    Meta:
+      type: object
+      properties:
+        requestId: { type: string }
+        page: { type: integer }
+        perPage: { type: integer }
+        total: { type: integer }
+        totalPages: { type: integer }
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code: { type: string }
+            message: { type: string }
+            details:
+              type: array
+              items:
+                type: object
+                properties:
+                  field: { type: string }
+                  message: { type: string }
+            requestId: { type: string }
+    Person:
+      type: object
+      properties:
+        id: { type: string, description: chave pública }
+        name: { type: string }
+        role: { type: string }
+        email: { type: string }
+        ini: { type: string }
+        color: { type: string }
+        active: { type: boolean }
+        level: { type: string, enum: [dev, gestor, ceo] }
+    Activity:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        who: { type: string }
+        proj: { type: string }
+        cat: { type: string }
+        title: { type: string }
+        desc: { type: string }
+        occurredAt: { type: string, format: date-time }
+        durationMinutes: { type: integer, nullable: true }
+        priority: { type: string, enum: [baixa, média, alta] }
+        tags: { type: array, items: { type: string } }
+        files:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string, format: uuid }
+              name: { type: string }
+              size: { type: string }
+        version: { type: integer }
+    ActivityWrite:
+      type: object
+      required: [proj, cat, title, occurredAt, priority]
+      properties:
+        proj: { type: string }
+        cat: { type: string }
+        title: { type: string }
+        desc: { type: string }
+        occurredAt: { type: string, format: date-time }
+        durationMinutes: { type: integer, nullable: true }
+        priority: { type: string, enum: [baixa, média, alta] }
+        tags: { type: array, items: { type: string } }
+        clientMutationId: { type: string }
+        sourceTaskId: { type: string, format: uuid, nullable: true }
+    Task:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
+        desc: { type: string }
+        proj: { type: string }
+        who: { type: string, nullable: true }
+        by: { type: string }
+        due: { type: string, nullable: true }
+        pri: { type: string, enum: [baixa, média, alta] }
+        cat: { type: string, nullable: true }
+        done: { type: boolean }
+        version: { type: integer }
+security:
+  - cookieAuth: []
+paths:
+  /auth/login:
+    post:
+      tags: [auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string }
+      responses:
+        "200": { description: autenticado; define cookies dv_access e dv_refresh }
+        "401": { description: credenciais inválidas, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+  /auth/refresh:
+    post:
+      tags: [auth]
+      security: []
+      responses:
+        "200": { description: novos cookies }
+        "401": { description: sessão inválida }
+  /auth/logout:
+    post:
+      tags: [auth]
+      responses:
+        "200": { description: sessão encerrada; limpa cookies }
+  /auth/me:
+    get:
+      tags: [auth]
+      responses:
+        "200": { description: usuário autenticado }
+        "401": { description: não autenticado }
+  /auth/password:
+    post:
+      tags: [auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [currentPassword, newPassword]
+              properties:
+                currentPassword: { type: string }
+                newPassword: { type: string, minLength: 8 }
+      responses:
+        "200": { description: senha alterada; revoga outras sessões }
+  /bootstrap:
+    get:
+      tags: [bootstrap]
+      responses:
+        "200":
+          description: estado inicial conforme o escopo do usuário
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      user: { type: object }
+                      people: { type: array, items: { $ref: "#/components/schemas/Person" } }
+                      categories: { type: array, items: { type: object } }
+                      projects: { type: array, items: { type: object } }
+                      activities: { type: array, items: { $ref: "#/components/schemas/Activity" } }
+                      tasks: { type: array, items: { $ref: "#/components/schemas/Task" } }
+                      serverNow: { type: string, format: date-time }
+                      timezone: { type: string }
+                      cursor: { type: string, nullable: true }
+                      canAdminister: { type: boolean }
+                  meta: { $ref: "#/components/schemas/Meta" }
+  /activities:
+    get:
+      tags: [activities]
+      parameters:
+        - { name: from, in: query, schema: { type: string, format: date-time } }
+        - { name: to, in: query, schema: { type: string, format: date-time } }
+        - { name: person, in: query, schema: { type: string } }
+        - { name: project, in: query, schema: { type: string } }
+        - { name: category, in: query, schema: { type: string } }
+        - { name: q, in: query, schema: { type: string } }
+        - { name: priority, in: query, schema: { type: string, enum: [baixa, média, alta] } }
+        - { name: tags, in: query, schema: { type: string } }
+        - { name: page, in: query, schema: { type: integer } }
+        - { name: perPage, in: query, schema: { type: integer } }
+        - { name: sort, in: query, schema: { type: string } }
+        - { name: order, in: query, schema: { type: string, enum: [asc, desc] } }
+      responses:
+        "200":
+          description: lista paginada de atividades (escopo por nível)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { type: array, items: { $ref: "#/components/schemas/Activity" } }
+                  meta: { $ref: "#/components/schemas/Meta" }
+    post:
+      tags: [activities]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ActivityWrite" }
+      responses:
+        "201": { description: criada }
+        "422": { description: dados inválidos, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+  /activities/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [activities]
+      responses:
+        "200": { description: atividade }
+        "404": { description: não encontrada }
+    patch:
+      tags: [activities]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: "#/components/schemas/ActivityWrite"
+                - type: object
+                  required: [version]
+                  properties: { version: { type: integer } }
+      responses:
+        "200": { description: atualizada }
+        "409": { description: conflito de versão, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+    delete:
+      tags: [activities]
+      responses:
+        "204": { description: removida }
+  /activities/{id}/attachments:
+    post:
+      tags: [attachments]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file: { type: string, format: binary }
+      responses:
+        "201": { description: anexo criado }
+        "403": { description: só o autor anexa }
+        "422": { description: arquivo inválido }
+  /attachments/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [attachments]
+      responses:
+        "200": { description: download (Content-Disposition attachment) }
+        "401": { description: não autenticado }
+        "404": { description: não encontrado ou sem permissão }
+    delete:
+      tags: [attachments]
+      responses:
+        "200": { description: removido }
+  /tasks:
+    get:
+      tags: [tasks]
+      parameters:
+        - { name: project, in: query, schema: { type: string } }
+        - { name: person, in: query, schema: { type: string } }
+        - { name: status, in: query, schema: { type: string, enum: [open, late, done] } }
+      responses:
+        "200": { description: lista de tarefas (escopo por nível) }
+    post:
+      tags: [tasks]
+      description: cria tarefa (gestor+)
+      responses:
+        "201": { description: criada }
+        "403": { description: sem permissão para planejar }
+  /tasks/{id}/complete:
+    post:
+      tags: [tasks]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200": { description: concluída }
+  /reports/summary:
+    get:
+      tags: [reports]
+      parameters:
+        - { name: from, in: query, schema: { type: string, format: date-time } }
+        - { name: to, in: query, schema: { type: string, format: date-time } }
+      responses:
+        "200": { description: resumo do período (escopo por nível) }
+  /search:
+    get:
+      tags: [search]
+      parameters:
+        - { name: q, in: query, required: true, schema: { type: string } }
+      responses:
+        "200": { description: resultados conforme o escopo }
+  /settings/appearance:
+    get:
+      tags: [settings]
+      responses: { "200": { description: aparência global } }
+    put:
+      tags: [settings]
+      description: gestor+
+      responses: { "200": { description: aparência atualizada } }
+  /preferences:
+    get:
+      tags: [settings]
+      responses: { "200": { description: preferências do usuário } }
+    put:
+      tags: [settings]
+      responses: { "200": { description: preferências atualizadas } }
+  /health/ready:
+    get:
+      tags: [health]
+      security: []
+      responses:
+        "200": { description: pronto }
+        "503": { description: dependência indisponível }

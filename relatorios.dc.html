@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="assets/theme.css">
+<script src="assets/data.js"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);font-family:'Segoe UI',system-ui,-apple-system,sans-serif;color:var(--text);-webkit-font-smoothing:antialiased}
+  a{color:var(--accent);text-decoration:none}
+  a:hover{color:var(--brand-text)}
+  input,button{font-family:inherit;font-size:inherit;color:inherit}
+  @keyframes dvUp{from{transform:translateY(10px);opacity:0}to{transform:translateY(0);opacity:1}}
+  @keyframes dvToast{from{transform:translateY(14px);opacity:0}to{transform:translateY(0);opacity:1}}
+  @media print{
+    @page{size:A4 landscape;margin:10mm}
+    body{background:var(--surface)}
+    aside,[data-noprint]{display:none !important}
+    header{position:static !important;border:none !important;padding:0 !important}
+    main{padding:0 !important;max-width:none !important;gap:12px !important}
+    *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  }
+  ::-webkit-scrollbar{width:11px;height:11px}
+  ::-webkit-scrollbar-thumb{background:var(--border-strong);border:3px solid var(--bg);border-radius:8px}
+</style>
+</helmet>
+
+<x-import component-from-global-scope="app-shell" from="./assets/app-shell.js"
+  page="relatorios" heading="{{ reportTitle }}" subtitle="{{ reportSubtitle }}" hint-size="100%,100%">
+
+  <div slot="actions" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:flex-end">
+    <div data-noprint="true" style="display:flex;gap:6px">
+          <sc-for list="{{ periods }}" as="p" hint-placeholder-count="4">
+            <div onClick="{{ p.onClick }}" style="{{ p.style }}">{{ p.label }}</div>
+          </sc-for>
+        </div>
+        <div data-noprint="true" onClick="{{ exportPdf }}" style="display:inline-flex;align-items:center;gap:7px;padding:9px 14px;border:1.5px solid var(--border);color:var(--text-muted);border-radius:6px;font-size:.82rem;font-weight:600;cursor:pointer;white-space:nowrap" style-hover="border-color:var(--brand-text);color:var(--brand-text)">↓ PDF</div>
+        <div data-noprint="true" onClick="{{ exportDetail }}" style="display:inline-flex;align-items:center;gap:7px;padding:9px 14px;border:1.5px solid var(--brand);color:var(--brand-text);border-radius:6px;font-size:.82rem;font-weight:600;cursor:pointer;white-space:nowrap" style-hover="background:var(--tint-blue)">↓ CSV detalhado</div>
+        <div data-noprint="true" onClick="{{ exportSummary }}" style="display:inline-flex;align-items:center;gap:7px;padding:9px 14px;background:var(--accent);color:#fff;border-radius:6px;font-size:.82rem;font-weight:600;cursor:pointer;white-space:nowrap" style-hover="filter:brightness(1.08)">↓ CSV resumo</div>
+  </div>
+
+  <div slot="tabs">
+    <div data-noprint="true" style="display:flex;gap:2px;align-items:flex-end">
+        <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="5">
+          <div onClick="{{ t.onClick }}" style="{{ t.style }}">
+            <span style="font-size:.9rem">{{ t.icon }}</span>{{ t.label }}
+          </div>
+        </sc-for>
+      </div>
+  </div>
+
+  <main data-screen-label="Relatórios" style="flex:1;padding:22px 28px 64px;max-width:1360px;width:100%;display:flex;flex-direction:column;gap:16px;animation:dvUp .22s ease both">
+
+      <div style="{{ scopeStyle }}">
+        <span style="{{ scopeBadge }}">{{ u.levelLabel }}</span>
+        <span style="font-size:.83rem">{{ scopeNote }}</span>
+        <div style="flex:1"></div>
+        <span style="font-size:.78rem;opacity:.8">{{ periodNote }}</span>
+      </div>
+
+      <sc-if value="{{ isGeral }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;flex-direction:column;gap:16px">
+
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px">
+            <sc-for list="{{ kpis }}" as="k" hint-placeholder-count="4">
+              <div style="{{ k.style }}">
+                <div style="display:flex;align-items:center;justify-content:space-between">
+                  <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em">{{ k.label }}</div>
+                  <div style="{{ k.iconStyle }}">{{ k.icon }}</div>
+                </div>
+                <div style="font-size:1.85rem;font-weight:800;line-height:1.1;margin-top:8px">{{ k.value }}</div>
+                <div style="font-size:.74rem;margin-top:2px;opacity:.85">{{ k.hint }}</div>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1.6fr 1fr;gap:16px;align-items:start">
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px 14px">
+              <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:18px">
+                <div>
+                  <div style="font-size:.86rem;font-weight:700">Volume de registros por dia</div>
+                  <div style="font-size:.73rem;color:var(--text-muted);margin-top:2px">{{ periodNote }}</div>
+                </div>
+                <div style="font-size:.73rem;color:var(--text-muted)">pico de <strong style="color:var(--brand-text)">{{ chartMax }}</strong> em um dia</div>
+              </div>
+              <div style="display:flex;align-items:flex-end;gap:4px;height:140px">
+                <sc-for list="{{ chart }}" as="b" hint-placeholder-count="14">
+                  <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;height:100%;justify-content:flex-end" title="{{ b.title }}">
+                    <div style="font-size:.63rem;color:var(--text-faint);font-weight:600">{{ b.value }}</div>
+                    <div style="{{ b.style }}" style-hover="filter:brightness(1.1)"></div>
+                    <div style="font-size:.6rem;color:var(--text-faint)">{{ b.label }}</div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px">
+              <div style="font-size:.86rem;font-weight:700;margin-bottom:4px">Distribuição por categoria</div>
+              <div style="font-size:.73rem;color:var(--text-muted);margin-bottom:16px">{{ donutSub }}</div>
+              <div style="display:flex;align-items:center;gap:18px">
+                <div style="{{ donutStyle }}">
+                  <div style="position:absolute;inset:26px;background:var(--surface);border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center">
+                    <div style="font-size:1.25rem;font-weight:800;color:var(--brand-text);line-height:1">{{ total }}</div>
+                    <div style="font-size:.64rem;color:var(--text-muted)">registros</div>
+                  </div>
+                </div>
+                <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:7px">
+                  <sc-for list="{{ catLegend }}" as="c" hint-placeholder-count="5">
+                    <div style="display:flex;align-items:center;gap:8px">
+                      <span style="{{ c.dot }}"></span>
+                      <span style="flex:1;font-size:.78rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ c.name }}</span>
+                      <span style="font-size:.75rem;color:var(--text-muted)">{{ c.value }}</span>
+                      <span style="font-size:.73rem;color:var(--text-faint);width:38px;text-align:right">{{ c.pct }}</span>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start">
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px">
+              <div style="font-size:.86rem;font-weight:700;margin-bottom:4px">Acumulado no período</div>
+              <div style="font-size:.73rem;color:var(--text-muted);margin-bottom:14px">Curva de registros somados dia a dia</div>
+              <svg viewBox="0 0 300 110" preserveAspectRatio="none" style="width:100%;height:130px;display:block">
+                <path d="{{ area.fill }}" style="fill:var(--tint-blue-bd);opacity:.45"></path>
+                <path d="{{ area.line }}" fill="none" style="stroke:var(--brand-text)" stroke-width="2" stroke-linejoin="round"></path>
+              </svg>
+              <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:.7rem;color:var(--text-faint)">
+                <span>{{ area.from }}</span>
+                <span>{{ area.mid }}</span>
+                <span>{{ area.to }}</span>
+              </div>
+            </div>
+
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px">
+              <div style="font-size:.86rem;font-weight:700;margin-bottom:4px">Ritmo por dia da semana</div>
+              <div style="font-size:.73rem;color:var(--text-muted);margin-bottom:14px">Onde a equipe registra mais</div>
+              <div style="display:flex;flex-direction:column;gap:9px">
+                <sc-for list="{{ weekdays }}" as="w" hint-placeholder-count="7">
+                  <div style="display:flex;align-items:center;gap:10px">
+                    <span style="width:34px;flex:0 0 34px;font-size:.74rem;color:var(--text-muted);font-weight:600">{{ w.label }}</span>
+                    <div style="flex:1;height:14px;background:var(--surface-2);border-radius:20px;overflow:hidden">
+                      <div style="{{ w.style }}"></div>
+                    </div>
+                    <span style="width:28px;text-align:right;font-size:.76rem;font-weight:700;color:var(--brand-text)">{{ w.value }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;align-items:start">
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px">
+              <div style="font-size:.86rem;font-weight:700;margin-bottom:4px">Entregas x correções</div>
+              <div style="font-size:.73rem;color:var(--text-muted);margin-bottom:16px">Proporção do esforço</div>
+              <div style="display:flex;height:30px;border-radius:8px;overflow:hidden;border:1px solid var(--border)">
+                <sc-for list="{{ ratioBars }}" as="r" hint-placeholder-count="3">
+                  <div style="{{ r.style }}" title="{{ r.title }}">{{ r.short }}</div>
+                </sc-for>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:8px;margin-top:14px">
+                <sc-for list="{{ ratioLegend }}" as="r" hint-placeholder-count="3">
+                  <div style="display:flex;align-items:center;gap:8px">
+                    <span style="{{ r.dot }}"></span>
+                    <span style="flex:1;font-size:.78rem;font-weight:600">{{ r.name }}</span>
+                    <span style="font-size:.75rem;color:var(--text-muted)">{{ r.value }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px">
+              <div style="font-size:.86rem;font-weight:700;margin-bottom:4px">Prioridade dos registros</div>
+              <div style="font-size:.73rem;color:var(--text-muted);margin-bottom:14px">Quanto do período foi urgente</div>
+              <div style="display:flex;align-items:center;gap:16px">
+                <div style="{{ priRing }}">
+                  <div style="position:absolute;inset:20px;background:var(--surface);border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center">
+                    <div style="font-size:1.05rem;font-weight:800;color:#dc2626;line-height:1">{{ priHighPct }}</div>
+                    <div style="font-size:.6rem;color:var(--text-muted)">alta</div>
+                  </div>
+                </div>
+                <div style="flex:1;display:flex;flex-direction:column;gap:8px">
+                  <sc-for list="{{ priLegend }}" as="p" hint-placeholder-count="3">
+                    <div style="display:flex;align-items:center;gap:8px">
+                      <span style="{{ p.dot }}"></span>
+                      <span style="flex:1;font-size:.78rem;font-weight:600;text-transform:capitalize">{{ p.name }}</span>
+                      <span style="font-size:.75rem;color:var(--text-muted)">{{ p.value }}</span>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </div>
+
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px">
+              <div style="font-size:.86rem;font-weight:700;margin-bottom:14px">Indicadores do período</div>
+              <div style="display:flex;flex-direction:column;gap:11px">
+                <sc-for list="{{ miniStats }}" as="m" hint-placeholder-count="4">
+                  <div style="display:flex;align-items:center;gap:10px">
+                    <span style="flex:1;font-size:.79rem;color:var(--text-muted)">{{ m.label }}</span>
+                    <span style="font-size:.86rem;font-weight:700;color:var(--brand-text)">{{ m.value }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px">
+            <div style="font-size:.86rem;font-weight:700;margin-bottom:16px">{{ projTitle }}</div>
+            <div style="display:flex;flex-direction:column;gap:13px">
+              <sc-for list="{{ projBars }}" as="p" hint-placeholder-count="5">
+                <a href="{{ p.href }}" style="color:var(--text);display:block" style-hover="color:var(--text);opacity:.78">
+                  <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:5px">
+                    <span style="font-size:.8rem;font-weight:600">{{ p.name }}</span>
+                    <span style="font-size:.74rem;color:var(--text-muted)">{{ p.value }} · {{ p.pct }}</span>
+                  </div>
+                  <div style="height:9px;background:var(--track);border-radius:20px;overflow:hidden;display:flex">
+                    <sc-for list="{{ p.segments }}" as="s" hint-placeholder-count="2">
+                      <div style="{{ s.style }}" title="{{ s.title }}"></div>
+                    </sc-for>
+                  </div>
+                </a>
+              </sc-for>
+            </div>
+          </div>
+
+          <sc-if value="{{ isDev }}" hint-placeholder-val="{{ false }}">
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px">
+              <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:14px">
+                <div>
+                  <div style="font-size:.86rem;font-weight:700">Minhas entregas e descobertas</div>
+                  <div style="font-size:.73rem;color:var(--text-muted);margin-top:2px">Pronto para colar na reunião semanal</div>
+                </div>
+                <a href="atividades.dc.html" style="font-size:.76rem;font-weight:600">Ver timeline →</a>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:2px">
+                <sc-for list="{{ myHighlights }}" as="h" hint-placeholder-count="6">
+                  <a href="{{ h.href }}" style="display:flex;align-items:center;gap:12px;padding:11px 8px;border-bottom:1px solid var(--border-soft);color:var(--text)" style-hover="background:var(--surface-2);color:var(--text)">
+                    <span style="{{ h.catStyle }}">{{ h.cat }}</span>
+                    <span style="flex:1;min-width:0;font-size:.85rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ h.title }}</span>
+                    <span style="font-size:.75rem;color:var(--brand-text);font-weight:600">{{ h.proj }}</span>
+                    <span style="font-size:.74rem;color:var(--text-faint);width:64px;text-align:right">{{ h.when }}</span>
+                  </a>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isEquipe }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px">
+            <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:16px;gap:16px;flex-wrap:wrap">
+              <div>
+                <div style="font-size:.86rem;font-weight:700">Registros por colaborador</div>
+                <div style="font-size:.73rem;color:var(--text-muted);margin-top:2px">Barras empilhadas por categoria</div>
+              </div>
+              <div style="display:flex;gap:10px;flex-wrap:wrap">
+                <sc-for list="{{ softLegend }}" as="c" hint-placeholder-count="5">
+                  <span style="display:inline-flex;align-items:center;gap:5px;font-size:.71rem;color:var(--text-muted)"><span style="{{ c.dot }}"></span>{{ c.name }}</span>
+                </sc-for>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:12px">
+              <sc-for list="{{ peopleBars }}" as="p" hint-placeholder-count="6">
+                <div style="display:flex;align-items:center;gap:12px">
+                  <a href="{{ p.href }}" style="display:flex;align-items:center;gap:8px;width:190px;flex:0 0 190px;color:var(--text)" style-hover="color:var(--accent)">
+                    <div style="{{ p.avatar }}">{{ p.ini }}</div>
+                    <div style="min-width:0">
+                      <div style="font-size:.79rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ p.name }}</div>
+                      <div style="font-size:.69rem;color:var(--text-faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ p.role }}</div>
+                    </div>
+                  </a>
+                  <div style="flex:1;height:20px;background:var(--surface-2);border:1px solid var(--border-soft);border-radius:6px;overflow:hidden;display:flex">
+                    <sc-for list="{{ p.segments }}" as="s" hint-placeholder-count="3">
+                      <div style="{{ s.style }}" title="{{ s.title }}"></div>
+                    </sc-for>
+                  </div>
+                  <div style="width:120px;flex:0 0 120px;text-align:right">
+                    <span style="font-size:.83rem;font-weight:700">{{ p.total }}</span>
+                    <span style="font-size:.73rem;color:var(--text-faint)"> · {{ p.lastWhen }}</span>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px">
+            <div style="font-size:.86rem;font-weight:700;margin-bottom:4px">Constância dos registros</div>
+            <div style="font-size:.73rem;color:var(--text-muted);margin-bottom:16px">Cada célula é um dia — quanto mais escuro, mais registros</div>
+            <div style="display:flex;flex-direction:column;gap:5px">
+              <div style="display:flex;align-items:center;gap:6px">
+                <div style="width:150px;flex:0 0 150px"></div>
+                <sc-for list="{{ heatDays }}" as="d" hint-placeholder-count="14">
+                  <div style="flex:1;text-align:center;font-size:.6rem;color:var(--text-faint)">{{ d.label }}</div>
+                </sc-for>
+              </div>
+              <sc-for list="{{ heatRows }}" as="r" hint-placeholder-count="6">
+                <div style="display:flex;align-items:center;gap:6px">
+                  <div style="width:150px;flex:0 0 150px;display:flex;align-items:center;gap:8px">
+                    <div style="{{ r.avatar }}">{{ r.ini }}</div>
+                    <span style="font-size:.76rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.first }}</span>
+                  </div>
+                  <sc-for list="{{ r.cells }}" as="c" hint-placeholder-count="14">
+                    <div style="{{ c.style }}" title="{{ c.title }}"></div>
+                  </sc-for>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px">
+            <div style="font-size:.86rem;font-weight:700;margin-bottom:4px">Matriz projeto × categoria</div>
+            <div style="font-size:.73rem;color:var(--text-muted);margin-bottom:14px">Onde cada tipo de trabalho aconteceu</div>
+            <div style="overflow:auto">
+              <table style="width:100%;border-collapse:separate;border-spacing:4px;font-size:.78rem">
+                <thead>
+                  <tr>
+                    <th style="text-align:left;font-size:.7rem;color:var(--text-faint);text-transform:uppercase;letter-spacing:.05em;padding:0 8px">Projeto</th>
+                    <sc-for list="{{ matrixCats }}" as="c" hint-placeholder-count="5">
+                      <th style="font-size:.68rem;color:var(--text-muted);font-weight:600;padding:0 4px;white-space:nowrap">{{ c }}</th>
+                    </sc-for>
+                    <th style="font-size:.68rem;color:var(--text-muted);font-weight:700;padding:0 4px">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <sc-for list="{{ matrixRows }}" as="r" hint-placeholder-count="5">
+                    <tr>
+                      <td style="font-weight:600;white-space:nowrap;padding:0 8px">{{ r.name }}</td>
+                      <sc-for list="{{ r.cells }}" as="c" hint-placeholder-count="5">
+                        <td style="{{ c.style }}" title="{{ c.title }}">{{ c.value }}</td>
+                      </sc-for>
+                      <td style="text-align:center;font-weight:800;color:var(--brand-text)">{{ r.total }}</td>
+                    </tr>
+                  </sc-for>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isExecTab }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start">
+            <div style="background:var(--brand);border-radius:var(--radius);padding:20px 22px;color:#fff">
+              <div style="font-size:.86rem;font-weight:700">Evolução semanal</div>
+              <div style="font-size:.73rem;color:rgba(255,255,255,.55);margin-top:2px;margin-bottom:18px">Volume registrado por semana</div>
+              <div style="display:flex;align-items:flex-end;gap:12px;height:110px">
+                <sc-for list="{{ weeks }}" as="w" hint-placeholder-count="4">
+                  <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end">
+                    <div style="font-size:.72rem;font-weight:700;color:#fff">{{ w.value }}</div>
+                    <div style="{{ w.style }}"></div>
+                    <div style="font-size:.66rem;color:rgba(255,255,255,.5)">{{ w.label }}</div>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="display:flex;gap:24px;margin-top:20px;padding-top:16px;border-top:1px solid rgba(255,255,255,.12)">
+                <sc-for list="{{ execStats }}" as="e" hint-placeholder-count="3">
+                  <div>
+                    <div style="font-size:1.25rem;font-weight:800;color:var(--accent);line-height:1.1">{{ e.value }}</div>
+                    <div style="font-size:.71rem;color:rgba(255,255,255,.55)">{{ e.label }}</div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px">
+              <div style="font-size:.86rem;font-weight:700;margin-bottom:4px">Pontos de atenção</div>
+              <div style="font-size:.73rem;color:var(--text-muted);margin-bottom:14px">Gerados a partir dos registros do período</div>
+              <div style="display:flex;flex-direction:column;gap:8px">
+                <sc-for list="{{ alerts }}" as="a" hint-placeholder-count="3">
+                  <div style="{{ a.style }}">{{ a.icon }} {{ a.text }}</div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px">
+            <div style="font-size:.86rem;font-weight:700;margin-bottom:4px">Carteira de projetos</div>
+            <div style="font-size:.73rem;color:var(--text-muted);margin-bottom:14px">Participação no volume, pessoas envolvidas e frescor do último registro</div>
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <sc-for list="{{ portfolio }}" as="p" hint-placeholder-count="5">
+                <div style="display:flex;align-items:center;gap:14px;padding:11px 12px;border:1px solid var(--border-soft);border-radius:8px" style-hover="border-color:var(--border);background:var(--surface-2)">
+                  <a href="{{ p.href }}" style="width:180px;flex:0 0 180px;font-size:.83rem;font-weight:700;color:var(--brand-text)" style-hover="color:var(--accent)">{{ p.name }}</a>
+                  <div style="flex:1;min-width:0">
+                    <div style="height:10px;background:var(--track);border-radius:20px;overflow:hidden">
+                      <div style="{{ p.barStyle }}"></div>
+                    </div>
+                    <div style="font-size:.71rem;color:var(--text-faint);margin-top:5px">{{ p.note }}</div>
+                  </div>
+                  <div style="display:flex;gap:3px;width:120px;flex:0 0 120px">
+                    <sc-for list="{{ p.people }}" as="m" hint-placeholder-count="3">
+                      <div style="{{ m.avatar }}" title="{{ m.name }}">{{ m.ini }}</div>
+                    </sc-for>
+                  </div>
+                  <span style="{{ p.badge }}">{{ p.status }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isInsights }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <div style="background:linear-gradient(135deg,var(--brand),#22506f);border-radius:var(--radius);padding:22px 24px;color:#fff">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+              <div style="width:30px;height:30px;border-radius:8px;background:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.8rem">IA</div>
+              <div style="font-size:.86rem;font-weight:700">Leitura automática do período</div>
+              <div style="flex:1"></div>
+              <span style="font-size:.7rem;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:20px;padding:3px 10px">{{ aiScope }}</span>
+            </div>
+            <div style="font-size:.95rem;line-height:1.65;text-wrap:pretty;color:rgba(255,255,255,.92)">{{ aiSummary }}</div>
+            <div style="display:flex;gap:26px;margin-top:20px;padding-top:16px;border-top:1px solid rgba(255,255,255,.12);flex-wrap:wrap">
+              <sc-for list="{{ aiMetrics }}" as="m" hint-placeholder-count="4">
+                <div>
+                  <div style="font-size:1.2rem;font-weight:800;color:var(--accent);line-height:1.1">{{ m.value }}</div>
+                  <div style="font-size:.71rem;color:rgba(255,255,255,.55)">{{ m.label }}</div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+            <sc-for list="{{ insights }}" as="i" hint-placeholder-count="6">
+              <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;display:flex;flex-direction:column;gap:8px">
+                <div style="display:flex;align-items:center;gap:8px">
+                  <span style="{{ i.tagStyle }}">{{ i.tag }}</span>
+                  <div style="flex:1"></div>
+                  <span style="font-size:.72rem;color:var(--text-faint)">{{ i.metric }}</span>
+                </div>
+                <div style="font-size:.88rem;font-weight:700;line-height:1.35;text-wrap:pretty">{{ i.title }}</div>
+                <div style="font-size:.81rem;color:var(--text-muted);line-height:1.55;text-wrap:pretty">{{ i.text }}</div>
+                <sc-if value="{{ i.hasAction }}" hint-placeholder-val="{{ false }}">
+                  <a href="{{ i.href }}" style="font-size:.77rem;font-weight:600;margin-top:2px">{{ i.action }} →</a>
+                </sc-if>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px">
+            <div style="font-size:.86rem;font-weight:700;margin-bottom:4px">Sugestões de próximo passo</div>
+            <div style="font-size:.73rem;color:var(--text-muted);margin-bottom:14px">Derivadas dos padrões encontrados nos registros</div>
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <sc-for list="{{ suggestions }}" as="s" hint-placeholder-count="4">
+                <div style="display:flex;gap:12px;align-items:flex-start;padding:12px 14px;background:var(--surface-2);border:1px solid var(--border-soft);border-radius:8px">
+                  <span style="{{ s.numStyle }}">{{ s.num }}</span>
+                  <div style="flex:1;min-width:0">
+                    <div style="font-size:.83rem;font-weight:700">{{ s.title }}</div>
+                    <div style="font-size:.79rem;color:var(--text-muted);margin-top:3px;line-height:1.5;text-wrap:pretty">{{ s.text }}</div>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+            <div style="font-size:.71rem;color:var(--text-faint);margin-top:14px;text-wrap:pretty">Leitura gerada a partir dos registros do período selecionado, dentro do seu nível de acesso. Confira antes de usar em decisão formal.</div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isDados }}" hint-placeholder-val="{{ false }}">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px">
+          <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:14px;gap:12px;flex-wrap:wrap">
+            <div>
+              <div style="font-size:.86rem;font-weight:700">Tabela base do relatório</div>
+              <div style="font-size:.73rem;color:var(--text-muted);margin-top:2px">{{ tableNote }}</div>
+            </div>
+            <div style="display:flex;gap:8px">
+              <div onClick="{{ exportDetail }}" style="font-size:.78rem;font-weight:600;color:var(--brand-text);cursor:pointer;padding:7px 12px;border:1.5px solid var(--border);border-radius:6px" style-hover="border-color:var(--brand-text)">↓ CSV detalhado</div>
+              <div onClick="{{ exportSummary }}" style="font-size:.78rem;font-weight:600;color:var(--accent);cursor:pointer;padding:7px 12px;border:1.5px solid var(--tint-orange-bd);border-radius:6px" style-hover="background:var(--surface)5f0">↓ CSV resumo</div>
+            </div>
+          </div>
+          <div style="overflow:auto;max-height:560px">
+            <table style="width:100%;border-collapse:collapse;font-size:.82rem">
+              <thead>
+                <tr>
+                  <th style="background:var(--brand);color:#fff;padding:9px 14px;text-align:left;font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;position:sticky;top:0">Data</th>
+                  <th style="background:var(--brand);color:#fff;padding:9px 14px;text-align:left;font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;position:sticky;top:0">Colaborador</th>
+                  <th style="background:var(--brand);color:#fff;padding:9px 14px;text-align:left;font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;position:sticky;top:0">Projeto</th>
+                  <th style="background:var(--brand);color:#fff;padding:9px 14px;text-align:left;font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;position:sticky;top:0">Categoria</th>
+                  <th style="background:var(--brand);color:#fff;padding:9px 14px;text-align:left;font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;position:sticky;top:0">Atividade</th>
+                  <th style="background:var(--brand);color:#fff;padding:9px 14px;text-align:right;font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;position:sticky;top:0">Duração</th>
+                </tr>
+              </thead>
+              <tbody>
+                <sc-for list="{{ tableRows }}" as="r" hint-placeholder-count="10">
+                  <tr style-hover="background:var(--surface-2)">
+                    <td style="padding:9px 14px;border-bottom:1px solid var(--border);color:var(--text-muted);white-space:nowrap">{{ r.date }}</td>
+                    <td style="padding:9px 14px;border-bottom:1px solid var(--border)">
+                      <div style="display:flex;align-items:center;gap:8px">
+                        <div style="{{ r.avatar }}">{{ r.ini }}</div>
+                        <span style="font-weight:600">{{ r.who }}</span>
+                      </div>
+                    </td>
+                    <td style="padding:9px 14px;border-bottom:1px solid var(--border);color:var(--brand-text);font-weight:600">{{ r.proj }}</td>
+                    <td style="padding:9px 14px;border-bottom:1px solid var(--border)"><span style="{{ r.catStyle }}">{{ r.cat }}</span></td>
+                    <td style="padding:9px 14px;border-bottom:1px solid var(--border)">{{ r.title }}</td>
+                    <td style="padding:9px 14px;border-bottom:1px solid var(--border);text-align:right;color:var(--text-muted);white-space:nowrap">{{ r.dur }}</td>
+                  </tr>
+                </sc-for>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </sc-if>
+    </main>
+</x-import>
+
+<sc-if value="{{ toastOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;right:24px;bottom:24px;z-index:80;animation:dvToast .2s ease both">
+      <div style="display:flex;align-items:center;gap:12px;padding:13px 18px;border-radius:var(--radius);font-size:.86rem;box-shadow:0 8px 32px rgba(0,0,0,.16);min-width:280px;background:var(--brand);color:#fff">
+        <span style="font-weight:700">✓</span>
+        <div>
+          <div style="font-weight:600">{{ toast.title }}</div>
+          <div style="font-size:.76rem;opacity:.8">{{ toast.sub }}</div>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:1000}}">
+class Component extends DCLogic {
+  state = { ready: false, collapsed: false, days: 14, tab: 'geral', toast: null };
+
+  componentDidMount() {
+    this.t = setInterval(() => {
+      if (window.DV) { clearInterval(this.t); this.setState({ ready: true }); }
+    }, 25);
+    this.onKey = (e) => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); window.location.href = 'pesquisa.dc.html'; } };
+    window.addEventListener('keydown', this.onKey);
+  }
+  componentWillUnmount() { clearInterval(this.t); window.removeEventListener('keydown', this.onKey); }
+
+  toast(title, sub) {
+    clearTimeout(this._tt);
+    this.setState({ toast: { title: title, sub: sub } });
+    this._tt = setTimeout(() => this.setState({ toast: null }), 3000);
+  }
+  soft(hex, a) {
+    const h = hex.replace('#', '');
+    const n = parseInt(h.length === 3 ? h.split('').map(x => x + x).join('') : h, 16);
+    return 'rgba(' + ((n >> 16) & 255) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')';
+  }
+
+  renderVals() {
+    const D = window.DV;
+    if (!D) return { nav: [], sb: {}, u: {}, tabs: [], kpis: [], chart: [], catLegend: [], softLegend: [], projBars: [], peopleBars: [], heatRows: [], heatDays: [], matrixRows: [], matrixCats: [], tableRows: [], periods: [], ratioBars: [], ratioLegend: [], priLegend: [], miniStats: [], weekdays: [], weeks: [], execStats: [], alerts: [], portfolio: [], insights: [], suggestions: [], aiMetrics: [], myHighlights: [], area: {}, toast: {} };
+
+    const u = D.user();
+    const seesAll = D.seesAll(u);
+    const isExec = D.isExec(u);
+    const days = this.state.days;
+    const scope = D.visibleActs(u);
+    const acts = scope.filter(a => a.d < days);
+    const prev = scope.filter(a => a.d >= days && a.d < days * 2);
+    const people = D.people();
+    const total = acts.length;
+    const pct = (n, base) => { const b = base == null ? total : base; return b ? Math.round((n / b) * 100) + '%' : '0%'; };
+
+    let tab = this.state.tab;
+    if (tab === 'equipe' && !seesAll) tab = 'geral';
+    if (tab === 'exec' && !isExec) tab = 'geral';
+
+    const catCounts = {}; acts.forEach(a => { catCounts[a.cat] = (catCounts[a.cat] || 0) + 1; });
+    const catKeys = Object.keys(catCounts).sort((a, b) => catCounts[b] - catCounts[a]);
+    const projCounts = {}; acts.forEach(a => { projCounts[a.proj] = (projCounts[a.proj] || 0) + 1; });
+    const projKeys = Object.keys(projCounts).sort((a, b) => projCounts[b] - projCounts[a]);
+
+    const entregas = acts.filter(a => a.cat === 'Entrega').length;
+    const correcoes = acts.filter(a => a.cat === 'Correção').length;
+    const outros = total - entregas - correcoes;
+    const highPri = acts.filter(a => a.pri === 'alta').length;
+    const medPri = acts.filter(a => a.pri === 'média').length;
+    const lowPri = acts.filter(a => a.pri === 'baixa').length;
+    const durMin = acts.reduce((n, a) => {
+      const h = /(\d+)\s*h/.exec(a.dur || ''); const m = /(\d+)\s*m/.exec(a.dur || '');
+      return n + (h ? parseInt(h[1], 10) * 60 : 0) + (m ? parseInt(m[1], 10) : 0);
+    }, 0);
+    const hours = Math.round(durMin / 60);
+    const activePeople = people.filter(p => scope.some(a => a.who === p.id));
+    const daysWith = new Set(acts.map(a => a.d)).size;
+    const growth = prev.length ? Math.round(((total - prev.length) / prev.length) * 100) : null;
+
+    /* donut categorias */
+    let acc = 0;
+    const slices = catKeys.map(k => {
+      const from = total ? (acc / total) * 100 : 0;
+      acc += catCounts[k];
+      const to = total ? (acc / total) * 100 : 0;
+      return D.cat(k).fg + ' ' + from.toFixed(2) + '% ' + to.toFixed(2) + '%';
+    });
+
+    /* prioridade ring */
+    const priSeq = [['alta', highPri, 'var(--danger-text)'], ['média', medPri, 'var(--warn-text)'], ['baixa', lowPri, '#94a3b8']];
+    let pacc = 0;
+    const priSlices = priSeq.filter(p => p[1]).map(p => {
+      const from = total ? (pacc / total) * 100 : 0;
+      pacc += p[1];
+      const to = total ? (pacc / total) * 100 : 0;
+      return p[2] + ' ' + from.toFixed(2) + '% ' + to.toFixed(2) + '%';
+    });
+
+    /* barras por dia */
+    const maxDay = Math.max.apply(null, [1].concat(Array.from({ length: days }, (_, i) => acts.filter(a => a.d === i).length)));
+    const step = days > 30 ? 7 : days > 14 ? 3 : 1;
+    const chart = Array.from({ length: days }, (_, i) => days - 1 - i).map((d, idx) => {
+      const n = acts.filter(a => a.d === d).length;
+      return {
+        value: days <= 14 ? (n || '') : '',
+        label: (idx % step === 0 || d === 0) ? D.fmt(d).slice(0, 2) : '',
+        title: D.longDate(d) + ' · ' + D.plural(n),
+        style: 'width:100%;height:' + Math.max(4, Math.round((n / maxDay) * 112)) + 'px;border-radius:5px 5px 2px 2px;transition:filter .13s;background:' +
+          (d === 0 ? 'var(--accent)' : d < 7 ? 'var(--brand)' : 'var(--tint-blue-bd)')
+      };
+    });
+
+    /* curva acumulada */
+    const seq = Array.from({ length: days }, (_, i) => days - 1 - i);
+    let run = 0;
+    const cum = seq.map(d => { run += acts.filter(a => a.d === d).length; return run; });
+    const maxCum = Math.max(1, run);
+    const pts = cum.map((v, i) => [(i / Math.max(1, days - 1)) * 300, 104 - (v / maxCum) * 96]);
+    const line = pts.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' ');
+
+    /* dia da semana */
+    const wdNames = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
+    const wdCount = [0, 0, 0, 0, 0, 0, 0];
+    acts.forEach(a => { wdCount[D.dateOf(a.d).getDay()]++; });
+    const maxWd = Math.max.apply(null, [1].concat(wdCount));
+    const weekdays = [1, 2, 3, 4, 5, 6, 0].map(i => ({
+      label: wdNames[i], value: wdCount[i],
+      style: 'height:100%;width:' + Math.max(2, Math.round((wdCount[i] / maxWd) * 100)) + '%;border-radius:20px;background:' + (i === 0 || i === 6 ? 'var(--tint-blue-bd)' : 'var(--brand)')
+    }));
+
+    /* projetos */
+    const maxProj = Math.max.apply(null, [1].concat(projKeys.map(k => projCounts[k])));
+    const projBars = projKeys.map(k => {
+      const list = acts.filter(a => a.proj === k);
+      const inner = {}; list.forEach(a => { inner[a.cat] = (inner[a.cat] || 0) + 1; });
+      const width = (projCounts[k] / maxProj) * 100;
+      return {
+        name: k, value: projCounts[k], pct: pct(projCounts[k]), href: 'projeto.dc.html?p=' + encodeURIComponent(k),
+        segments: Object.keys(inner).map(cn => ({
+          title: cn + ': ' + inner[cn],
+          style: 'height:100%;width:' + ((inner[cn] / projCounts[k]) * width).toFixed(2) + '%;background:' + D.cat(cn).fg
+        }))
+      };
+    });
+
+    /* equipe — cores suaves */
+    const maxPerson = Math.max.apply(null, [1].concat(activePeople.map(x => acts.filter(a => a.who === x.id).length)));
+    const peopleBars = activePeople.map(p => {
+      const list = acts.filter(a => a.who === p.id);
+      const inner = {}; list.forEach(a => { inner[a.cat] = (inner[a.cat] || 0) + 1; });
+      const width = (list.length / maxPerson) * 100;
+      const last = scope.filter(a => a.who === p.id)[0];
+      return {
+        name: p.name, role: p.role, ini: p.ini, avatar: D.avatar(p, 28), href: 'colaborador.dc.html?id=' + p.id,
+        total: list.length, lastWhen: last ? D.fmt(last.d) : '—',
+        segments: Object.keys(inner).map(cn => ({
+          title: cn + ': ' + inner[cn],
+          style: 'height:100%;width:' + (list.length ? ((inner[cn] / list.length) * width).toFixed(2) : 0) + '%;background:' + this.soft(D.cat(cn).fg, .32)
+        }))
+      };
+    }).sort((a, b) => b.total - a.total);
+
+    /* heatmap */
+    const hDays = Math.min(days, 21);
+    const heatDays = Array.from({ length: hDays }, (_, i) => hDays - 1 - i).map((d, idx) => ({ label: idx % 2 === 0 ? D.fmt(d).slice(0, 2) : '' }));
+    const heatRows = activePeople.map(p => ({
+      ini: p.ini, first: p.name.split(' ')[0], avatar: D.avatar(p, 22),
+      cells: Array.from({ length: hDays }, (_, i) => hDays - 1 - i).map(d => {
+        const n = acts.filter(a => a.who === p.id && a.d === d).length;
+        const bg = n === 0 ? 'var(--border-soft)' : n === 1 ? this.soft('var(--accent)', .25) : n === 2 ? this.soft('var(--accent)', .5) : this.soft('var(--accent)', .8);
+        return { title: p.name + ' · ' + D.fmt(d) + ' · ' + D.plural(n), style: 'flex:1;height:22px;border-radius:4px;background:' + bg };
+      })
+    }));
+
+    /* matriz projeto x categoria */
+    const matrixCats = catKeys;
+    const matrixRows = projKeys.map(k => {
+      const list = acts.filter(a => a.proj === k);
+      return {
+        name: k, total: list.length,
+        cells: matrixCats.map(cn => {
+          const n = list.filter(a => a.cat === cn).length;
+          return {
+            value: n || '', title: k + ' · ' + cn + ': ' + n,
+            style: 'text-align:center;border-radius:6px;padding:8px 6px;font-weight:700;font-size:.78rem;color:' + (n ? D.cat(cn).fg : 'var(--border-strong)') +
+              ';background:' + (n ? this.soft(D.cat(cn).fg, Math.min(.32, .08 + n * .07)) : 'var(--surface-2)')
+          };
+        })
+      };
+    });
+
+    /* executivo */
+    const weekVals = [0, 1, 2, 3].map(w => scope.filter(a => a.d >= w * 7 && a.d < (w + 1) * 7).length);
+    const maxWeek = Math.max.apply(null, [1].concat(weekVals));
+    const weeks = [3, 2, 1, 0].map(w => ({
+      value: weekVals[w], label: w === 0 ? 'semana atual' : w + ' sem. atrás',
+      style: 'width:100%;height:' + Math.max(6, Math.round((weekVals[w] / maxWeek) * 76)) + 'px;border-radius:5px 5px 2px 2px;background:' + (w === 0 ? 'var(--accent)' : 'rgba(255,255,255,.32)')
+    }));
+    const stale = D.projects().filter(p => !scope.some(a => a.proj === p && a.d < 7));
+    const noRecord = people.filter(p => p.active && !scope.some(a => a.who === p.id && a.d < 7));
+    const alerts = [];
+    const alertStyle = (bg, bd, fg) => 'display:flex;gap:10px;padding:12px 14px;border-radius:6px;font-size:.82rem;background:' + bg + ';border:1px solid ' + bd + ';color:' + fg;
+    if (stale.length) alerts.push({ icon: '⚠', text: stale.length + ' projeto(s) sem movimentação há 7 dias: ' + stale.join(', '), style: alertStyle('var(--tint-amber)', 'var(--tint-amber-bd)', 'var(--warn-text)') });
+    if (noRecord.length) alerts.push({ icon: '⚠', text: noRecord.length + ' pessoa(s) sem registro nesta semana: ' + noRecord.map(p => p.name.split(' ')[0]).join(', '), style: alertStyle('var(--tint-red)', 'var(--tint-red-bd)', 'var(--danger-text)') });
+    if (correcoes > entregas) alerts.push({ icon: 'ℹ', text: 'Correções superaram entregas no período — vale olhar qualidade antes de escopo novo.', style: alertStyle('var(--tint-sky)', 'var(--tint-sky-bd)', 'var(--info-text)') });
+    if (!alerts.length) alerts.push({ icon: '✓', text: 'Nenhum ponto de atenção: todos os projetos e pessoas tiveram registro na semana.', style: alertStyle('var(--tint-green)', 'var(--tint-green-bd)', 'var(--ok-text)') });
+
+    const portfolio = projKeys.map(k => {
+      const list = acts.filter(a => a.proj === k);
+      const fresh = list.length ? list[0].d : 99;
+      return {
+        name: k, href: 'projeto.dc.html?p=' + encodeURIComponent(k),
+        barStyle: 'height:100%;width:' + Math.max(4, Math.round((list.length / Math.max(1, total)) * 100 * 2.2)) + '%;max-width:100%;background:' + this.soft('var(--brand)', .55) + ';border-radius:20px',
+        note: D.plural(list.length) + ' · ' + pct(list.length) + ' do volume · último em ' + D.fmt(fresh),
+        people: Array.from(new Set(list.map(a => a.who))).slice(0, 4).map(id => {
+          const p = D.person(id) || u;
+          return { ini: p.ini, name: p.name, avatar: D.avatar(p, 22) };
+        }),
+        badge: D.badge(fresh <= 1 ? 'green' : fresh < 7 ? 'blue' : 'gray'),
+        status: fresh <= 1 ? 'ativo hoje' : fresh < 7 ? 'na semana' : 'parado'
+      };
+    });
+
+    /* insights */
+    const topCat = catKeys[0];
+    const topProj = projKeys[0];
+    const busiest = peopleBars[0];
+    const concentration = topProj ? Math.round((projCounts[topProj] / Math.max(1, total)) * 100) : 0;
+    const tag = (name, t) => {
+      const x = { tend: ['var(--tint-blue)', 'var(--tint-blue-bd)', 'var(--brand-text)'], qual: ['var(--tint-green)', 'var(--tint-green-bd)', 'var(--ok-text)'], risco: ['var(--tint-red)', 'var(--tint-red-bd)', 'var(--danger-text)'], foco: ['var(--tint-orange)', 'var(--tint-orange-bd)', 'var(--accent)'], ritmo: ['var(--tint-sky)', 'var(--tint-sky-bd)', 'var(--info-text)'] }[t];
+      return 'display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:.69rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;background:' + x[0] + ';border:1px solid ' + x[1] + ';color:' + x[2];
+    };
+    const insights = [];
+    if (growth !== null) insights.push({
+      tag: 'Tendência', tagStyle: tag('t', 'tend'), metric: (growth >= 0 ? '+' : '') + growth + '%',
+      title: growth >= 0 ? 'Volume de registros cresceu em relação ao período anterior' : 'Volume de registros caiu em relação ao período anterior',
+      text: total + ' registros nos últimos ' + days + ' dias contra ' + prev.length + ' nos ' + days + ' dias anteriores. ' +
+        (growth >= 0 ? 'O hábito de registrar está pegando — mantenha o ritual na daily.' : 'Pode ser menos trabalho ou menos disciplina de registro; vale confirmar na retro.'),
+      hasAction: true, href: 'atividades.dc.html', action: 'Ver timeline'
+    });
+    if (topCat) insights.push({
+      tag: 'Foco', tagStyle: tag('f', 'foco'), metric: pct(catCounts[topCat]),
+      title: '“' + topCat + '” domina o período com ' + catCounts[topCat] + ' registros',
+      text: 'Em seguida vêm ' + catKeys.slice(1, 3).join(' e ') + '. Se o objetivo do trimestre é entrega de produto, essa distribuição mostra se o time está no lugar certo.'
+    });
+    insights.push({
+      tag: 'Qualidade', tagStyle: tag('q', entregas >= correcoes ? 'qual' : 'risco'),
+      metric: entregas + ' × ' + correcoes,
+      title: entregas >= correcoes ? 'Entregas superam correções' : 'Correções superam entregas',
+      text: entregas >= correcoes
+        ? 'A razão entrega/correção é de ' + (correcoes ? (entregas / correcoes).toFixed(1) : entregas) + ' para 1 — sinal de base estável no período.'
+        : 'Retrabalho consumiu mais registros que entregas. Vale investigar os projetos com mais correções antes de abrir escopo novo.',
+      hasAction: true, href: 'atividades.dc.html?cat=Correção', action: 'Ver correções'
+    });
+    insights.push({
+      tag: 'Ritmo', tagStyle: tag('r', 'ritmo'), metric: daysWith + '/' + days + ' dias',
+      title: daysWith >= days * 0.6 ? 'Registro consistente ao longo do período' : 'Registros concentrados em poucos dias',
+      text: 'Houve registro em ' + daysWith + ' dos ' + days + ' dias, com pico de ' + maxDay + ' em um único dia e média de ' + (total / days).toFixed(1) + ' por dia. ' +
+        (daysWith >= days * 0.6 ? 'O diário está virando rotina.' : 'Registros em lote perdem detalhe — um lembrete no fim do dia ajuda.')
+    });
+    if (concentration >= 40) insights.push({
+      tag: 'Risco', tagStyle: tag('r', 'risco'), metric: concentration + '%',
+      title: 'Esforço concentrado em ' + topProj,
+      text: concentration + '% dos registros do período estão em um só projeto. Concentração ajuda o foco, mas cria dependência de conhecimento — vale ter mais de uma pessoa por frente.',
+      hasAction: true, href: 'projeto.dc.html?p=' + encodeURIComponent(topProj), action: 'Abrir projeto'
+    });
+    if (seesAll && busiest) insights.push({
+      tag: 'Equipe', tagStyle: tag('e', 'tend'), metric: busiest.total + ' registros',
+      title: busiest.name.split(' ')[0] + ' lidera o volume de registros',
+      text: 'Volume não é produtividade: quem registra mais também deixa mais conhecimento documentado. ' +
+        (noRecord.length ? noRecord.map(p => p.name.split(' ')[0]).join(', ') + ' não registrou nada nesta semana — pode ser falta de hábito, não de trabalho.' : 'Toda a equipe registrou algo nesta semana.'),
+      hasAction: true, href: busiest.href, action: 'Ver perfil'
+    });
+    if (isExec && stale.length) insights.push({
+      tag: 'Risco', tagStyle: tag('r', 'risco'), metric: stale.length + ' projetos',
+      title: 'Projetos sem sinal de vida na última semana',
+      text: stale.join(', ') + '. Ou saíram de prioridade, ou estão sendo trabalhados sem registro — as duas coisas atrapalham o planejamento.'
+    });
+    if (hours) insights.push({
+      tag: 'Ritmo', tagStyle: tag('h', 'ritmo'), metric: hours + 'h',
+      title: 'Tempo declarado no período',
+      text: hours + ' horas informadas em ' + total + ' registros (média de ' + (total ? Math.round(durMin / total) : 0) + ' min por registro). A duração é opcional, então trate como referência, não como apontamento de horas.'
+    });
+
+    const suggestions = [
+      { title: 'Ritual de 2 minutos no fim do dia', text: 'Registrar antes de sair evita o efeito “não lembro o que fiz”. O atalho N abre o formulário direto.' },
+      { title: correcoes > entregas ? 'Abrir uma frente de estabilização' : 'Manter a proporção entrega/correção sob acompanhamento', text: correcoes > entregas ? 'Agrupe as correções recorrentes por projeto e resolva a causa raiz antes de escopo novo.' : 'Acompanhe semanalmente: uma virada nessa razão costuma antecipar problema de qualidade.' },
+      { title: 'Usar o CSV na retrospectiva', text: 'Exporte o período, ordene por projeto e leia em voz alta as entregas — a reunião fica factual em poucos minutos.' }
+    ];
+    if (seesAll) suggestions.push({ title: 'Espalhar conhecimento dos projetos concentrados', text: 'Onde só uma pessoa registra, marque uma sessão de pareamento ou pedido de documentação na categoria Documentação.' });
+
+    const aiSummary = 'Nos últimos ' + days + ' dias houve ' + total + ' registros' +
+      (seesAll ? ' de ' + activePeople.length + ' pessoas' : '') +
+      (topProj ? ', com maior volume em ' + topProj + ' (' + pct(projCounts[topProj]) + ')' : '') +
+      (topCat ? ' e predominância de ' + topCat.toLowerCase() : '') + '. ' +
+      (growth !== null ? (growth >= 0 ? 'O volume subiu ' + growth + '% ' : 'O volume caiu ' + Math.abs(growth) + '% ') + 'em relação ao período anterior. ' : '') +
+      (entregas >= correcoes ? 'Entregas seguem acima das correções' : 'Correções passaram as entregas') +
+      ' e houve registro em ' + daysWith + ' dos ' + days + ' dias.';
+
+    /* export */
+    const detailRows = acts.map(a => {
+      const p = D.person(a.who) || u;
+      return [D.iso(a.d), a.t, p.name, p.role, a.proj, a.cat, a.title, a.desc, a.dur, a.pri, a.tags.join(' ')];
+    });
+    const exportDetail = () => {
+      D.download('diario-dev-atividades-' + days + 'd.csv',
+        D.csv(['data', 'hora', 'colaborador', 'cargo', 'projeto', 'categoria', 'titulo', 'descricao', 'duracao', 'prioridade', 'tags'], detailRows));
+      this.toast('CSV exportado', detailRows.length + ' linhas · escopo ' + (seesAll ? 'equipe' : 'pessoal'));
+    };
+    const exportSummary = () => {
+      let header, rows, file;
+      if (seesAll) {
+        header = ['colaborador', 'cargo', 'total', 'entregas', 'correcoes', 'projetos', 'ultimo_registro'];
+        rows = activePeople.map(p => {
+          const list = acts.filter(a => a.who === p.id);
+          const last = scope.filter(a => a.who === p.id)[0];
+          return [p.name, p.role, list.length, list.filter(a => a.cat === 'Entrega').length, list.filter(a => a.cat === 'Correção').length, new Set(list.map(a => a.proj)).size, last ? D.iso(last.d) : ''];
+        });
+        file = 'diario-dev-resumo-equipe-' + days + 'd.csv';
+      } else {
+        header = ['categoria', 'total', 'percentual'];
+        rows = catKeys.map(k => [k, catCounts[k], pct(catCounts[k])]);
+        file = 'diario-dev-resumo-pessoal-' + days + 'd.csv';
+      }
+      D.download(file, D.csv(header, rows));
+      this.toast('Resumo exportado', rows.length + ' linhas em CSV');
+    };
+
+    const tabDefs = [['geral', 'Visão geral', '◱'], ['equipe', 'Equipe', '◍'], ['exec', 'Executivo', '◈'], ['insights', 'Insights IA', '✦'], ['dados', 'Dados', '≡']]
+      .filter(t => (t[0] !== 'equipe' || seesAll) && (t[0] !== 'exec' || isExec));
+
+    return {
+      u: { name: u.name, ini: u.ini, role: D.levelLabel(u), avatar: D.avatar(u, 30), levelLabel: D.levelLabel(u) },
+      reportTitle: isExec ? 'Relatório executivo' : seesAll ? 'Relatório da equipe' : 'Meu relatório',
+      reportSubtitle: isExec ? 'Volume, entregas, carteira de projetos e pontos de atenção' : seesAll ? 'Produção do time por pessoa, projeto e categoria' : 'Seus registros, prontos para a reunião semanal',
+      tabs: tabDefs.map(t => ({
+        label: t[1], icon: t[2],
+        style: 'display:inline-flex;align-items:center;gap:7px;padding:10px 15px;border-radius:8px 8px 0 0;font-size:.82rem;font-weight:600;cursor:pointer;border-bottom:2px solid ' +
+          (tab === t[0] ? 'var(--accent);color:var(--brand-text);background:var(--surface-2)' : 'transparent;color:var(--text-muted)'),
+        onClick: () => this.setState({ tab: t[0] })
+      })),
+      isGeral: tab === 'geral', isEquipe: tab === 'equipe', isExecTab: tab === 'exec', isInsights: tab === 'insights', isDados: tab === 'dados',
+      scopeStyle: 'display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:8px;flex-wrap:wrap;' +
+        (seesAll ? 'background:var(--tint-blue);border:1px solid var(--tint-blue-bd);color:var(--brand-text)' : 'background:var(--surface)5f0;border:1px solid var(--tint-orange-bd);color:#9a3412'),
+      scopeBadge: 'display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:.71rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#fff;background:' + (seesAll ? 'var(--brand)' : 'var(--accent)'),
+      scopeNote: isExec ? 'Visão completa: equipe, projetos, capacidade e alertas.' : seesAll ? 'Você vê a produção de todos os colaboradores.' : 'Seu nível de acesso mostra apenas os seus próprios registros.',
+      periodNote: 'Últimos ' + days + ' dias · até ' + D.fmt(0),
+      periods: [[7, '7 dias'], [14, '14 dias'], [30, '30 dias'], [90, '90 dias']].map(p => ({
+        label: p[1], style: D.chip(days === p[0]) + 'font-size:.77rem;padding:6px 12px;',
+        onClick: () => this.setState({ days: p[0] })
+      })),
+      kpis: seesAll ? [
+        { label: 'Registros no período', value: total, hint: (total / days).toFixed(1) + ' por dia', icon: '≡', tone: 'blue' },
+        { label: 'Entregas', value: entregas, hint: pct(entregas) + ' do total', icon: '✓', tone: 'green' },
+        { label: 'Correções', value: correcoes, hint: pct(correcoes) + ' do total', icon: '⚠', tone: 'red' },
+        { label: 'Pessoas com registro', value: Array.from(new Set(acts.map(a => a.who))).filter(id => (D.person(id) || {}).active).length + '/' + people.filter(p => p.active).length, hint: hours + 'h registradas · só ativos', icon: '◍', tone: 'orange' }
+      ].map(k => {
+        const x = { orange: ['var(--tint-orange)', 'var(--tint-orange-bd)', 'var(--accent)'], blue: ['var(--tint-blue)', 'var(--tint-blue-bd)', 'var(--brand-text)'], green: ['var(--tint-green)', 'var(--tint-green-bd)', 'var(--ok-text)'], red: ['var(--tint-red)', 'var(--tint-red-bd)', 'var(--danger-text)'], info: ['var(--tint-sky)', 'var(--tint-sky-bd)', 'var(--info-text)'] }[k.tone];
+        return Object.assign({}, k, {
+          style: 'border-radius:var(--radius);padding:16px 18px;border:1px solid ' + x[1] + ';background:' + x[0] + ';color:' + x[2],
+          iconStyle: 'width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:.85rem;color:#fff;background:' + x[2]
+        });
+      }) : [
+        { label: 'Meus registros', value: total, hint: (total / days).toFixed(1) + ' por dia', icon: '≡', tone: 'blue' },
+        { label: 'Minhas entregas', value: entregas, hint: pct(entregas) + ' dos meus registros', icon: '✓', tone: 'green' },
+        { label: 'Projetos que toquei', value: projKeys.length, hint: 'no período', icon: '◈', tone: 'orange' },
+        { label: 'Horas registradas', value: hours + 'h', hint: 'somando as durações', icon: '◔', tone: 'info' }
+      ].map(k => {
+        const x = { orange: ['var(--tint-orange)', 'var(--tint-orange-bd)', 'var(--accent)'], blue: ['var(--tint-blue)', 'var(--tint-blue-bd)', 'var(--brand-text)'], green: ['var(--tint-green)', 'var(--tint-green-bd)', 'var(--ok-text)'], info: ['var(--tint-sky)', 'var(--tint-sky-bd)', 'var(--info-text)'] }[k.tone];
+        return Object.assign({}, k, {
+          style: 'border-radius:var(--radius);padding:16px 18px;border:1px solid ' + x[1] + ';background:' + x[0] + ';color:' + x[2],
+          iconStyle: 'width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:.85rem;color:#fff;background:' + x[2]
+        });
+      }),
+      chart: chart, chartMax: maxDay, total: total,
+      donutStyle: 'width:132px;height:132px;flex:0 0 132px;border-radius:50%;position:relative;background:' + (total ? 'conic-gradient(' + slices.join(',') + ')' : 'var(--border-soft)'),
+      donutSub: catKeys.length + ' categorias no período',
+      catLegend: catKeys.map(k => ({
+        name: k, value: catCounts[k], pct: pct(catCounts[k]),
+        dot: 'width:10px;height:10px;border-radius:3px;flex:0 0 10px;background:' + D.cat(k).fg
+      })),
+      softLegend: catKeys.map(k => ({
+        name: k, dot: 'width:10px;height:10px;border-radius:3px;flex:0 0 10px;background:' + this.soft(D.cat(k).fg, .32) + ';border:1px solid ' + this.soft(D.cat(k).fg, .5)
+      })),
+      area: {
+        line: line,
+        fill: line + ' L300 104 L0 104 Z',
+        from: D.fmt(days - 1), mid: D.fmt(Math.floor(days / 2)), to: D.fmt(0)
+      },
+      weekdays: weekdays,
+      projTitle: seesAll ? 'Registros por projeto' : 'Meus projetos no período',
+      projBars: projBars,
+      ratioBars: [['Entregas', entregas, 'var(--ok-text)'], ['Correções', correcoes, 'var(--danger-text)'], ['Outros', outros, 'var(--brand-text)']].filter(r => r[1]).map(r => ({
+        short: r[1], title: r[0] + ': ' + r[1],
+        style: 'width:' + (total ? (r[1] / total) * 100 : 0) + '%;background:' + this.soft(r[2], .82) + ';color:#fff;font-size:.73rem;font-weight:700;display:flex;align-items:center;justify-content:center'
+      })),
+      ratioLegend: [['Entregas', entregas, 'var(--ok-text)'], ['Correções', correcoes, 'var(--danger-text)'], ['Outros', outros, 'var(--brand-text)']].map(r => ({
+        name: r[0], value: r[1] + ' · ' + pct(r[1]),
+        dot: 'width:10px;height:10px;border-radius:3px;background:' + this.soft(r[2], .82)
+      })),
+      priRing: 'width:104px;height:104px;flex:0 0 104px;border-radius:50%;position:relative;background:' + (priSlices.length ? 'conic-gradient(' + priSlices.join(',') + ')' : 'var(--border-soft)'),
+      priHighPct: pct(highPri),
+      priLegend: priSeq.map(p => ({
+        name: p[0], value: p[1] + ' · ' + pct(p[1]),
+        dot: 'width:10px;height:10px;border-radius:3px;background:' + p[2]
+      })),
+      miniStats: [
+        { label: 'Horas registradas', value: hours + 'h' },
+        { label: 'Média por registro', value: total ? Math.round(durMin / total) + ' min' : '—' },
+        { label: seesAll ? 'Registros por pessoa (média)' : 'Dias com registro', value: seesAll ? (activePeople.length ? (total / activePeople.length).toFixed(1) : '0') : daysWith + '/' + days },
+        { label: 'Prioridade alta', value: highPri + ' · ' + pct(highPri) },
+        { label: 'Projetos tocados', value: projKeys.length }
+      ],
+      isDev: !seesAll,
+      myHighlights: acts.filter(a => a.cat === 'Entrega' || a.cat === 'Descoberta').slice(0, 8).map(a => ({
+        href: 'atividades.dc.html?editar=' + a.id, title: a.title, cat: a.cat, catStyle: D.catStyle(a.cat), proj: a.proj, when: D.fmt(a.d)
+      })),
+      peopleBars: peopleBars, heatRows: heatRows, heatDays: heatDays,
+      matrixCats: matrixCats, matrixRows: matrixRows,
+      weeks: weeks, alerts: alerts, portfolio: portfolio,
+      execStats: [
+        { value: pct(entregas), label: 'do esforço em entregas' },
+        { value: new Set(scope.filter(a => a.d < 7).map(a => a.proj)).size, label: 'projetos ativos na semana' },
+        { value: hours + 'h', label: 'horas registradas no período' }
+      ],
+      aiScope: seesAll ? 'escopo: equipe · ' + days + ' dias' : 'escopo: pessoal · ' + days + ' dias',
+      aiSummary: aiSummary,
+      aiMetrics: [
+        { value: total, label: 'registros analisados' },
+        { value: growth === null ? '—' : (growth >= 0 ? '+' : '') + growth + '%', label: 'vs. período anterior' },
+        { value: topProj || '—', label: 'projeto com mais volume' },
+        { value: daysWith + '/' + days, label: 'dias com registro' }
+      ],
+      insights: insights,
+      suggestions: suggestions.map((s, i) => ({
+        num: i + 1, title: s.title, text: s.text,
+        numStyle: 'width:24px;height:24px;flex:0 0 24px;border-radius:7px;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700'
+      })),
+      tableNote: detailRows.length + ' registros no escopo ' + (seesAll ? 'da equipe' : 'pessoal') + ' · mesmas colunas do CSV',
+      tableRows: acts.slice(0, 60).map(a => {
+        const p = D.person(a.who) || u;
+        return {
+          date: D.fmt(a.d) + ' ' + a.t, who: p.name, ini: p.ini, avatar: D.avatar(p, 24),
+          proj: a.proj, cat: a.cat, catStyle: D.catStyle(a.cat), title: a.title, dur: a.dur
+        };
+      }),
+      exportDetail: exportDetail, exportSummary: exportSummary,
+      exportPdf: () => {
+        this.toast('Gerando PDF', 'Escolha “Salvar como PDF” na janela de impressão');
+        setTimeout(() => window.print(), 350);
+      },
+      toastOpen: !!this.state.toast, toast: this.state.toast || {}
+    };
+  }
+}
+
+</script>
+</body>
+</html>

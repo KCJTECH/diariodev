@@ -1,0 +1,96 @@
+// Carga e validação das variáveis de ambiente.
+// Falha rápido no boot se algo essencial estiver ausente ou inválido.
+import { z } from 'zod';
+
+// Node 20.6+/24: carrega o .env sem dependência externa. Ignorado se ausente
+// (em produção as variáveis vêm do ambiente do container).
+try {
+  process.loadEnvFile();
+} catch {
+  // sem arquivo .env — segue com o ambiente do processo
+}
+
+const bool = z
+  .enum(['true', 'false'])
+  .transform((v) => v === 'true');
+
+const schema = z.object({
+  NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+  PORT: z.coerce.number().int().positive().default(3333),
+
+  DATABASE_URL: z.string().min(1),
+  REDIS_URL: z.string().min(1),
+
+  APP_ORIGIN: z.string().url(),
+
+  // Marca os cookies de sessão como Secure. Por padrão segue NODE_ENV=production.
+  // Em rede interna sem HTTPS, defina COOKIE_SECURE=false, senão o navegador
+  // descarta o cookie e o login não persiste.
+  COOKIE_SECURE: bool.optional(),
+  COOKIE_SECRET: z.string().min(16),
+  JWT_ACCESS_SECRET: z.string().min(16),
+  JWT_REFRESH_SECRET: z.string().min(16),
+  ENCRYPTION_KEY: z.string().min(1),
+
+  ACCESS_TOKEN_TTL: z.coerce.number().int().positive().default(900),
+  REFRESH_TOKEN_TTL: z.coerce.number().int().positive().default(1_209_600),
+
+  STORAGE_PROVIDER: z.enum(['local', 's3']).default('local'),
+  STORAGE_PATH: z.string().default('./storage'),
+  S3_ENDPOINT: z.string().optional(),
+  S3_BUCKET: z.string().optional(),
+  S3_ACCESS_KEY: z.string().optional(),
+  S3_SECRET_KEY: z.string().optional(),
+  S3_REGION: z.string().default('us-east-1'),
+  S3_FORCE_PATH_STYLE: bool.default('true'),
+
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z.coerce.number().int().positive().default(587),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASSWORD: z.string().optional(),
+
+  // Senha inicial de usuários criados pela tela de administração (que não tem
+  // campo de senha). Se vazio, o sistema gera uma senha aleatória, que só é
+  // devolvida na resposta da API. Defina para que o admin saiba a senha inicial
+  // e oriente a troca no primeiro acesso.
+  INITIAL_USER_PASSWORD: z.string().min(8).optional(),
+  ORGANIZATION_TIMEZONE: z.string().default('America/Sao_Paulo'),
+  // Diretório do frontend estático a servir. Se ausente, usa a pasta acima do cwd
+  // (em dev, backend/.. = raiz do projeto). Em container, aponte para o caminho copiado.
+  FRONTEND_DIR: z.string().optional(),
+  ALLOW_DEV_LOGIN: bool.default('false'),
+  LOG_LEVEL: z
+    .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace'])
+    .default('info'),
+
+  MAX_UPLOAD_BYTES: z.coerce.number().int().positive().default(10_485_760),
+  MAX_ATTACHMENTS_PER_ACTIVITY: z.coerce.number().int().positive().default(10),
+  DAILY_SUMMARY_TIME: z
+    .string()
+    .regex(/^\d{2}:\d{2}$/)
+    .default('18:30'),
+
+  // Hosts internos liberados para webhook apesar de resolverem para IP privado
+  // (allowlist SSRF, §21.3). Lista separada por vírgula. Vazio = nenhum.
+  WEBHOOK_ALLOWED_HOSTS: z
+    .string()
+    .default('')
+    .transform((s) => new Set(s.split(',').map((h) => h.trim()).filter(Boolean))),
+});
+
+const parsed = schema.safeParse(process.env);
+
+if (!parsed.success) {
+  const issues = parsed.error.issues
+    .map((i) => `  - ${i.path.join('.')}: ${i.message}`)
+    .join('\n');
+  // Não imprime valores, apenas os nomes das variáveis com problema.
+  throw new Error(`Configuração de ambiente inválida:\n${issues}`);
+}
+
+export const env = parsed.data;
+export type Env = typeof env;
+
+export const isProduction = env.NODE_ENV === 'production';
+export const isTest = env.NODE_ENV === 'test';
+export const isDevelopment = env.NODE_ENV === 'development';
