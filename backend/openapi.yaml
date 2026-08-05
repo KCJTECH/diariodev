@@ -164,6 +164,37 @@ paths:
                 newPassword: { type: string, minLength: 8 }
       responses:
         "200": { description: senha alterada; revoga outras sessões }
+  /users/{id}/password-reset:
+    post:
+      tags: [users]
+      summary: gestor+ gera link de redefinição para outro colaborador
+      description: >-
+        O link vai por e-mail para quem acionou, não para o titular da conta: o caso de
+        uso é o colaborador sem acesso ao próprio e-mail, e o gestor repassa pelo canal
+        que já usa. Um pedido novo invalida os anteriores ainda abertos.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+          description: publicKey do colaborador
+      responses:
+        "200":
+          description: token criado; `mailSent` informa se o e-mail ao gestor saiu
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      mailSent: { type: boolean }
+                      resetToken:
+                        type: string
+                        description: só fora de produção; em produção o caminho é o e-mail
+        "403": { description: nível abaixo de gestor }
+        "404": { description: colaborador não encontrado }
   /auth/password-reset/request:
     post:
       tags: [auth]

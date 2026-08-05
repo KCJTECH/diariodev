@@ -74,15 +74,30 @@ um link de 60 minutos.
 Custo de implementação praticamente igual ao da opção A: o token já existe no banco, o
 que muda é gerar um código curto associado a ele e validar o código na confirmação.
 
-### Opção C: não criar canal novo e usar o reset administrativo que já existe
+### Opção C: não criar canal novo e usar o reset acionado pelo gestor
 
-Se o problema real é "colaborador travado sem acesso", isso já tem solução no sistema:
-gestor ou CEO usa `POST /users/:id/password-reset`, o sistema gera o token, e o gestor
-entrega a senha ou o link pessoalmente, por telefone ou pelo canal interno que já se usa
-no dia a dia. Custo zero, nenhuma dependência externa, nenhum dado pessoal novo.
+Gestor ou CEO aciona `POST /users/:id/password-reset`, recebe o link no próprio e-mail e
+repassa ao colaborador pelo canal que já usa no dia a dia. Nenhuma dependência externa,
+nenhum dado pessoal novo, nenhum custo por mensagem.
 
-Não atende o pedido de autoatendimento, mas resolve o caso de uso operacional hoje, sem
-projeto nenhum.
+Correção de uma afirmação errada da primeira versão deste documento. Quando escrevi que
+esta opção já estava pronta e com custo zero, a rota existia, mas em produção devolvia o
+token como indefinido (`isProduction ? undefined : token`): criava o token no banco e
+ninguém conseguia vê-lo. E nenhuma tela chamava a rota. Na prática o gestor não tinha
+como acionar nem como receber o link.
+
+O que foi feito depois, no backend: a rota passou a enviar o link por e-mail para quem
+acionou, com o nome do colaborador alvo, aviso de uso único e prazo de validade; invalida
+os pedidos anteriores ainda abertos; devolve `mailSent` para a tela informar se o e-mail
+saiu; e registra sucesso e falha no log. Coberto por cinco testes de integração,
+incluindo o caminho completo até o colaborador entrar com a senha nova, e a recusa para
+nível dev.
+
+O que ainda falta para o gestor usar sozinho: um botão na tela de colaboradores que chame
+a rota. Sem ele, o acionamento depende do TI executar a chamada manualmente.
+
+Não atende o pedido de autoatendimento, mas resolve o caso de uso operacional sem projeto
+de canal novo.
 
 ## Recomendação
 

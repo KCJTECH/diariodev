@@ -37,8 +37,13 @@ servidor (participatesInProject).
 ## Reset de senha
 Dois caminhos geram o token, e os dois terminam no mesmo confirm.
 
-Pelo administrador: POST /users/:publicKey/password-reset (gestor+) gera um token; em
-desenvolvimento o token é retornado na resposta (sem SMTP).
+Pelo administrador: POST /users/:publicKey/password-reset (gestor+) gera um token e
+envia o link por e-mail para quem acionou, não para o titular da conta. O caso de uso é
+o colaborador que não consegue acessar o próprio e-mail: o gestor recebe o link e o
+repassa pelo canal que já usa com a equipe. A resposta traz `mailSent` para a tela
+informar se o e-mail saiu, e um pedido novo invalida os anteriores ainda abertos. Fora
+de produção o token também volta na resposta, para teste e para repasse sem SMTP; em
+produção nunca.
 
 Pelo próprio usuário, na tela de login: POST /auth/password-reset/request recebe só o
 e-mail. É rota pública, com rate limit de 5 pedidos por 15 minutos. A resposta é
