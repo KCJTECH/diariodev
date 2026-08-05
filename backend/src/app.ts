@@ -86,6 +86,11 @@ export async function buildApp(): Promise<FastifyInstance> {
   const frontendRoot = env.FRONTEND_DIR
     ? path.resolve(env.FRONTEND_DIR)
     : path.resolve(process.cwd(), '..');
+  // A raiz não é servida pelo static (index: false), então sem esta rota
+  // http://host:porta devolveria o 404 em JSON da API a quem digitou só o
+  // endereço do servidor. Manda para a tela de entrada.
+  app.get('/', async (_req, reply) => reply.redirect('/login.dc.html'));
+
   await app.register(fastifyStatic, {
     root: frontendRoot,
     prefix: '/',
