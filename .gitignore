@@ -30,3 +30,6 @@ Thumbs.db
 
 # Pacotes locais
 *.tgz
+
+# artefato de hook (sobrescrito a cada fim de sessao)
+.planning/

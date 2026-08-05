@@ -35,6 +35,30 @@ participa> retorna a timeline completa daquele projeto. A regra é aplicada no
 servidor (participatesInProject).
 
 ## Reset de senha
-POST /users/:publicKey/password-reset (gestor+) gera um token; em desenvolvimento o
-token é retornado na resposta (sem SMTP). POST /auth/password-reset/confirm troca a
-senha e revoga as sessões. O envio por e-mail (SMTP) é um item pendente.
+Dois caminhos geram o token, e os dois terminam no mesmo confirm.
+
+Pelo administrador: POST /users/:publicKey/password-reset (gestor+) gera um token; em
+desenvolvimento o token é retornado na resposta (sem SMTP).
+
+Pelo próprio usuário, na tela de login: POST /auth/password-reset/request recebe só o
+e-mail. É rota pública, com rate limit de 5 pedidos por 15 minutos. A resposta é
+sempre a mesma, exista ou não conta para aquele e-mail, e nunca contém o token: assim
+a rota não serve para descobrir quem tem conta. Um pedido novo invalida os anteriores
+ainda abertos, para não deixar vários links válidos circulando. O token vale
+PASSWORD_RESET_TTL_MINUTES (padrão 60) e o e-mail sai por SMTP
+(SMTP_HOST, SMTP_PORT, SMTP_SECURE, SMTP_USER, SMTP_PASSWORD, MAIL_FROM). Sem SMTP
+configurado o pedido é registrado, o e-mail não sai e fica um WARN no log; fora de
+produção o link também vai ao log, para o desenvolvedor seguir o fluxo.
+
+O link aponta para APP_ORIGIN/login.dc.html#reset=TOKEN. O token vai no fragmento, e
+não na query, de propósito: o navegador não envia o fragmento ao servidor, então o
+token não aparece no log de requisição, no cabeçalho Referer nem em log de proxy. A
+tela lê o fragmento, abre o formulário de nova senha e chama
+POST /auth/password-reset/confirm, que troca a senha, consome o token (uso único) e
+revoga as sessões do usuário. Depois de usado, a tela limpa o fragmento da barra de
+endereço com history.replaceState.
+
+Limitação: revogar a sessão invalida o refresh na hora, mas o access token já emitido
+continua válido até expirar (ACCESS_TOKEN_TTL, padrão 15 min), porque o guard não
+consulta a sessão a cada requisição. Ver a pendência correspondente em
+IMPLEMENTATION_STATUS.md.

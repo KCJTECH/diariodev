@@ -48,6 +48,12 @@ const schema = z.object({
   SMTP_PORT: z.coerce.number().int().positive().default(587),
   SMTP_USER: z.string().optional(),
   SMTP_PASSWORD: z.string().optional(),
+  // TLS na conexão. Use true para porta 465; em 587 o padrão é STARTTLS (false).
+  SMTP_SECURE: bool.default('false'),
+  // Remetente dos e-mails do sistema. Se ausente, cai para SMTP_USER.
+  MAIL_FROM: z.string().optional(),
+  // Validade do link de redefinição de senha, em minutos.
+  PASSWORD_RESET_TTL_MINUTES: z.coerce.number().int().positive().default(60),
 
   // Senha inicial de usuários criados pela tela de administração (que não tem
   // campo de senha). Se vazio, o sistema gera uma senha aleatória, que só é

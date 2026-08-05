@@ -175,6 +175,30 @@
         throw new Error('Não foi possível entrar. Verifique a conexão.');
       });
     },
+    /* Solicita o e-mail de redefinição (POST /auth/password-reset/request).
+       O servidor responde igual exista ou não a conta; a tela não deve inferir nada
+       do retorno além de "pedido registrado". */
+    requestPasswordReset: function (email) {
+      return http('POST', '/auth/password-reset/request', { email: email }).then(function () {
+        return true;
+      }).catch(function (err) {
+        if (err && err.status === 429) throw new Error('Muitos pedidos. Aguarde alguns minutos.');
+        if (err && err.status === 422) throw new Error('Informe um e-mail válido.');
+        throw new Error('Não foi possível enviar o e-mail. Verifique a conexão.');
+      });
+    },
+    /* Conclui a redefinição com o token recebido por e-mail
+       (POST /auth/password-reset/confirm). Todas as sessões do usuário são revogadas. */
+    confirmPasswordReset: function (token, newPassword) {
+      return http('POST', '/auth/password-reset/confirm', { token: token, newPassword: newPassword }).then(function () {
+        return true;
+      }).catch(function (err) {
+        if (err && err.status === 401) throw new Error('Link inválido ou expirado. Peça um novo.');
+        if (err && err.status === 429) throw new Error('Muitas tentativas. Aguarde um instante.');
+        if (err && err.status === 422) throw new Error((err.message) || 'Senha não aceita. Use ao menos 8 caracteres.');
+        throw new Error('Não foi possível redefinir a senha. Verifique a conexão.');
+      });
+    },
     /* Indicadores da tela de login. Sem sessão não há dados da equipe: devolve zeros
        (a lista de colaboradores não é exposta antes de autenticar). */
     loginStats: function () {

@@ -164,6 +164,44 @@ paths:
                 newPassword: { type: string, minLength: 8 }
       responses:
         "200": { description: senha alterada; revoga outras sessões }
+  /auth/password-reset/request:
+    post:
+      tags: [auth]
+      summary: solicita o e-mail de redefinição (rota pública, sem sessão)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: { type: string, format: email, maxLength: 200 }
+      responses:
+        "200":
+          description: >-
+            pedido registrado. A resposta é idêntica exista ou não conta para o
+            e-mail informado e nunca contém o token (não permite enumerar usuários)
+        "422": { description: e-mail inválido }
+        "429": { description: limite de 5 pedidos por 15 minutos excedido }
+  /auth/password-reset/confirm:
+    post:
+      tags: [auth]
+      summary: conclui a redefinição com o token recebido por e-mail
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, newPassword]
+              properties:
+                token: { type: string, minLength: 10, maxLength: 200 }
+                newPassword: { type: string, minLength: 8, maxLength: 200 }
+      responses:
+        "200": { description: senha redefinida; token consumido e sessões revogadas }
+        "401": { description: token inválido, expirado ou já usado }
+        "422": { description: senha curta ou muito comum }
   /bootstrap:
     get:
       tags: [bootstrap]

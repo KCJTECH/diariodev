@@ -19,7 +19,11 @@ SEGURANCA.md. Qualidade: typecheck e testes verdes.
 ## Pendências
 - Regressão visual limitada a regiões estáveis; full-page precisa congelar serverNow.
 - Anexos: provider S3/MinIO, quarentena/ClamAV, streaming (hoje disco local + buffer).
-- Reset de senha e resumo por e-mail dependem de SMTP configurado.
+- Reset de senha por e-mail implementado (SMTP via Nodemailer); depende de SMTP_HOST e
+  MAIL_FROM preenchidos no ambiente. Sem isso o pedido é registrado e só vai ao log.
+- Resumo diário por e-mail depende de SMTP configurado.
+- Reset de senha: o access token já emitido sobrevive à revogação da sessão até
+  expirar (mesma causa do item do socket abaixo).
 - Métricas Prometheus (observabilidade além de logs e health).
 - Extensões pg_trgm/unaccent para busca sem acento.
 - Socket em sessão revogada não desconecta em tempo real (cai no fim do access token).

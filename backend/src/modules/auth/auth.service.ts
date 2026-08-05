@@ -1,9 +1,12 @@
 // Regras de autenticação e sessão. O access token é JWT curto; o refresh é
 // opaco, guardado apenas como hash, rotacionado a cada uso, com detecção de
 // reuso (§15.2). Toda autorização real acontece no servidor.
+import { randomBytes } from 'node:crypto';
 import type { User } from '@prisma/client';
 import type { Db } from '../../common/database/prisma.js';
 import { Errors } from '../../common/errors/app-error.js';
+import { sendMail } from '../../common/mail/mailer.js';
+import { logger } from '../../common/logging/logger.js';
 import { hashPassword, verifyPassword, isTrivialPassword } from '../../common/auth/password.js';
 import {
   signAccessToken,
@@ -12,7 +15,7 @@ import {
   hashIp,
 } from '../../common/auth/tokens.js';
 import { LEVEL_TO_API, type AuthUser } from '../../common/auth/types.js';
-import { env } from '../../config/env.js';
+import { env, isProduction } from '../../config/env.js';
 
 export type AuthResult = { user: AuthUser; accessToken: string; refreshToken: string };
 type Ctx = { ua?: string | undefined; ip?: string | undefined };
@@ -147,6 +150,75 @@ export async function changePassword(
       data: { revokedAt: new Date() },
     }),
   ]);
+}
+
+// Solicitação de reset pelo próprio usuário, a partir da tela de login.
+// Nunca revela se o e-mail existe: o retorno é o mesmo para conta existente,
+// inexistente ou inativa (evita enumeração de usuários). O `userId` volta só
+// para a rota registrar a auditoria e o `token` só para teste e log de
+// desenvolvimento: a resposta HTTP não pode conter nenhum dos dois.
+export async function requestPasswordReset(
+  db: Db,
+  email: string,
+): Promise<{ userId: string | null; token: string | null }> {
+  const user = await db.user.findFirst({
+    where: { email: email.trim().toLowerCase(), deletedAt: null, active: true },
+  });
+  if (!user) return { userId: null, token: null };
+
+  // Um pedido novo invalida os anteriores ainda abertos, para não deixar
+  // vários links válidos circulando por e-mail.
+  await db.passwordResetToken.updateMany({
+    where: { userId: user.id, usedAt: null, expiresAt: { gt: new Date() } },
+    data: { usedAt: new Date() },
+  });
+
+  const token = randomBytes(32).toString('base64url');
+  const ttlMs = env.PASSWORD_RESET_TTL_MINUTES * 60 * 1000;
+  await db.passwordResetToken.create({
+    data: {
+      userId: user.id,
+      tokenHash: sha256(token),
+      expiresAt: new Date(Date.now() + ttlMs),
+      // Pedido do próprio titular: não há terceiro solicitante.
+      requestedBy: null,
+    },
+  });
+
+  // Token no fragmento (#), não na query: o fragmento não é enviado ao servidor,
+  // então o token não entra no log de requisição, no Referer nem em log de proxy.
+  const link = `${env.APP_ORIGIN}/login.dc.html#reset=${encodeURIComponent(token)}`;
+  const minutes = env.PASSWORD_RESET_TTL_MINUTES;
+  // Envio sem await: a resposta não espera o SMTP. Além de não travar a requisição,
+  // isso encurta a diferença de tempo entre e-mail existente e inexistente, que de
+  // outro modo permitiria descobrir quem tem conta medindo a demora.
+  const sending = sendMail({
+    to: user.email,
+    subject: 'Diário Dev: redefinição de senha',
+    text: [
+      `Olá, ${user.name}.`,
+      '',
+      'Recebemos um pedido para redefinir a senha da sua conta no Diário Dev.',
+      `Abra o endereço abaixo para cadastrar uma nova senha. O link vale ${minutes} minutos e só pode ser usado uma vez.`,
+      '',
+      link,
+      '',
+      'Se não foi você que pediu, ignore esta mensagem. Sua senha atual continua válida.',
+      '',
+      'Diário Dev ITS',
+    ].join('\n'),
+  });
+
+  void sending.then((mailSent) => {
+    if (mailSent) return;
+    // Sem SMTP configurado (ou falha no envio) o pedido fica registrado, mas o
+    // usuário não recebe nada. Precisa aparecer no log para o TI agir.
+    logger.warn({ userId: user.id }, 'reset de senha solicitado, mas o e-mail não foi enviado');
+    // Fora de produção, sem SMTP, o link vai ao log para o desenvolvedor seguir
+    // o fluxo. Nunca em produção: seria um token válido gravado em arquivo.
+    if (!isProduction) logger.warn({ resetLink: link }, 'link de redefinição (apenas desenvolvimento)');
+  });
+  return { userId: user.id, token };
 }
 
 // Confirma um reset de senha via token (§15). Marca o token como usado e

@@ -127,18 +127,75 @@
   </div>
 </sc-if>
 
+<sc-if value="{{ resetOpen }}" hint-placeholder-val="{{ false }}">
+  <div style="position:fixed;inset:0;z-index:80;display:flex;align-items:center;justify-content:center;padding:4vh 20px">
+    <div style="position:absolute;inset:0;background:var(--overlay);animation:dvFade .16s ease both"></div>
+    <div style="position:relative;width:420px;max-width:96vw;background:var(--surface);border-radius:calc(var(--radius) + 2px);box-shadow:0 8px 32px rgba(0,0,0,.24);display:flex;flex-direction:column;overflow:hidden;animation:dvUp .18s cubic-bezier(.2,.8,.2,1) both">
+      <div style="padding:18px 22px;border-bottom:1px solid var(--border)">
+        <div style="font-size:.96rem;font-weight:700">Definir nova senha</div>
+        <div style="font-size:.74rem;color:var(--text-muted);margin-top:2px">O link é de uso único e vale por tempo limitado</div>
+      </div>
+
+      <sc-if value="{{ resetForm }}" hint-placeholder-val="{{ true }}">
+        <div style="padding:20px 22px;display:flex;flex-direction:column;gap:14px">
+          <sc-if value="{{ resetHasError }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;gap:10px;padding:11px 13px;border-radius:6px;font-size:.82rem;background:var(--tint-red);border:1px solid var(--tint-red-bd);color:var(--danger-text)">✕ {{ resetError }}</div>
+          </sc-if>
+          <div>
+            <div style="font-size:.77rem;font-weight:700;margin-bottom:6px">Nova senha</div>
+            <input type="password" value="{{ resetPass }}" onChange="{{ onResetPass }}" placeholder="mínimo de 8 caracteres" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:6px;font-size:.9rem;outline:none;background:var(--surface)" style-focus="border-color:var(--brand-text)" />
+          </div>
+          <div>
+            <div style="font-size:.77rem;font-weight:700;margin-bottom:6px">Repetir a nova senha</div>
+            <input type="password" value="{{ resetPass2 }}" onChange="{{ onResetPass2 }}" placeholder="••••••••" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:6px;font-size:.9rem;outline:none;background:var(--surface)" style-focus="border-color:var(--brand-text)" />
+          </div>
+        </div>
+        <div style="padding:16px 22px;border-top:1px solid var(--border);background:var(--surface-2);display:flex;align-items:center;gap:10px">
+          <div style="flex:1"></div>
+          <div onClick="{{ closeReset }}" style="font-size:.82rem;font-weight:600;padding:9px 14px;border:1.5px solid var(--border);border-radius:6px;color:var(--text-muted);cursor:pointer" style-hover="border-color:var(--brand-text);color:var(--brand-text)">Cancelar</div>
+          <div onClick="{{ saveNewPass }}" style="font-size:.86rem;font-weight:700;padding:10px 18px;background:var(--accent);color:#fff;border-radius:6px;cursor:pointer" style-hover="filter:brightness(1.08)">Salvar nova senha</div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ resetDone }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:22px">
+          <div style="display:flex;gap:10px;padding:12px 14px;border-radius:6px;font-size:.84rem;background:var(--surface-2);border:1px solid var(--border);color:var(--text)">
+            <span style="font-weight:700;color:var(--accent)">✓</span>
+            <div>Senha redefinida. As sessões abertas foram encerradas: entre novamente com a nova senha.</div>
+          </div>
+        </div>
+        <div style="padding:16px 22px;border-top:1px solid var(--border);background:var(--surface-2);display:flex;justify-content:flex-end">
+          <div onClick="{{ closeReset }}" style="font-size:.86rem;font-weight:700;padding:10px 18px;background:var(--accent);color:#fff;border-radius:6px;cursor:pointer" style-hover="filter:brightness(1.08)">Ir para o login</div>
+        </div>
+      </sc-if>
+    </div>
+  </div>
+</sc-if>
+
 </x-dc>
 <script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1280,&quot;height&quot;:820}}">
 class Component extends DCLogic {
-  state = { email: '', pass: '', error: '', ready: false, recoverOpen: false, recoverEmail: '', recoverError: '', recoverSent: false, recoverBusy: false };
+  state = { email: '', pass: '', error: '', ready: false, recoverOpen: false, recoverEmail: '', recoverError: '', recoverSent: false, recoverBusy: false,
+            resetToken: '', resetPass: '', resetPass2: '', resetError: '', resetBusy: false, resetDone: false };
 
   componentDidMount() {
     this.t = setInterval(() => {
       if (window.DV) { clearInterval(this.t); this.setState({ ready: true }); }
     }, 25);
+    // Link do e-mail de redefinição: login.dc.html#reset=TOKEN abre o formulário
+    // de nova senha em vez da tela normal de entrada. O token vem no fragmento,
+    // que o navegador não envia ao servidor: assim ele não entra em log de
+    // requisição, em Referer nem em log de proxy.
+    try {
+      const tk = new URLSearchParams((location.hash || '').replace(/^#/, '')).get('reset');
+      if (tk) this.setState({ resetToken: tk });
+    } catch (e) {}
     this.onKey = (e) => {
       if (e.key === 'Escape' && this.state.recoverOpen) { this.setState({ recoverOpen: false }); return; }
-      if (e.key === 'Enter') { this.state.recoverOpen ? this.sendRecover() : this.submit(); }
+      if (e.key === 'Enter') {
+        if (this.state.resetToken && !this.state.resetDone) { this.saveNewPass(); return; }
+        this.state.recoverOpen ? this.sendRecover() : this.submit();
+      }
     };
     window.addEventListener('keydown', this.onKey);
   }
@@ -157,13 +214,30 @@ class Component extends DCLogic {
   }
 
   sendRecover() {
-    if (this.state.recoverBusy) return;
+    if (this.state.recoverBusy || !window.DV) return;
     const mail = (this.state.recoverEmail || '').trim().toLowerCase();
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail)) { this.setState({ recoverError: 'Informe um e-mail válido.' }); return; }
     this.setState({ recoverBusy: true, recoverError: '' });
-    // Ainda não há endpoint de solicitação de reset no backend (depende de SMTP).
-    // Mensagem neutra: não revela se o e-mail existe (evita enumeração de usuários).
-    setTimeout(() => this.setState({ recoverBusy: false, recoverSent: true }), 600);
+    // O servidor responde igual exista ou não a conta (evita enumeração de usuários),
+    // por isso a tela mostra sempre a mesma mensagem neutra ao concluir.
+    DV.requestPasswordReset(mail)
+      .then(() => this.setState({ recoverBusy: false, recoverSent: true }))
+      .catch((err) => this.setState({ recoverBusy: false, recoverError: (err && err.message) || 'Não foi possível enviar o e-mail.' }));
+  }
+
+  saveNewPass() {
+    if (this.state.resetBusy || !window.DV) return;
+    const p1 = this.state.resetPass || '', p2 = this.state.resetPass2 || '';
+    if (p1.length < 8) { this.setState({ resetError: 'A senha precisa ter ao menos 8 caracteres.' }); return; }
+    if (p1 !== p2) { this.setState({ resetError: 'As duas senhas não são iguais.' }); return; }
+    this.setState({ resetBusy: true, resetError: '' });
+    DV.confirmPasswordReset(this.state.resetToken, p1)
+      .then(() => {
+        // Tira o token da barra de endereço e do histórico depois de usado.
+        try { history.replaceState(null, '', location.pathname); } catch (e) {}
+        this.setState({ resetBusy: false, resetDone: true, resetPass: '', resetPass2: '' });
+      })
+      .catch((err) => this.setState({ resetBusy: false, resetError: (err && err.message) || 'Não foi possível redefinir a senha.' }));
   }
 
   renderVals() {
@@ -178,7 +252,18 @@ class Component extends DCLogic {
       openRecover: () => this.setState({ recoverOpen: true, recoverSent: false, recoverError: '', recoverEmail: this.state.recoverEmail || this.state.email || '' }),
       closeRecover: () => this.setState({ recoverOpen: false }),
       onRecoverEmail: (e) => this.setState({ recoverEmail: e.target.value, recoverError: '' }),
-      sendRecover: () => this.sendRecover()
+      sendRecover: () => this.sendRecover(),
+      resetOpen: !!this.state.resetToken,
+      resetForm: !this.state.resetDone,
+      resetDone: this.state.resetDone,
+      resetPass: this.state.resetPass,
+      resetPass2: this.state.resetPass2,
+      resetError: this.state.resetError,
+      resetHasError: !!this.state.resetError,
+      onResetPass: (e) => this.setState({ resetPass: e.target.value, resetError: '' }),
+      onResetPass2: (e) => this.setState({ resetPass2: e.target.value, resetError: '' }),
+      saveNewPass: () => this.saveNewPass(),
+      closeReset: () => this.setState({ resetToken: '', resetError: '', resetDone: false })
     };
     if (!D) return Object.assign({ kpi: {}, email: this.state.email, pass: this.state.pass }, recover);
     // Antes de autenticar não há dados da equipe; os indicadores ficam neutros.
