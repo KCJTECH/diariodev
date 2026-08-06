@@ -102,6 +102,15 @@
     };
   }
 
+  /* O usuário da sessão chega com `id` = uuid interno, mas pessoas, atividades e
+     tarefas usam a chave pública como id (users.mapper: "o frontend usa a chave
+     pública como id"). Sem alinhar, todo filtro `who === user().id` falha e o
+     nível dev não vê os próprios registros nem os projetos em que participa. */
+  function normalizeUser(u) {
+    if (!u || !u.publicKey || u.publicKey === u.id) return u || null;
+    return Object.assign({}, u, { id: u.publicKey });
+  }
+
   function ensureProject(name) { if (name && state.projects.indexOf(name) === -1) state.projects.push(name); }
   function findIdx(list, id) { for (var i = 0; i < list.length; i++) if (list[i].id === id) return i; return -1; }
 
@@ -178,8 +187,8 @@
     /* Login real por e-mail e senha (POST /auth/login). Retorna Promise. */
     login: function (email, password) {
       return http('POST', '/auth/login', { email: email, password: password }).then(function (r) {
-        state.user = r.data.user;
-        return r.data.user;
+        state.user = normalizeUser(r.data.user);
+        return state.user;
       }).catch(function (err) {
         // mensagens claras para a tela, sem expor detalhe técnico
         if (err && err.status === 401) throw new Error('E-mail ou senha inválidos.');
@@ -650,7 +659,7 @@
 
   /* ── carga do estado a partir do bootstrap ── */
   function hydrate(data) {
-    state.user = data.user; state.people = data.people || [];
+    state.user = normalizeUser(data.user); state.people = data.people || [];
     state.categories = data.categories || [];
     var projRows = data.projects || [];
     state.projects = projRows.map(function (p) { return p.name; });
