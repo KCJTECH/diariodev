@@ -17,7 +17,7 @@ import { sendMail } from '../../common/mail/mailer.js';
 import { logger } from '../../common/logging/logger.js';
 import { writeAudit } from '../audit/audit.service.js';
 import { revokedEvent } from '../auth/auth.service.js';
-import { userSelect, userToPerson, type PersonDto } from './users.mapper.js';
+import { userSelect, userToPerson, userToPersonFor, type PersonDto } from './users.mapper.js';
 import { env, isProduction } from '../../config/env.js';
 
 type Meta = { requestId: string; ipHash: string | null; userAgent: string | null };
@@ -56,9 +56,9 @@ async function activeCeoCount(db: Db, excludeUserId?: string): Promise<number> {
   });
 }
 
-export async function listUsers(db: Db): Promise<PersonDto[]> {
+export async function listUsers(db: Db, actor: AuthUser): Promise<PersonDto[]> {
   const rows = await db.user.findMany({ where: { deletedAt: null }, select: userSelect, orderBy: { name: 'asc' } });
-  return rows.map(userToPerson);
+  return rows.map((r) => userToPersonFor(actor, r));
 }
 
 export async function createUser(

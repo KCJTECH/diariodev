@@ -4,7 +4,7 @@
 import type { Db } from '../../common/database/prisma.js';
 import { seesAll, type AuthUser } from '../../common/auth/types.js';
 import { env } from '../../config/env.js';
-import { userToPerson } from '../users/users.mapper.js';
+import { userToPersonFor } from '../users/users.mapper.js';
 import { listActivities } from '../activities/activities.service.js';
 import { listTasks } from '../tasks/tasks.service.js';
 import { listGroups } from '../groups/groups.service.js';
@@ -79,7 +79,7 @@ export async function buildBootstrap(db: Db, actor: AuthUser): Promise<Record<st
 
   return {
     user: actor,
-    people: people.map(userToPerson),
+    people: people.map((p) => userToPersonFor(actor, p)),
     categories,
     projects,
     activities: activities.items,

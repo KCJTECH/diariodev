@@ -6,7 +6,7 @@ import type { Db } from '../../common/database/prisma.js';
 import { ok } from '../../common/http/envelope.js';
 import { Errors } from '../../common/errors/app-error.js';
 import { requestMeta } from '../../common/http/request-meta.js';
-import { userSelect, userToPerson } from './users.mapper.js';
+import { userSelect, userToPersonFor } from './users.mapper.js';
 import * as svc from './users.service.js';
 
 const level = z.enum(['dev', 'gestor', 'ceo']);
@@ -30,13 +30,13 @@ const tight = { rateLimit: { max: 10, timeWindow: '1 minute' } };
 export function registerUserRoutes(app: FastifyInstance, db: Db): void {
   app.addHook('preHandler', app.authenticate);
 
-  app.get('/', async (req) => ok(await svc.listUsers(db), req.id));
+  app.get('/', async (req) => ok(await svc.listUsers(db, req.authUser!), req.id));
 
   app.get('/:id', async (req) => {
     const { id } = keyParam.parse(req.params);
     const row = await db.user.findFirst({ where: { publicKey: id, deletedAt: null }, select: userSelect });
     if (!row) throw Errors.notFound('USER_NOT_FOUND', 'Usuário não encontrado.');
-    return ok(userToPerson(row), req.id);
+    return ok(userToPersonFor(req.authUser!, row), req.id);
   });
 
   app.post('/', { preHandler: app.requireLevel('gestor') }, async (req, reply) => {
