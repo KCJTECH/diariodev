@@ -184,8 +184,8 @@
 
   <sc-if value="{{ toastOpen }}" hint-placeholder-val="{{ false }}">
     <div style="position:fixed;right:24px;bottom:24px;z-index:80;animation:dvToast .2s ease both">
-      <div style="display:flex;align-items:center;gap:12px;padding:13px 18px;border-radius:var(--radius);font-size:.86rem;box-shadow:0 8px 32px rgba(0,0,0,.16);min-width:280px;background:var(--brand);color:#fff">
-        <span style="font-weight:700">✓</span>
+      <div style="{{ toast.style }}">
+        <span style="font-weight:700">{{ toast.icon }}</span>
         <div>
           <div style="font-weight:600">{{ toast.title }}</div>
           <div style="font-size:.76rem;opacity:.8">{{ toast.sub }}</div>
@@ -212,20 +212,23 @@ class Component extends DCLogic {
         f: { name: u.name, role: u.role, email: u.email || '', proj: ui.defaultProject || '' },
         pass: q.get('senha') ? { atual: '', nova: '', conf: '', error: '' } : null
       });
+      // Escrita recusada pelo servidor precisa aparecer: a gravação é otimista, o
+      // DV recarrega e desfaz, e sem isto o único registro era um aviso no console.
+      DV.onError((err) => this.toast('Alteração não salva', (err && err.message) || 'Falha de comunicação com o servidor.', 'error'));
     }, 25);
   }
   componentWillUnmount() { clearInterval(this.t); }
 
-  toast(title, sub) {
+  toast(title, sub, kind) {
     clearTimeout(this._tt);
-    this.setState({ toast: { title: title, sub: sub } });
+    this.setState({ toast: { title: title, sub: sub, kind: kind || 'success' } });
     this._tt = setTimeout(() => this.setState({ toast: null }), 2800);
   }
   setF(k, v) { this.setState(s => ({ f: Object.assign({}, s.f, { [k]: v }) })); }
 
   renderVals() {
     const D = window.DV;
-    if (!D || !this.state.f) return { nav: [], sb: {}, u: {}, me: {}, f: {}, accounts: [], showSwitchUser: false, densities: [], projChips: [], toast: {} };
+    if (!D || !this.state.f) return { nav: [], sb: {}, u: {}, me: {}, f: {}, accounts: [], showSwitchUser: false, densities: [], projChips: [], toast: { style: '' } };
     const u = D.user();
     const f = this.state.f;
     const acts = D.acts();
@@ -312,7 +315,16 @@ class Component extends DCLogic {
         };
       })() : {},
       toastOpen: !!this.state.toast,
-      toast: this.state.toast || {}
+      // O toast desta tela era só de sucesso, com estilo e ícone fixos no HTML. Como
+      // agora ela também avisa escrita recusada, estilo e ícone passam a ser
+      // calculados, no mesmo formato das outras telas. O ramo de sucesso reproduz
+      // exatamente o estilo anterior, para a aparência não mudar.
+      toast: this.state.toast ? {
+        title: this.state.toast.title, sub: this.state.toast.sub,
+        icon: this.state.toast.kind === 'error' ? '✕' : '✓',
+        style: 'display:flex;align-items:center;gap:12px;padding:13px 18px;border-radius:var(--radius);font-size:.86rem;box-shadow:0 8px 32px rgba(0,0,0,.16);min-width:280px;' +
+          (this.state.toast.kind === 'error' ? 'background:var(--tint-red);border:1px solid var(--tint-red-bd);color:var(--danger-text)' : 'background:var(--brand);color:#fff')
+      } : { style: '' }
     };
   }
 }

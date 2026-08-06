@@ -410,6 +410,9 @@ class Component extends DCLogic {
       clearInterval(this.t);
       const q = new URLSearchParams(window.location.search);
       this.setState({ ready: true, p: q.get('p') || DV.projects()[0] });
+      // Escrita recusada pelo servidor precisa aparecer: a gravação é otimista, o
+      // DV recarrega e desfaz, e sem isto o único registro era um aviso no console.
+      DV.onError((err) => this.toast('Alteração não salva', (err && err.message) || 'Falha de comunicação com o servidor.', 'error'));
       // Gatilho por URL: abre a delegação de tarefa já no projeto da página.
       if (q.get('nova-tarefa') && DV.canPlan(DV.user())) this.openTaskForm(null);
     }, 25);

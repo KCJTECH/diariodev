@@ -479,6 +479,9 @@ class Component extends DCLogic {
     this.t = setInterval(() => {
       if (!window.DV) return;
       clearInterval(this.t);
+      // Escrita recusada pelo servidor precisa aparecer: a gravação é otimista, o
+      // DV recarrega e desfaz, e sem isto o único registro era um aviso no console.
+      DV.onError((err) => this.toast('Alteração não salva', (err && err.message) || 'Falha de comunicação com o servidor.', 'error'));
       const p = new URLSearchParams(window.location.search);
       const patch = { ready: true };
       if (p.get('pessoa')) patch.who = p.get('pessoa');

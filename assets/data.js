@@ -106,9 +106,15 @@
      tarefas usam a chave pública como id (users.mapper: "o frontend usa a chave
      pública como id"). Sem alinhar, todo filtro `who === user().id` falha e o
      nível dev não vê os próprios registros nem os projetos em que participa. */
+  /* O cargo chega como `roleTitle`, mas a tela de Minha conta lê `role`, igual ao
+     diretório de pessoas. Sem espelhar, o campo Cargo aparece vazio e "Salvar
+     alterações" quebra em `f.role.trim()` de undefined, deixando a tela sem salvar.
+     Espelha em vez de renomear: `roleTitle` continua publicado (§8.3). */
   function normalizeUser(u) {
-    if (!u || !u.publicKey || u.publicKey === u.id) return u || null;
-    return Object.assign({}, u, { id: u.publicKey });
+    if (!u) return null;
+    var out = Object.assign({}, u, { role: u.role || u.roleTitle });
+    if (u.publicKey && u.publicKey !== u.id) out.id = u.publicKey;
+    return out;
   }
 
   function ensureProject(name) { if (name && state.projects.indexOf(name) === -1) state.projects.push(name); }
