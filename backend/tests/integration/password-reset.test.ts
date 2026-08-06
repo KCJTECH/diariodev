@@ -103,11 +103,12 @@ describe('conclusão da redefinição', () => {
     });
     expect(confirma.statusCode).toBe(200);
 
-    // A sessão aberta antes da troca deixa de valer: o refresh é recusado, então
-    // ela não se renova. O access token já emitido só morre ao expirar, porque o
-    // guard não consulta a sessão a cada requisição (limitação conhecida).
+    // A sessão aberta antes da troca deixa de valer na hora, tanto para renovar
+    // quanto para usar o access token que já estava emitido.
     const renova = await app.inject({ method: 'POST', url: '/api/v1/auth/refresh', headers: { cookie } });
     expect(renova.statusCode).toBe(401);
+    const me = await app.inject({ method: 'GET', url: '/api/v1/auth/me', headers: { cookie } });
+    expect(me.statusCode).toBe(401);
 
     // A senha nova entra e a antiga não.
     const antiga = await app.inject({

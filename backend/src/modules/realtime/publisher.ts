@@ -49,6 +49,14 @@ export function startOutboxPublisher(io: Server, db: Db): () => void {
             scope: r.scope ?? null,
             data: r.payload,
           });
+
+          // Sessão revogada derruba os sockets abertos do usuário (§18.1). Não é
+          // logout à força: quem ainda tem sessão válida reconecta e o handshake
+          // aprova de novo; quem foi revogado é recusado, porque o handshake
+          // passou a validar a sessão. Com o adaptador Redis, vale entre instâncias.
+          if (r.event_name === 'session.revoked' && r.scope?.id) {
+            io.in(`user:${r.scope.id}`).disconnectSockets(true);
+          }
         }
 
         const ids = rows.map((r) => Prisma.sql`${r.id}::uuid`);

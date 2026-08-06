@@ -27,6 +27,22 @@ const schema = z.object({
   // Em rede interna sem HTTPS, defina COOKIE_SECURE=false, senão o navegador
   // descarta o cookie e o login não persiste.
   COOKIE_SECURE: bool.optional(),
+  // Cookie de sessão sem Secure em produção precisa ser declarado. Serve para
+  // que rodar sem HTTPS seja escolha registrada, e não padrão silencioso.
+  ALLOW_INSECURE_COOKIES: bool.default('false'),
+
+  // Proxies confiáveis para derivar o IP do cliente. Vazio = não confia em
+  // X-Forwarded-For. Confiar sem restrição deixa o próprio cliente escolher o
+  // IP que o servidor registra, o que fura o rate limit por IP e envenena o
+  // ipHash de auditoria e sessões. Aceita lista de IP ou CIDR separada por vírgula.
+  TRUST_PROXY: z
+    .string()
+    .default('')
+    .transform((s) => s.split(',').map((p) => p.trim()).filter(Boolean)),
+
+  // Bloqueio de força bruta no login, contado por conta e não só por IP.
+  LOGIN_MAX_ATTEMPTS: z.coerce.number().int().positive().default(10),
+  LOGIN_LOCK_MINUTES: z.coerce.number().int().positive().default(15),
   COOKIE_SECRET: z.string().min(16),
   JWT_ACCESS_SECRET: z.string().min(16),
   JWT_REFRESH_SECRET: z.string().min(16),
@@ -114,5 +130,14 @@ export const env = parsed.data;
 export type Env = typeof env;
 
 export const isProduction = env.NODE_ENV === 'production';
+
+// Falha no boot em vez de servir cookie de sessão sem Secure em produção por
+// descuido. Quem precisa rodar em HTTP puro declara ALLOW_INSECURE_COOKIES=true.
+if (isProduction && env.COOKIE_SECURE === false && !env.ALLOW_INSECURE_COOKIES) {
+  throw new Error(
+    'COOKIE_SECURE=false em produção exige ALLOW_INSECURE_COOKIES=true. ' +
+      'Sem HTTPS o cookie de sessão trafega em claro: declare a exceção ou use HTTPS.',
+  );
+}
 export const isTest = env.NODE_ENV === 'test';
 export const isDevelopment = env.NODE_ENV === 'development';

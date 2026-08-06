@@ -16,6 +16,7 @@ import { slugify } from '../../common/utils/format.js';
 import { sendMail } from '../../common/mail/mailer.js';
 import { logger } from '../../common/logging/logger.js';
 import { writeAudit } from '../audit/audit.service.js';
+import { revokedEvent } from '../auth/auth.service.js';
 import { userSelect, userToPerson, type PersonDto } from './users.mapper.js';
 import { env, isProduction } from '../../config/env.js';
 
@@ -167,10 +168,11 @@ export async function deactivateUser(db: Db, actor: AuthUser, targetPublicKey: s
   }
 
   // Exclusão administrativa = desativar + soft delete; sessões são revogadas.
-  await db.$transaction([
-    db.user.update({ where: { id: current.id }, data: { active: false, deletedAt: new Date() } }),
-    db.session.updateMany({ where: { userId: current.id, revokedAt: null }, data: { revokedAt: new Date() } }),
-  ]);
+  await db.$transaction(async (tx) => {
+    await tx.user.update({ where: { id: current.id }, data: { active: false, deletedAt: new Date() } });
+    await tx.session.updateMany({ where: { userId: current.id, revokedAt: null }, data: { revokedAt: new Date() } });
+    await revokedEvent(tx, current.id);
+  });
   await writeAudit(db, {
     actorUserId: actor.id, action: 'user.deactivated', entityType: 'user', entityId: current.id,
     requestId: meta.requestId, ipHash: meta.ipHash, userAgent: meta.userAgent,
@@ -197,14 +199,15 @@ export async function setUserPassword(
   }
 
   const passwordHash = await hashPassword(newPassword);
-  await db.$transaction([
-    db.user.update({ where: { id: user.id }, data: { passwordHash, passwordChangedAt: new Date() } }),
-    db.passwordResetToken.updateMany({
+  await db.$transaction(async (tx) => {
+    await tx.user.update({ where: { id: user.id }, data: { passwordHash, passwordChangedAt: new Date() } });
+    await tx.passwordResetToken.updateMany({
       where: { userId: user.id, usedAt: null, expiresAt: { gt: new Date() } },
       data: { usedAt: new Date() },
-    }),
-    db.session.updateMany({ where: { userId: user.id, revokedAt: null }, data: { revokedAt: new Date() } }),
-  ]);
+    });
+    await tx.session.updateMany({ where: { userId: user.id, revokedAt: null }, data: { revokedAt: new Date() } });
+    await revokedEvent(tx, user.id);
+  });
   await writeAudit(db, {
     actorUserId: actor.id, action: 'user.password_set', entityType: 'user', entityId: user.id,
     requestId: meta.requestId, ipHash: meta.ipHash, userAgent: meta.userAgent,

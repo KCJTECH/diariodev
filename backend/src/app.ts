@@ -37,7 +37,11 @@ export async function buildApp(): Promise<FastifyInstance> {
   const app = Fastify({
     logger: loggerOptions,
     genReqId: () => randomUUID(),
-    trustProxy: true,
+    // Só confia em X-Forwarded-For vindo dos proxies declarados. Confiar em
+    // qualquer origem deixaria o próprio cliente escolher o IP que o servidor
+    // registra, furando o rate limit por IP e envenenando o ipHash gravado em
+    // auditoria e sessões. Sem TRUST_PROXY configurado, usa o IP da conexão.
+    trustProxy: env.TRUST_PROXY.length > 0 ? env.TRUST_PROXY : false,
     bodyLimit: 1_048_576, // 1 MiB para JSON; uploads têm limite próprio
   });
 
@@ -64,8 +68,11 @@ export async function buildApp(): Promise<FastifyInstance> {
   // Rate limit desligado em teste para não introduzir flutuação nos testes.
   if (!isTest) {
     await app.register(rateLimit, {
-      global: false, // limites específicos por rota (ver §26.2)
-      max: 300,
+      // Teto global folgado, para nenhuma rota ficar sem limite nenhum: escrita,
+      // bootstrap e relatórios estavam descobertos. Os limites apertados por
+      // rota (§26.2) continuam valendo e sobrescrevem este.
+      global: true,
+      max: 600,
       timeWindow: '1 minute',
       redis,
     });
