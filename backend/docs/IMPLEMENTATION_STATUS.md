@@ -60,11 +60,30 @@ flat); 87 arquivos analisados sem problema; dependências `@fastify/swagger` e
   Comprovado com recusa real do servidor em cada uma, 403 nas de permissão.
   Telas apenas de leitura (`dashboard`, `pesquisa`, `relatorios`, `colaborador`,
   `colaboradores`) não registram porque não escrevem.
+- Banco de desenvolvimento local está atrás do da VM: a migration
+  `20260806120000_busca_sem_acento` não foi aplicada, então `dv_norm` e as extensões
+  `unaccent`/`pg_trgm` não existem e `GET /search` responde 500 para termo com três
+  letras ou mais. Não afeta a VM, onde a função, as extensões e os seis índices
+  trigram estão no lugar e `dv_norm('Ação de Manutenção')` devolve
+  `acao de manutencao`. `npx prisma migrate deploy` local falha em
+  `CREATE EXTENSION` por falta de privilégio: o usuário da aplicação é
+  `diariodev_app` e criar extensão exige superusuário do Postgres, o mesmo que foi
+  necessário na VM. Pendente decidir se a busca deve degradar para `ILIKE` em vez de
+  responder 500 quando a função não existir, o que hoje transforma ambiente novo em
+  tela de pesquisa quebrada até alguém com privilégio rodar a migration.
+- Na VM, `_prisma_migrations` tem duas linhas para
+  `20260806120000_busca_sem_acento`, resíduo da correção do SQL que resolvia o
+  schema do dicionário em tempo de execução. Inofensivo para `migrate deploy`, que
+  considera aplicada, mas suja `migrate status`. Limpeza opcional.
 - Defeito corrigido em 2026-08-06, achado ao provar o toast de sucesso: o botão
   "Salvar alterações" de Minha conta nunca funcionou. `DV.user()` publica o cargo
   como `roleTitle` e a tela lê `u.role`, então o campo Cargo vinha vazio e o clique
   quebrava em `f.role.trim()` de undefined. Corrigido em `normalizeUser`, espelhando
-  `role` sem remover `roleTitle`. Confirmado em produção pelo responsável em
+  `role` e `ini` sem remover `roleTitle` nem `initials`. O `ini` era o mesmo defeito
+  na terceira ocorrência: o avatar do próprio usuário ficava sem iniciais em Minha
+  conta e em Relatórios, porque as duas telas leem `u.ini` e o DTO do servidor envia
+  `initials`. Achado por varredura dos campos que cada tela lê do usuário da sessão,
+  não por acaso. Confirmado em produção pelo responsável em
   2026-08-06: o campo Cargo aparece preenchido e o salvamento conclui. Fica o
   alerta: divergência de nome entre o DTO do servidor e o que a tela lê não aparece
   em teste de backend, nem de contrato, nem de tipo. Só aparece clicando.
