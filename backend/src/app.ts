@@ -10,7 +10,7 @@ import fastifyStatic from '@fastify/static';
 import multipart from '@fastify/multipart';
 import { randomUUID } from 'node:crypto';
 import path from 'node:path';
-import { env, isTest } from './config/env.js';
+import { env, isProduction, isTest } from './config/env.js';
 import { loggerOptions } from './common/logging/logger.js';
 import { registerErrorHandler } from './common/http/error-handler.js';
 import { registerHealthRoutes } from './modules/health/health.routes.js';
@@ -45,7 +45,47 @@ export async function buildApp(): Promise<FastifyInstance> {
     bodyLimit: 1_048_576, // 1 MiB para JSON; uploads têm limite próprio
   });
 
-  await app.register(helmet, { contentSecurityPolicy: false });
+  // CSP ligada. A mesma origem serve o HTML das telas e a API, então sem CSP não
+  // havia contenção nenhuma: nem frame-ancestors, nem form-action, nem restrição
+  // de origem de script.
+  //
+  // O que esta política NÃO entrega, e é honesto registrar: contenção de XSS.
+  // 'unsafe-inline' é obrigatório porque as telas definem o componente em
+  // <script type="text/x-dc"> inline e usam style inline em quase todo elemento;
+  // 'unsafe-eval' é obrigatório porque o support.js avalia a classe de lógica
+  // como string, e sem ele a tela renderiza sem comportamento nenhum, medido no
+  // navegador. Remover os dois exigiria alterar os .dc.html e o support.js, que a
+  // regra do projeto proíbe (§4.1).
+  //
+  // O que ela entrega: script só da própria origem e do unpkg, nada de plugin,
+  // nada de enquadramento, base e destino de formulário fixados na origem, e
+  // imagem, fonte e conexão restritas. Fecha exfiltração por formulário, clique
+  // sequestrado por iframe e carregamento de script de origem arbitrária.
+  //
+  // upgrade-insecure-requests fica desligado de propósito: o acesso interno é
+  // HTTP puro, e a diretiva faria o navegador tentar HTTPS e quebrar a tela.
+  await app.register(helmet, {
+    contentSecurityPolicy: {
+      useDefaults: false,
+      directives: {
+        'default-src': ["'self'"],
+        // unpkg serve o React que o support.js carrega.
+        'script-src': ["'self'", "'unsafe-inline'", "'unsafe-eval'", 'https://unpkg.com'],
+        'style-src': ["'self'", "'unsafe-inline'"],
+        'img-src': ["'self'", 'data:'],
+        'font-src': ["'self'", 'data:'],
+        // Socket.IO usa WebSocket na mesma origem.
+        'connect-src': ["'self'", 'ws:', 'wss:'],
+        'object-src': ["'none'"],
+        'base-uri': ["'self'"],
+        'form-action': ["'self'"],
+        'frame-ancestors': ["'none'"],
+      },
+    },
+    // HSTS só quando o acesso é realmente HTTPS: emitir em cenário HTTP interno
+    // faz o navegador exigir HTTPS naquele host por um ano, inclusive subdomínios.
+    strictTransportSecurity: env.COOKIE_SECURE ?? isProduction,
+  });
 
   // Origens permitidas: a configurada (APP_ORIGIN) e a própria do servidor, para
   // funcionar tanto servindo o frontend junto (mesma origem) quanto separado.

@@ -17,6 +17,10 @@ export const userSelect = {
 
 type UserRow = Prisma.UserGetPayload<{ select: typeof userSelect }>;
 
+// Formato §9.2. O campo `uuid` foi removido em 2026-08-06: expunha o id interno
+// de todo colaborador para qualquer usuário autenticado, estava fora do formato
+// especificado e não era usado por nenhuma tela. O resto da API identifica
+// pessoa por `publicKey`, justamente para não circular o id interno.
 export type PersonDto = {
   id: string;
   name: string;
@@ -26,7 +30,6 @@ export type PersonDto = {
   color: string;
   active: boolean;
   level: string;
-  uuid: string;
 };
 
 export function userToPerson(u: UserRow): PersonDto {
@@ -39,6 +42,5 @@ export function userToPerson(u: UserRow): PersonDto {
     color: u.color,
     active: u.active,
     level: LEVEL_TO_API[u.effectiveLevel],
-    uuid: u.id,
   };
 }

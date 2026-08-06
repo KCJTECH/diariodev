@@ -46,7 +46,11 @@ export async function deliverWebhook(db: Db, input: DeliverInput): Promise<Deliv
     if (integration.encryptedSecret) {
       const secret = decryptSecret(integration.encryptedSecret);
       headers['X-DiarioDev-Signature'] = `sha256=${signPayload(secret, timestamp, rawBody)}`;
-      headers['X-DiarioDev-Secret'] = secret; // compatibilidade (§21.2)
+      // O header X-DiarioDev-Secret foi removido em 2026-08-06. Ele enviava o
+      // segredo compartilhado em texto puro, e o endpoint pode ser http://, então
+      // o segredo trafegava sem TLS. A assinatura HMAC acima já é a validação
+      // recomendada e torna o header redundante. Quem consome deve validar a
+      // assinatura sobre "timestamp + '.' + corpo bruto" (§21.2).
     }
 
     const res = await fetch(url, {

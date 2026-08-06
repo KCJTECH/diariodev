@@ -11,6 +11,8 @@ import { listGroups } from '../groups/groups.service.js';
 import { listIntegrations, listRuns } from '../integrations/integrations.service.js';
 
 const INITIAL_WINDOW_DAYS = 60;
+// Igual ao teto de parsePagination: pedir mais que isto não entrega mais.
+const INITIAL_WINDOW_ITEMS = 100;
 
 export async function buildBootstrap(db: Db, actor: AuthUser): Promise<Record<string, unknown>> {
   const isManager = seesAll(actor.level);
@@ -51,11 +53,24 @@ export async function buildBootstrap(db: Db, actor: AuthUser): Promise<Record<st
     projects = projectRows.filter((p) => participating.has(p.id));
   }
 
+  // Janela inicial (§17.2): recorte por data mais teto de itens. O teto pedido
+  // era 500, mas parsePagination limita a 100, então a intenção divergia do que
+  // era entregue. Fica 100 explícito: é o que sempre chegou ao cliente, e
+  // aumentar aqui inflaria o payload inicial, contra §28.
   const from = new Date(Date.now() - INITIAL_WINDOW_DAYS * 86_400_000).toISOString();
   const [activities, tasks] = await Promise.all([
-    listActivities(db, actor, { from, perPage: 500, sort: 'occurredAt', order: 'desc' }),
-    listTasks(db, actor, { perPage: 500 }),
+    listActivities(db, actor, { from, perPage: INITIAL_WINDOW_ITEMS, sort: 'occurredAt', order: 'desc' }),
+    listTasks(db, actor, { perPage: INITIAL_WINDOW_ITEMS }),
   ]);
+
+  // Permissões efetivas do usuário (§17.2, §13.9): união das permissões dos
+  // grupos ativos dele. São rótulos descritivos: a autorização real é por nível,
+  // no servidor, e permissão customizada não anula regra de segurança.
+  const gruposDoUsuario = await db.accessGroup.findMany({
+    where: { deletedAt: null, active: true, members: { some: { userId: actor.id } } },
+    select: { permissions: true },
+  });
+  const permissions = [...new Set(gruposDoUsuario.flatMap((g) => g.permissions))].sort();
 
   // Grupos, integrações e histórico só entram no bootstrap de administradores.
   const [groups, integrations, integrationRuns] = isManager
@@ -79,6 +94,7 @@ export async function buildBootstrap(db: Db, actor: AuthUser): Promise<Record<st
       theme: prefs?.themePreference ?? 'light',
       defaultProjectId: prefs?.defaultProjectId ?? null,
     },
+    permissions,
     canAdminister: isManager,
     serverNow: new Date().toISOString(),
     timezone: env.ORGANIZATION_TIMEZONE,
