@@ -28,7 +28,9 @@ test('login inválido mostra erro e não expõe a lista de colaboradores', async
   await page.getByPlaceholder('••••••••').fill('qualquer');
   await page.getByText('Entrar', { exact: true }).click();
   await expect(page.getByText(/inválidos/i)).toBeVisible({ timeout: 8_000 });
-  await expect(page).toHaveURL(/login\.dc\.html/);
+  // Permanece na tela de entrada, que agora é a raiz. Compara o caminho, e não a
+  // URL inteira, para o teste não depender da porta do servidor de teste.
+  expect(new URL(page.url()).pathname).toBe('/');
 });
 
 test('senha errada de usuário existente é recusada', async ({ page }) => {
@@ -38,7 +40,9 @@ test('senha errada de usuário existente é recusada', async ({ page }) => {
   await page.getByPlaceholder('••••••••').fill('senha-errada');
   await page.getByText('Entrar', { exact: true }).click();
   await expect(page.getByText(/inválidos/i)).toBeVisible({ timeout: 8_000 });
-  await expect(page).toHaveURL(/login\.dc\.html/);
+  // Permanece na tela de entrada, que agora é a raiz. Compara o caminho, e não a
+  // URL inteira, para o teste não depender da porta do servidor de teste.
+  expect(new URL(page.url()).pathname).toBe('/');
 });
 
 test('pesquisa não vaza atividades de outro usuário para o dev', async ({ page }) => {

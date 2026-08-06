@@ -71,9 +71,11 @@ test('realtime: atividade criada em um navegador aparece no outro', async ({ bro
 test('logout encerra a sessão e protege rotas autenticadas', async ({ page }) => {
   await loginAs(page, 'marcelo@itscs.com.br');
   await page.evaluate(() => (window as unknown as { DV: { logout(): void } }).DV.logout());
-  await page.waitForURL('**/', { timeout: 10_000 });
+  // Padrão explícito: '**/' casaria com qualquer URL terminada em barra e poderia
+  // passar por acidente. A tela de entrada agora é a raiz (index.html).
+  await page.waitForURL((u) => new URL(u).pathname === '/', { timeout: 10_000 });
 
-  // rota protegida sem sessão volta para o login
+  // rota protegida sem sessão volta para a tela de entrada
   await page.goto('/dashboard.dc.html');
-  await page.waitForURL('**/', { timeout: 10_000 });
+  await page.waitForURL((u) => new URL(u).pathname === '/', { timeout: 10_000 });
 });

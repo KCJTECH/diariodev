@@ -22,7 +22,20 @@ export default defineConfig({
     port: 3400,
     reuseExistingServer: false,
     timeout: 60_000,
-    env: { ...process.env, DATABASE_URL: testDbUrl, PORT: '3400', NODE_ENV: 'test', LOG_LEVEL: 'warn' },
+    env: {
+      ...process.env,
+      DATABASE_URL: testDbUrl,
+      PORT: '3400',
+      NODE_ENV: 'test',
+      LOG_LEVEL: 'warn',
+      // O servidor precisa saber a própria origem: APP_ORIGIN vem do .env e aponta
+      // para outra porta. Sem alinhar, o Socket.IO recusa o handshake por origem
+      // não permitida e o boot do window.DV não conclui.
+      APP_ORIGIN: 'http://localhost:3400',
+      // Sem SMTP no e2e: o .env local tem servidor real, e nenhum teste deve
+      // disparar e-mail para endereço de pessoa.
+      SMTP_HOST: '',
+    },
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
 });

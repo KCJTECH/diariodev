@@ -697,7 +697,16 @@
 
   function publish() { state.ready = true; DV.ready = true; window.DV = DV; DV.applyTheme(); rerender(); fireReady(); }
 
-  function isLoginPage() { return /login\.dc\.html/.test(location.pathname) || /login/.test(location.pathname); }
+  /* Tela de entrada. Depois do rename de login.dc.html para index.html servido na
+     raiz, esta função precisa reconhecer '/' e '/index.html': sem isso, o 401 de
+     bootstrap sem sessão caía no ramo de "página protegida", tentava refresh,
+     tomava 401 de novo e fazia location.href = '/', recarregando a própria tela
+     em laço, sem nunca publicar o window.DV. O nome antigo fica reconhecido
+     porque links de e-mail já enviados apontam para lá e o servidor redireciona. */
+  function isLoginPage() {
+    var p = location.pathname;
+    return p === '/' || /(^|\/)index\.html$/.test(p) || /login\.dc\.html/.test(p) || /(^|\/)login(\/|$)/.test(p);
+  }
 
   /* ── inicialização assíncrona (não bloqueia; telas fazem polling por window.DV) ── */
   function init() {
