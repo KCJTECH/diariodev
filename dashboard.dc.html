@@ -31,9 +31,21 @@
         <span style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Buscar atividades, pessoas, projetos…</span>
         <span style="font-family:ui-monospace,monospace;font-size:.68rem;background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:1px 5px">⌘K</span>
       </a>
-      <a href="atividades.dc.html?nova=1" style="display:inline-flex;align-items:center;gap:7px;padding:10px 16px;border-radius:6px;background:var(--accent);color:#fff;font-size:.85rem;font-weight:600;white-space:nowrap" style-hover="filter:brightness(1.08);color:#ffffff">
-        <span style="font-size:1rem;line-height:1">+</span> Nova atividade
-      </a>
+      <sc-if value="{{ canPlan }}" hint-placeholder-val="{{ false }}">
+        <a href="atividades.dc.html?nova=1" style="display:inline-flex;align-items:center;gap:7px;padding:10px 16px;border-radius:6px;border:1.5px solid var(--brand);color:var(--brand-text);font-size:.85rem;font-weight:600;white-space:nowrap" style-hover="background:var(--tint-blue);color:var(--brand-text)">
+          <span style="font-size:1rem;line-height:1">+</span> Registrar atividade
+        </a>
+      </sc-if>
+      <sc-if value="{{ canPlan }}" hint-placeholder-val="{{ false }}">
+        <a href="projetos.dc.html?nova-tarefa=1" style="display:inline-flex;align-items:center;gap:7px;padding:10px 16px;border-radius:6px;background:var(--accent);color:#fff;font-size:.85rem;font-weight:600;white-space:nowrap" style-hover="filter:brightness(1.08);color:#ffffff">
+          <span style="font-size:1rem;line-height:1">+</span> Delegar tarefa
+        </a>
+      </sc-if>
+      <sc-if value="{{ notPlan }}" hint-placeholder-val="{{ true }}">
+        <a href="atividades.dc.html?nova=1" style="display:inline-flex;align-items:center;gap:7px;padding:10px 16px;border-radius:6px;background:var(--accent);color:#fff;font-size:.85rem;font-weight:600;white-space:nowrap" style-hover="filter:brightness(1.08);color:#ffffff">
+          <span style="font-size:1rem;line-height:1">+</span> Registrar atividade
+        </a>
+      </sc-if>
   </div>
 
   <main data-screen-label="Dashboard" style="flex:1;padding:26px 28px 64px;max-width:1360px;width:100%;display:flex;flex-direction:column;gap:18px;animation:dvUp .22s ease both">
@@ -233,6 +245,7 @@ class Component extends DCLogic {
     };
 
     return {
+      canPlan: canPlan, notPlan: !canPlan,
       hasDue: urgent.length > 0,
       dueBanner: {
         style: 'display:flex;align-items:center;gap:14px;padding:14px 18px;border-radius:var(--radius);flex-wrap:wrap;border:1px solid ' +

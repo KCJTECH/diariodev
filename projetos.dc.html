@@ -35,18 +35,23 @@
         <span style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Auditoria</span>
       </a>
       <sc-if value="{{ canPlan }}" hint-placeholder-val="{{ true }}">
-        <div onClick="{{ openTask }}" style="display:inline-flex;align-items:center;gap:7px;padding:10px 16px;border-radius:6px;border:1.5px solid var(--brand);color:var(--brand-text);font-size:.85rem;font-weight:600;white-space:nowrap;cursor:pointer" style-hover="background:var(--tint-blue)">
-          <span style="font-size:1rem;line-height:1">+</span> Nova tarefa
+        <a href="atividades.dc.html?nova=1" style="display:inline-flex;align-items:center;gap:7px;padding:10px 16px;border-radius:6px;border:1.5px solid var(--brand);color:var(--brand-text);font-size:.85rem;font-weight:600;white-space:nowrap" style-hover="background:var(--tint-blue);color:var(--brand-text)">
+          <span style="font-size:1rem;line-height:1">+</span> Registrar atividade
+        </a>
+      </sc-if>
+      <sc-if value="{{ canPlan }}" hint-placeholder-val="{{ true }}">
+        <div onClick="{{ openProject }}" style="display:inline-flex;align-items:center;gap:7px;padding:10px 16px;border-radius:6px;border:1.5px solid var(--brand);color:var(--brand-text);font-size:.85rem;font-weight:600;white-space:nowrap;cursor:pointer" style-hover="background:var(--tint-blue)">
+          <span style="font-size:1rem;line-height:1">+</span> Novo projeto
         </div>
       </sc-if>
       <sc-if value="{{ canPlan }}" hint-placeholder-val="{{ true }}">
-        <div onClick="{{ openProject }}" style="display:inline-flex;align-items:center;gap:7px;padding:10px 16px;border-radius:6px;background:var(--accent);color:#fff;font-size:.85rem;font-weight:600;white-space:nowrap;cursor:pointer" style-hover="filter:brightness(1.08)">
-          <span style="font-size:1rem;line-height:1">+</span> Novo projeto
+        <div onClick="{{ openTask }}" style="display:inline-flex;align-items:center;gap:7px;padding:10px 16px;border-radius:6px;background:var(--accent);color:#fff;font-size:.85rem;font-weight:600;white-space:nowrap;cursor:pointer" style-hover="filter:brightness(1.08)">
+          <span style="font-size:1rem;line-height:1">+</span> Delegar tarefa
         </div>
       </sc-if>
       <sc-if value="{{ notPlan }}" hint-placeholder-val="{{ false }}">
         <a href="atividades.dc.html?nova=1" style="display:inline-flex;align-items:center;gap:7px;padding:10px 16px;border-radius:6px;background:var(--accent);color:#fff;font-size:.85rem;font-weight:600;white-space:nowrap" style-hover="filter:brightness(1.08);color:#ffffff">
-          <span style="font-size:1rem;line-height:1">+</span> Nova atividade
+          <span style="font-size:1rem;line-height:1">+</span> Registrar atividade
         </a>
       </sc-if>
   </div>
@@ -350,11 +355,24 @@ class Component extends DCLogic {
   setT(patch) { this.setState(s => ({ tform: Object.assign({}, s.tform, patch, patch.error === undefined ? { error: '' } : {}) })); }
   setP(patch) { this.setState(s => ({ pform: Object.assign({}, s.pform, patch) })); }
   bump() { this.setState(s => ({ tick: s.tick + 1 })); }
+  openTaskForm(t) {
+    const D = window.DV;
+    const projects = D.visibleProjects(D.user());
+    this.setState({
+      tConfirm: false,
+      tform: t
+        ? { mode: 'edit', id: t.id, title: t.title, desc: t.desc || '', proj: t.proj, who: t.who, due: t.due, pri: t.pri, cat: t.cat, error: '' }
+        : { mode: 'new', id: null, title: '', desc: '', proj: projects[0] || '', who: '', due: D.isoPlus(7), pri: 'média', cat: 'Entrega', error: '' }
+    });
+  }
   componentDidMount() {
     this.t = setInterval(() => {
       if (!window.DV) return;
       clearInterval(this.t);
       this.setState({ ready: true });
+      // Gatilho por URL: "Delegar tarefa" de qualquer tela (?nova-tarefa=1).
+      const q = new URLSearchParams(window.location.search);
+      if (q.get('nova-tarefa') && DV.canPlan(DV.user())) this.openTaskForm(null);
       setTimeout(() => this.setState({ loading: false }), 340);
     }, 25);
     this.onKey = (e) => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); window.location.href = 'pesquisa.dc.html'; } };
@@ -400,16 +418,11 @@ class Component extends DCLogic {
     const shown = scope.filter(filters[this.state.taskFilter] || filters.abertas)
       .slice().sort((a, b) => D.daysLeft(a.due) - D.daysLeft(b.due));
 
-    const openTaskForm = (t) => this.setState({
-      tConfirm: false,
-      tform: t
-        ? { mode: 'edit', id: t.id, title: t.title, desc: t.desc || '', proj: t.proj, who: t.who, due: t.due, pri: t.pri, cat: t.cat, error: '' }
-        : { mode: 'new', id: null, title: '', desc: '', proj: projects[0] || '', who: '', due: D.isoPlus(7), pri: 'média', cat: 'Entrega', error: '' }
-    });
+    const openTaskForm = (t) => this.openTaskForm(t);
 
     const f = this.state.tform;
     const tf = f ? {
-      heading: f.mode === 'edit' ? 'Editar tarefa' : 'Nova tarefa planejada',
+      heading: f.mode === 'edit' ? 'Editar tarefa' : 'Delegar tarefa',
       saveLabel: f.mode === 'edit' ? 'Salvar tarefa' : 'Criar tarefa',
       isEdit: f.mode === 'edit',
       title: f.title, desc: f.desc, due: f.due, minDue: D.isoPlus(0),
@@ -624,8 +637,10 @@ class Component extends DCLogic {
           checkStyle: 'width:22px;height:22px;flex:0 0 22px;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:.8rem;font-weight:800;transition:all .12s;' +
             (t.done ? 'background:#16a34a;border:1.5px solid #16a34a;color:#fff' : 'background:var(--surface);border:1.5px solid var(--border-strong);color:transparent'),
           onToggle: () => {
-            D.updateTask(t.id, { done: !t.done });
-            this.toast(t.done ? 'Tarefa reaberta' : 'Tarefa concluída', t.title.slice(0, 46), t.done ? 'error' : 'success');
+            // Concluir passa pelo registro da atividade (o servidor fecha a tarefa junto).
+            if (!t.done) { window.location.href = 'atividades.dc.html?concluir-tarefa=' + encodeURIComponent(t.id); return; }
+            D.updateTask(t.id, { done: false });
+            this.toast('Tarefa reaberta', t.title.slice(0, 46), 'error');
             this.bump();
           },
           priStyle: 'font-size:.72rem;font-weight:700;text-transform:capitalize;color:' + D.priColor(t.pri),

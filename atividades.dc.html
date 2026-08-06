@@ -26,7 +26,7 @@
 </helmet>
 
 <x-import component-from-global-scope="app-shell" from="./assets/app-shell.js"
-  page="atividades" heading="Atividades" subtitle="Diário da equipe, do mais recente ao mais antigo" hint-size="100%,100%">
+  page="atividades" heading="Monitoria" subtitle="Acompanhe o diário da equipe, do mais recente ao mais antigo" hint-size="100%,100%">
 
   <div slot="actions" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:flex-end">
     <a href="pesquisa.dc.html" style="display:flex;align-items:center;gap:9px;flex:0 1 280px;min-width:0;max-width:28vw;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;color:var(--text-faint);font-size:.82rem;background:var(--surface-2)" style-hover="border-color:var(--brand-text);color:var(--text-muted)">
@@ -34,9 +34,21 @@
         <span style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Auditoria</span>
         <span style="font-family:ui-monospace,monospace;font-size:.68rem;background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:1px 5px">⌘K</span>
       </a>
-      <div onClick="{{ openNew }}" style="display:inline-flex;align-items:center;gap:7px;padding:10px 16px;border-radius:6px;background:var(--accent);color:#fff;font-size:.85rem;font-weight:600;cursor:pointer;white-space:nowrap" style-hover="filter:brightness(1.08)" style-active="transform:scale(.98)">
-        <span style="font-size:1rem;line-height:1">+</span> Nova atividade
-      </div>
+      <sc-if value="{{ canPlan }}" hint-placeholder-val="{{ false }}">
+        <div onClick="{{ openNew }}" style="display:inline-flex;align-items:center;gap:7px;padding:10px 16px;border-radius:6px;border:1.5px solid var(--brand);color:var(--brand-text);font-size:.85rem;font-weight:600;cursor:pointer;white-space:nowrap" style-hover="background:var(--tint-blue)">
+          <span style="font-size:1rem;line-height:1">+</span> Registrar atividade
+        </div>
+      </sc-if>
+      <sc-if value="{{ canPlan }}" hint-placeholder-val="{{ false }}">
+        <a href="projetos.dc.html?nova-tarefa=1" style="display:inline-flex;align-items:center;gap:7px;padding:10px 16px;border-radius:6px;background:var(--accent);color:#fff;font-size:.85rem;font-weight:600;white-space:nowrap" style-hover="filter:brightness(1.08);color:#ffffff">
+          <span style="font-size:1rem;line-height:1">+</span> Delegar tarefa
+        </a>
+      </sc-if>
+      <sc-if value="{{ notPlan }}" hint-placeholder-val="{{ true }}">
+        <div onClick="{{ openNew }}" style="display:inline-flex;align-items:center;gap:7px;padding:10px 16px;border-radius:6px;background:var(--accent);color:#fff;font-size:.85rem;font-weight:600;cursor:pointer;white-space:nowrap" style-hover="filter:brightness(1.08)" style-active="transform:scale(.98)">
+          <span style="font-size:1rem;line-height:1">+</span> Registrar atividade
+        </div>
+      </sc-if>
   </div>
 
   <main data-screen-label="Lista de Atividades" style="flex:1;padding:26px 28px 64px;max-width:1360px;width:100%;display:flex;flex-direction:column;gap:16px;animation:dvUp .22s ease both">
@@ -160,7 +172,7 @@
           <div style="font-size:.82rem;color:var(--text-muted);max-width:380px;text-wrap:pretty">Ajuste os filtros ou registre a primeira atividade com este recorte — leva menos de 30 segundos.</div>
           <div style="display:flex;gap:8px;margin-top:8px">
             <div onClick="{{ clearFilters }}" style="padding:9px 16px;border:1.5px solid var(--brand);border-radius:6px;color:var(--brand-text);font-size:.83rem;font-weight:600;cursor:pointer">Limpar filtros</div>
-            <div onClick="{{ openNew }}" style="padding:9px 16px;background:var(--accent);color:#fff;border-radius:6px;font-size:.83rem;font-weight:600;cursor:pointer">+ Nova atividade</div>
+            <div onClick="{{ openNew }}" style="padding:9px 16px;background:var(--accent);color:#fff;border-radius:6px;font-size:.83rem;font-weight:600;cursor:pointer">+ Registrar atividade</div>
           </div>
         </div>
       </sc-if>
@@ -480,6 +492,9 @@ class Component extends DCLogic {
         const a = DV.acts().find(x => x.id === p.get('editar'));
         if (a) this.openEdit(a);
       }
+      if (p.get('concluir-tarefa')) {
+        this.openFromTask(DV.tasks().find(x => x.id === p.get('concluir-tarefa')));
+      }
       setTimeout(() => this.setState({ loading: false }), 380);
     }, 25);
 
@@ -504,6 +519,15 @@ class Component extends DCLogic {
     this.setState({
       detail: null,
       form: { mode: 'new', id: null, project: preProject || this.state.proj || DV.ui().defaultProject || '', cat: null, title: '', desc: '', date: DV.iso(0), dur: '', pri: 'média', error: '', who: u.id, files: [] }
+    });
+  }
+  /* Concluir tarefa = registrar a atividade que a conclui (form pré-preenchido). */
+  openFromTask(t) {
+    if (!t) return;
+    this._focused = false;
+    this.setState({
+      detail: null,
+      form: { mode: 'new', id: null, project: t.proj, cat: t.cat, title: t.title, desc: t.desc || '', date: DV.iso(0), dur: '', pri: t.pri, error: '', who: t.who, files: [], fromTask: t.id }
     });
   }
   openEdit(a) {
@@ -531,15 +555,16 @@ class Component extends DCLogic {
     if (f.title.trim().length < 4) { this.setF('error', 'Descreva a atividade em um título curto.'); return; }
     const rec = {
       who: f.who, proj: f.project.trim(), cat: f.cat, title: f.title.trim(), desc: f.desc.trim(),
-      d: DV.offsetOf(f.date), dur: f.dur.trim() || '—', pri: f.pri, tags: [], files: (f.files || []).slice()
+      d: DV.offsetOf(f.date), dur: f.dur.trim() || '—', pri: f.pri, tags: [], files: (f.files || []).slice(),
+      sourceTaskId: f.fromTask || null
     };
     if (f.mode === 'edit') {
       DV.update(f.id, rec);
       this.toast('Atividade atualizada', rec.proj + ' · ' + rec.cat, 'success');
     } else {
       rec.t = new Date().toTimeString().slice(0, 5);
+      // Com sourceTaskId o servidor conclui a tarefa na mesma transação do registro.
       DV.create(rec);
-      if (f.fromTask) DV.updateTask(f.fromTask, { done: true });
       this.toast('Atividade registrada', rec.proj + ' · ' + rec.cat + (f.fromTask ? ' · tarefa concluída' : ''), 'success');
     }
     this.setState(s => ({
@@ -662,7 +687,7 @@ class Component extends DCLogic {
 
     const f = st.form;
     const form = f ? {
-      heading: f.mode === 'edit' ? 'Editar atividade' : 'Nova atividade',
+      heading: f.mode === 'edit' ? 'Editar atividade' : 'Registrar atividade',
       subheading: f.mode === 'edit' ? 'Ajuste o registro e salve' : 'Quatro campos, um atalho, menos de 30 segundos',
       isEdit: f.mode === 'edit', saveLabel: f.mode === 'edit' ? 'Salvar alterações' : 'Salvar atividade',
       hasError: !!f.error, error: f.error,
@@ -716,17 +741,15 @@ class Component extends DCLogic {
             (info.days < 0 ? '#dc2626' : D.soft(cc.fg, .55)) + ';background:' + (info.days < 0 ? 'rgba(220,38,38,.05)' : D.soft(cc.fg, .05)),
           rowHover: 'background:' + (info.days < 0 ? 'rgba(220,38,38,.1)' : D.soft(cc.fg, .12)),
           check: '', checkStyle: 'width:22px;height:22px;flex:0 0 22px;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:.8rem;font-weight:800;background:var(--surface);border:1.5px solid var(--border-strong);color:transparent',
-          onToggle: () => { D.updateTask(t.id, { done: true }); this.toast('Tarefa concluída', t.title.slice(0, 46)); this.setState(s => ({ tick: s.tick + 1 })); },
+          onToggle: () => this.openFromTask(t),
           priStyle: 'font-size:.72rem;font-weight:700;text-transform:capitalize;color:' + D.priColor(t.pri),
           dueLabel: info.label, dueDate: D.dueLabel(t.due),
           dueStyle: 'font-size:.78rem;font-weight:700;white-space:nowrap;color:' + info.color,
-          onRegister: () => this.setState({
-            detail: null,
-            form: { mode: 'new', id: null, project: t.proj, cat: t.cat, title: t.title, desc: t.desc || '', date: D.iso(0), dur: '', pri: t.pri, error: '', who: t.who, files: [], fromTask: t.id }
-          })
+          onRegister: () => this.openFromTask(t)
         };
       }),
       seesAll: seesAll,
+      canPlan: D.canPlan(u), notPlan: !D.canPlan(u),
       scopeNote: seesAll
         ? 'Você vê os registros de toda a equipe (' + D.levelLabel(u) + ').'
         : 'Seu nível de acesso (' + D.levelLabel(u) + ') mostra apenas os seus próprios registros.',
