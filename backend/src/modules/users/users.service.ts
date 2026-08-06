@@ -2,10 +2,14 @@
 // Salvaguardas: ninguém se desativa/exclui na mesma operação; o último CEO
 // ativo não pode ser removido nem rebaixado.
 import { randomBytes } from 'node:crypto';
-import type { AccessLevel } from '@prisma/client';
 import type { Db } from '../../common/database/prisma.js';
 import { Errors } from '../../common/errors/app-error.js';
-import { API_TO_LEVEL, LEVEL_TO_API, rankOf, type ApiLevel, type AuthUser } from '../../common/auth/types.js';
+import { API_TO_LEVEL, type ApiLevel, type AuthUser } from '../../common/auth/types.js';
+import {
+  assertCanGrantLevel,
+  assertCanManageCredentials,
+  assertCanManageUser,
+} from '../../common/auth/policy.js';
 import { hashPassword, isTrivialPassword } from '../../common/auth/password.js';
 import { sha256 } from '../../common/auth/tokens.js';
 import { slugify } from '../../common/utils/format.js';
@@ -62,6 +66,10 @@ export async function createUser(
   input: UserWrite,
   meta: Meta,
 ): Promise<{ user: PersonDto; tempPassword?: string }> {
+  // Antes de qualquer consulta: sem o teto de nível, um gestor criaria conta CEO.
+  // Vem primeiro para que quem não tem permissão não descubra se um e-mail existe.
+  assertCanGrantLevel(actor, input.level ?? 'dev');
+
   const email = input.email.toLowerCase();
   const exists = await db.user.findFirst({ where: { email } });
   if (exists) throw Errors.conflict('EMAIL_IN_USE', 'E-mail já cadastrado.');
@@ -104,6 +112,14 @@ export async function updateUser(
   const current = await db.user.findFirst({ where: { publicKey: targetPublicKey, deletedAt: null } });
   if (!current) throw Errors.notFound('USER_NOT_FOUND', 'Usuário não encontrado.');
 
+  // Autorização depois do 404 e antes das salvaguardas abaixo: inverter a ordem
+  // trocaria o 409 de LAST_CEO por 403 e mudaria o contrato de uma regra que já
+  // existe. O teto de concessão é o que impede a autopromoção, sem impedir o
+  // gestor de editar o próprio nome, e-mail ou cargo, porque a tela envia o
+  // corpo completo, com o nível atual, em toda gravação.
+  assertCanManageUser(actor, current);
+  if (input.level) assertCanGrantLevel(actor, input.level);
+
   const demotingSelfFromCeo = current.id === actor.id && input.level && input.level !== 'ceo';
   const deactivatingSelf = current.id === actor.id && input.active === false;
   if (deactivatingSelf) throw Errors.forbidden('Não é possível desativar a própria conta.');
@@ -143,6 +159,9 @@ export async function deactivateUser(db: Db, actor: AuthUser, targetPublicKey: s
   const current = await db.user.findFirst({ where: { publicKey: targetPublicKey, deletedAt: null } });
   if (!current) throw Errors.notFound('USER_NOT_FOUND', 'Usuário não encontrado.');
   if (current.id === actor.id) throw Errors.forbidden('Não é possível excluir a própria conta.');
+  // Sem esta linha, havendo dois CEOs ativos um gestor excluiria um deles: a
+  // salvaguarda do último CEO só barra quando sobraria zero.
+  assertCanManageUser(actor, current);
   if (current.effectiveLevel === 'CEO' && (await activeCeoCount(db, current.id)) === 0) {
     throw Errors.conflict('LAST_CEO', 'Não é possível remover o último CEO ativo.');
   }
@@ -158,23 +177,6 @@ export async function deactivateUser(db: Db, actor: AuthUser, targetPublicKey: s
   });
 }
 
-// Quem pode mexer na senha de quem. Duas regras, e as duas existem para evitar
-// tomada de conta, não por formalidade:
-//   1. Ninguém age sobre a própria conta por aqui. Trocar a própria senha é
-//      /auth/password, que exige a senha atual. Sem isso, uma sessão sequestrada
-//      trocaria a senha sem conhecer a antiga e trancaria o dono do lado de fora.
-//   2. Só é possível agir sobre nível estritamente menor. Sem isso um gestor
-//      redefine a senha do CEO e assume o acesso dele, e dois gestores se
-//      personificam entre si.
-function assertCanActOnPassword(actor: AuthUser, target: { id: string; effectiveLevel: AccessLevel; name: string }): void {
-  if (target.id === actor.id) {
-    throw Errors.forbidden('Para trocar a própria senha use a opção da sua conta, que pede a senha atual.');
-  }
-  if (rankOf(actor.level) <= rankOf(LEVEL_TO_API[target.effectiveLevel])) {
-    throw Errors.forbidden('Seu nível de acesso não permite mexer na senha desse colaborador.');
-  }
-}
-
 // Definição direta da senha por gestor+, usada pelos campos de senha da tela de
 // administração. Revoga as sessões do colaborador e invalida links de redefinição
 // em aberto, senão um link antigo continuaria valendo depois da troca.
@@ -187,7 +189,7 @@ export async function setUserPassword(
 ): Promise<void> {
   const user = await db.user.findFirst({ where: { publicKey: targetPublicKey, deletedAt: null } });
   if (!user) throw Errors.notFound('USER_NOT_FOUND', 'Usuário não encontrado.');
-  assertCanActOnPassword(actor, user);
+  assertCanManageCredentials(actor, user);
 
   if (newPassword.length < 8) throw Errors.validation([{ field: 'newPassword', message: 'Mínimo de 8 caracteres.' }]);
   if (isTrivialPassword(newPassword)) {
@@ -222,7 +224,7 @@ export async function adminResetPassword(
 ): Promise<{ resetToken?: string; mailSent: boolean }> {
   const user = await db.user.findFirst({ where: { publicKey: targetPublicKey, deletedAt: null } });
   if (!user) throw Errors.notFound('USER_NOT_FOUND', 'Usuário não encontrado.');
-  assertCanActOnPassword(actor, user);
+  assertCanManageCredentials(actor, user);
 
   // Um pedido novo invalida os anteriores ainda abertos, para não deixar vários
   // links válidos circulando para a mesma conta.

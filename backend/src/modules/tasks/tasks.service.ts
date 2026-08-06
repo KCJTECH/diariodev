@@ -83,7 +83,7 @@ export async function createTask(db: Db, actor: AuthUser, input: TaskWrite, meta
   const assigneeId = await resolveAssigneeId(db, input.who);
 
   const id = await db.$transaction(async (tx) => {
-    const project = await resolveProject(tx, input.proj, actor.id);
+    const project = await resolveProject(tx, input.proj, actor);
     const category = input.cat ? await resolveCategory(tx, input.cat) : { id: null, name: null };
     const task = await tx.task.create({
       data: {
@@ -138,7 +138,7 @@ export async function updateTask(
   const assigneeId = await resolveAssigneeId(db, input.who);
 
   await db.$transaction(async (tx) => {
-    const project = await resolveProject(tx, input.proj, actor.id);
+    const project = await resolveProject(tx, input.proj, actor);
     const category = input.cat ? await resolveCategory(tx, input.cat) : { id: null, name: null };
     await tx.task.update({
       where: { id },

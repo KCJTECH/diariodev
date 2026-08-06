@@ -4,7 +4,7 @@
 import type { Prisma } from '@prisma/client';
 import type { Db } from '../../common/database/prisma.js';
 import { Errors } from '../../common/errors/app-error.js';
-import { seesAll, type AuthUser } from '../../common/auth/types.js';
+import { canPlan, seesAll, type AuthUser } from '../../common/auth/types.js';
 import { priorityFromApi, type ApiPriority } from '../../common/domain/priority.js';
 import { parsePagination, safeSort } from '../../common/http/pagination.js';
 import { resolveProject, resolveCategory, participatesInProject } from '../../common/domain/resolve.js';
@@ -110,7 +110,7 @@ export async function createActivity(
   }
 
   const id = await db.$transaction(async (tx) => {
-    const project = await resolveProject(tx, input.proj, actor.id);
+    const project = await resolveProject(tx, input.proj, actor);
     const category = await resolveCategory(tx, input.cat);
     const activity = await tx.activity.create({
       data: {
@@ -132,6 +132,13 @@ export async function createActivity(
     // Concluir tarefa a partir da atividade, na mesma transação (§17.5).
     if (input.sourceTaskId) {
       const task = await tx.task.findFirst({ where: { id: input.sourceTaskId, deletedAt: null } });
+      // Mesma regra do caminho legítimo em tasks.service: só o responsável pela
+      // tarefa, ou quem planeja, conclui. Sem esta linha, qualquer dev que
+      // conheça o id fecha a tarefa de um colega gravando o próprio nome como
+      // quem concluiu, contornando a verificação que existe em POST /tasks/:id/complete.
+      if (task && task.assigneeId !== actor.id && !canPlan(actor.level)) {
+        throw Errors.forbidden('Você só conclui tarefas atribuídas a você.');
+      }
       if (task && !task.done) {
         await tx.task.update({
           where: { id: task.id },
@@ -192,7 +199,7 @@ export async function updateActivity(
   if (current.version !== expectedVersion) throw Errors.versionConflict();
 
   await db.$transaction(async (tx) => {
-    const project = await resolveProject(tx, input.proj, actor.id);
+    const project = await resolveProject(tx, input.proj, actor);
     const category = await resolveCategory(tx, input.cat);
     await tx.activity.update({
       where: { id },

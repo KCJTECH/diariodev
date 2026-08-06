@@ -6,6 +6,12 @@ import type { AccessLevel, Prisma } from '@prisma/client';
 import type { Db } from '../../common/database/prisma.js';
 import { Errors } from '../../common/errors/app-error.js';
 import { API_TO_LEVEL, type ApiLevel, type AuthUser } from '../../common/auth/types.js';
+import {
+  assertCanAdministerLevel,
+  assertCanAffectLevels,
+  assertCanGrantLevel,
+  type LevelTarget,
+} from '../../common/auth/policy.js';
 import { writeOutbox } from '../../common/events/outbox.js';
 import { writeAudit } from '../audit/audit.service.js';
 
@@ -49,10 +55,23 @@ async function ensureCeoRemains(tx: Prisma.TransactionClient): Promise<void> {
   if (ceos === 0) throw Errors.conflict('LAST_CEO', 'A alteração deixaria a organização sem CEO ativo.');
 }
 
-async function resolveUserIds(db: Db, publicKeys: string[]): Promise<string[]> {
+// Devolve identidade e nível: o nível é necessário para autorizar quem entra no
+// recálculo. Chaves públicas inexistentes continuam sendo descartadas em silêncio.
+async function resolveUsers(db: Db, publicKeys: string[]): Promise<LevelTarget[]> {
   if (publicKeys.length === 0) return [];
-  const users = await db.user.findMany({ where: { publicKey: { in: publicKeys }, deletedAt: null }, select: { id: true } });
-  return users.map((u) => u.id);
+  return db.user.findMany({
+    where: { publicKey: { in: publicKeys }, deletedAt: null },
+    select: { id: true, effectiveLevel: true },
+  });
+}
+
+// Quem é afetado por uma troca de membros: só quem entra ou sai. Validar a lista
+// inteira impediria um gestor de salvar qualquer grupo que já tenha um CEO entre
+// os membros, porque o PUT da tela é substituição total e reenvia todos.
+function membrosAfetados(antes: LevelTarget[], depois: LevelTarget[]): LevelTarget[] {
+  const idsAntes = new Set(antes.map((u) => u.id));
+  const idsDepois = new Set(depois.map((u) => u.id));
+  return [...antes.filter((u) => !idsDepois.has(u.id)), ...depois.filter((u) => !idsAntes.has(u.id))];
 }
 
 export async function listGroups(db: Db): Promise<GroupDto[]> {
@@ -61,6 +80,10 @@ export async function listGroups(db: Db): Promise<GroupDto[]> {
 }
 
 export async function createGroup(db: Db, actor: AuthUser, input: GroupWrite, meta: Meta): Promise<GroupDto> {
+  // Sem o teto, um gestor cria grupo de nível ceo e se inclui nele: era o
+  // segundo caminho de autopromoção, equivalente ao PATCH de usuário.
+  assertCanGrantLevel(actor, input.level);
+
   const id = await db.$transaction(async (tx) => {
     const g = await tx.accessGroup.create({
       data: { name: input.name.trim(), description: input.desc ?? null, level: API_TO_LEVEL[input.level], permissions: input.perms ?? [] },
@@ -76,7 +99,17 @@ export async function createGroup(db: Db, actor: AuthUser, input: GroupWrite, me
 export async function updateGroup(db: Db, actor: AuthUser, id: string, input: Partial<GroupWrite>, meta: Meta): Promise<GroupDto> {
   const current = await db.accessGroup.findFirst({ where: { id, deletedAt: null }, include });
   if (!current) throw Errors.notFound('GROUP_NOT_FOUND', 'Grupo não encontrado.');
-  const memberIds = await resolveUserIds(db, current.members.map((m) => m.user.publicKey));
+
+  // Não se administra grupo de nível acima do próprio, nem para renomear, e não
+  // se eleva um grupo além do próprio nível.
+  assertCanAdministerLevel(actor, API_LEVEL[current.level]);
+  if (input.level) assertCanGrantLevel(actor, input.level);
+
+  const members = await resolveUsers(db, current.members.map((m) => m.user.publicKey));
+  const memberIds = members.map((u) => u.id);
+  // Trocar o nível do grupo recalcula todos os membros: todos precisam ser
+  // administráveis pelo ator, senão um gestor rebaixaria o grupo de um superior.
+  if (input.level) assertCanAffectLevels(actor, members);
 
   await db.$transaction(async (tx) => {
     await tx.accessGroup.update({
@@ -104,8 +137,16 @@ export async function setGroupMembers(db: Db, actor: AuthUser, id: string, membe
   const current = await db.accessGroup.findFirst({ where: { id, deletedAt: null }, include });
   if (!current) throw Errors.notFound('GROUP_NOT_FOUND', 'Grupo não encontrado.');
 
-  const oldIds = await resolveUserIds(db, current.members.map((m) => m.user.publicKey));
-  const newIds = await resolveUserIds(db, memberKeys);
+  // É esta linha que fecha a autopromoção por grupo: bloqueia incluir qualquer
+  // pessoa, inclusive a si mesmo, em grupo de nível superior ao do ator.
+  assertCanAdministerLevel(actor, API_LEVEL[current.level]);
+
+  const antes = await resolveUsers(db, current.members.map((m) => m.user.publicKey));
+  const depois = await resolveUsers(db, memberKeys);
+  assertCanAffectLevels(actor, membrosAfetados(antes, depois));
+
+  const oldIds = antes.map((u) => u.id);
+  const newIds = depois.map((u) => u.id);
 
   await db.$transaction(async (tx) => {
     await tx.groupMember.deleteMany({ where: { groupId: id } });
@@ -125,7 +166,14 @@ export async function setGroupMembers(db: Db, actor: AuthUser, id: string, membe
 export async function deleteGroup(db: Db, actor: AuthUser, id: string, meta: Meta): Promise<void> {
   const current = await db.accessGroup.findFirst({ where: { id, deletedAt: null }, include });
   if (!current) throw Errors.notFound('GROUP_NOT_FOUND', 'Grupo não encontrado.');
-  const memberIds = await resolveUserIds(db, current.members.map((m) => m.user.publicKey));
+
+  // Apagar o grupo rebaixa todos os membros. Sem estas duas linhas, um gestor
+  // apagaria o grupo Diretoria e rebaixaria os CEOs, e a salvaguarda do último
+  // CEO só barraria se sobrasse zero.
+  assertCanAdministerLevel(actor, API_LEVEL[current.level]);
+  const members = await resolveUsers(db, current.members.map((m) => m.user.publicKey));
+  assertCanAffectLevels(actor, members);
+  const memberIds = members.map((u) => u.id);
 
   await db.$transaction(async (tx) => {
     await tx.accessGroup.update({ where: { id }, data: { deletedAt: new Date(), active: false } });
