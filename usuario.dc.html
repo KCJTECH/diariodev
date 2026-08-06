@@ -118,22 +118,24 @@
         </div>
       </div>
 
-      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px">
-        <div style="font-size:.86rem;font-weight:700;margin-bottom:4px">Trocar de usuário</div>
-        <div style="font-size:.74rem;color:var(--text-muted);margin-bottom:14px">Atalho do protótipo — em produção isso passa pelo login</div>
-        <div style="display:flex;flex-direction:column;gap:6px">
-          <sc-for list="{{ accounts }}" as="a" hint-placeholder-count="5">
-            <div onClick="{{ a.onClick }}" style="{{ a.rowStyle }}" style-hover="border-color:var(--brand-text);background:var(--surface-2)">
-              <div style="{{ a.avatar }}">{{ a.ini }}</div>
-              <div style="flex:1;min-width:0">
-                <div style="font-size:.84rem;font-weight:600">{{ a.name }}</div>
-                <div style="font-size:.74rem;color:var(--text-muted)">{{ a.role }}</div>
+      <sc-if value="{{ showSwitchUser }}" hint-placeholder-val="{{ true }}">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px">
+          <div style="font-size:.86rem;font-weight:700;margin-bottom:4px">Trocar de usuário</div>
+          <div style="font-size:.74rem;color:var(--text-muted);margin-bottom:14px">Atalho do protótipo — em produção isso passa pelo login</div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <sc-for list="{{ accounts }}" as="a" hint-placeholder-count="5">
+              <div onClick="{{ a.onClick }}" style="{{ a.rowStyle }}" style-hover="border-color:var(--brand-text);background:var(--surface-2)">
+                <div style="{{ a.avatar }}">{{ a.ini }}</div>
+                <div style="flex:1;min-width:0">
+                  <div style="font-size:.84rem;font-weight:600">{{ a.name }}</div>
+                  <div style="font-size:.74rem;color:var(--text-muted)">{{ a.role }}</div>
+                </div>
+                <div style="font-size:.75rem;color:var(--text-faint)">{{ a.action }}</div>
               </div>
-              <div style="font-size:.75rem;color:var(--text-faint)">{{ a.action }}</div>
-            </div>
-          </sc-for>
+            </sc-for>
+          </div>
         </div>
-      </div>
+      </sc-if>
     </main>
 </x-import>
 
@@ -223,7 +225,7 @@ class Component extends DCLogic {
 
   renderVals() {
     const D = window.DV;
-    if (!D || !this.state.f) return { nav: [], sb: {}, u: {}, me: {}, f: {}, accounts: [], densities: [], projChips: [], toast: {} };
+    if (!D || !this.state.f) return { nav: [], sb: {}, u: {}, me: {}, f: {}, accounts: [], showSwitchUser: false, densities: [], projChips: [], toast: {} };
     const u = D.user();
     const f = this.state.f;
     const acts = D.acts();
@@ -273,6 +275,8 @@ class Component extends DCLogic {
         label: d[1], style: D.chip((ui.density || 'confortável') === d[0]) + 'font-size:.76rem;padding:5px 12px;',
         onClick: () => { D.setUi({ density: d[0] }); this.setState(s => ({ tick: s.tick + 1 })); }
       })),
+      // O atalho depende de dev-login, que responde 404 em producao.
+      showSwitchUser: D.devLoginAvailable(),
       accounts: D.people().filter(p => p.active).map(p => ({
         name: p.name, role: p.role, ini: p.ini, avatar: D.avatar(p, 30),
         action: p.id === u.id ? 'em uso' : 'entrar →',

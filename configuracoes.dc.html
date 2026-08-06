@@ -934,10 +934,22 @@ class Component extends DCLogic {
         ]
       });
     }, 25);
+    // Escrita recusada pelo servidor precisa aparecer. A gravação é otimista: o
+    // cache muda, o servidor recusa e o DV recarrega do servidor, desfazendo a
+    // alteração. Sem este tratador, o único registro era um aviso no console, e o
+    // usuário via a mudança aplicar e voltar sozinha, sem explicação.
+    this._pararErro = setInterval(() => {
+      if (!window.DV) return;
+      clearInterval(this._pararErro);
+      DV.onError((err) => {
+        const msg = (err && err.message) || 'Falha de comunicação com o servidor.';
+        this.toast('Alteração não salva', msg, 'error');
+      });
+    }, 25);
     this.onKey = (e) => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); window.location.href = 'pesquisa.dc.html'; } };
     window.addEventListener('keydown', this.onKey);
   }
-  componentWillUnmount() { clearInterval(this.t); window.removeEventListener('keydown', this.onKey); }
+  componentWillUnmount() { clearInterval(this.t); clearInterval(this._pararErro); window.removeEventListener('keydown', this.onKey); }
 
   toast(title, sub, kind) {
     clearTimeout(this._tt);

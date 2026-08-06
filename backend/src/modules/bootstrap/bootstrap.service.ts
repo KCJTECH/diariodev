@@ -96,6 +96,10 @@ export async function buildBootstrap(db: Db, actor: AuthUser): Promise<Record<st
     },
     permissions,
     canAdminister: isManager,
+    // A tela usa isto para não oferecer o atalho "entrar como", que depende de
+    // dev-login e responde 404 em produção. Não é permissão: é disponibilidade
+    // do recurso no ambiente.
+    devLoginAllowed: env.ALLOW_DEV_LOGIN,
     serverNow: new Date().toISOString(),
     timezone: env.ORGANIZATION_TIMEZONE,
     apiVersion: 'v1',

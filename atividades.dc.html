@@ -547,6 +547,21 @@ class Component extends DCLogic {
     this.setState({ toast: { title: title, sub: sub, kind: kind || 'success' } });
     this._tt = setTimeout(() => this.setState({ toast: null }), 3000);
   }
+  // Envia os anexos escolhidos, um a um, e informa o que falhou sem derrubar o resto.
+  enviarAnexos(activityId, arquivos) {
+    Promise.all(arquivos.map(x =>
+      DV.uploadAttachment(activityId, x.blob).then(() => null).catch(err => ({ nome: x.name, erro: err.message }))
+    )).then((r) => {
+      const falhas = r.filter(Boolean);
+      if (!falhas.length) {
+        this.toast('Anexo enviado', arquivos.length === 1 ? arquivos[0].name : arquivos.length + ' arquivos', 'success');
+      } else {
+        this.toast('Anexo não enviado', falhas[0].nome + ': ' + falhas[0].erro, 'error');
+      }
+      this.setState(s => ({ tick: s.tick + 1 }));
+    });
+  }
+
   commit(keepOpen) {
     const f = this.state.form;
     if (!f) return;
@@ -558,14 +573,23 @@ class Component extends DCLogic {
       d: DV.offsetOf(f.date), dur: f.dur.trim() || '—', pri: f.pri, tags: [], files: (f.files || []).slice(),
       sourceTaskId: f.fromTask || null
     };
+    // Arquivos recém-escolhidos, que ainda têm o objeto File para enviar.
+    const novos = (f.files || []).filter(x => x && x.blob);
     if (f.mode === 'edit') {
       DV.update(f.id, rec);
       this.toast('Atividade atualizada', rec.proj + ' · ' + rec.cat, 'success');
+      if (novos.length) this.enviarAnexos(f.id, novos);
     } else {
       rec.t = new Date().toTimeString().slice(0, 5);
       // Com sourceTaskId o servidor conclui a tarefa na mesma transação do registro.
-      DV.create(rec);
+      const criado = DV.create(rec);
       this.toast('Atividade registrada', rec.proj + ' · ' + rec.cat + (f.fromTask ? ' · tarefa concluída' : ''), 'success');
+      // O anexo precisa do id real, que só existe depois da confirmação do servidor.
+      if (novos.length && criado && criado.saved) {
+        criado.saved
+          .then((salvo) => this.enviarAnexos(salvo.id, novos))
+          .catch(() => { /* falha do registro já foi reportada pelo DV */ });
+      }
     }
     this.setState(s => ({
       tick: s.tick + 1,
@@ -680,7 +704,13 @@ class Component extends DCLogic {
         name: fl.name, size: fl.size,
         ext: (fl.name.split('.').pop() || '?').slice(0, 4).toUpperCase(),
         iconStyle: 'width:38px;flex:0 0 38px;text-align:center;font-size:.62rem;font-weight:800;color:var(--brand-text);background:var(--tint-blue);border:1px solid var(--tint-blue-bd);border-radius:5px;padding:5px 0',
-        onOpen: () => this.toast('Anexo do protótipo', fl.name + ' seria aberto do storage', 'error')
+        // Download autenticado: o arquivo fica fora da pasta pública e a rota
+        // exige sessão, então não existe link direto para ele.
+        onOpen: () => {
+          if (!fl.id) { this.toast('Anexo pendente', 'Ainda não foi enviado ao servidor', 'error'); return; }
+          DV.downloadAttachment(fl.id, fl.name)
+            .catch(err => this.toast('Falha ao baixar', (err && err.message) || 'Tente novamente', 'error'));
+        }
       })),
       onEdit: () => this.openEdit(da)
     } : { fields: [], files: [], tags: [] };
@@ -794,9 +824,13 @@ class Component extends DCLogic {
         this.toast('Registro excluído', 'A atividade saiu da timeline', 'error');
       },
       onPickFiles: (e) => {
+        // `blob` guarda o objeto File. Antes daqui só o nome e o tamanho eram
+        // mantidos, e por isso o anexo nunca chegava ao servidor: o backend tinha
+        // a rota, a tela descartava o arquivo.
         const picked = Array.from(e.target.files || []).map(fl => ({
           name: fl.name,
-          size: fl.size > 1048576 ? (fl.size / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(fl.size / 1024)) + ' KB'
+          size: fl.size > 1048576 ? (fl.size / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(fl.size / 1024)) + ' KB',
+          blob: fl
         }));
         e.target.value = '';
         if (picked.length) this.setState(s => ({ form: Object.assign({}, s.form, { files: (s.form.files || []).concat(picked), error: '' }) }));

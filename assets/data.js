@@ -33,7 +33,7 @@
     people: [], categories: [], projects: [], activities: [], tasks: [],
     groups: [], integrations: [], integrationRuns: [], projectMap: {},
     appearance: {}, preferences: { collapsed: false, density: 'confortável', theme: 'light' },
-    cursor: null, serverNow: null, timezone: 'America/Sao_Paulo', canAdminister: false
+    cursor: null, serverNow: null, timezone: 'America/Sao_Paulo', canAdminister: false, devLoginAllowed: false
   };
 
   /* snapshot local só para aplicar tema/marca sem flash antes do bootstrap */
@@ -513,8 +513,84 @@
       { id: 'pesquisa', label: 'Auditoria', icon: '⌕', href: 'pesquisa.dc.html' },
       { id: 'configuracoes', label: 'Configurações', icon: '⚙', href: 'configuracoes.dc.html' }
     ],
+    /* ── anexos ──
+       O backend já tinha as três rotas; o que faltava era a tela enviar o objeto
+       File e baixar autenticado. Upload não pode usar o helper http(), que força
+       Content-Type JSON: multipart precisa que o navegador defina o boundary.
+       O campo aceito é o primeiro arquivo do multipart (req.file()). */
+    uploadAttachment: function (activityId, file) {
+      var self = this;
+      var fd = new FormData();
+      fd.append('file', file, file.name);
+      return fetch(API + '/activities/' + activityId + '/attachments', {
+        method: 'POST', credentials: 'include', body: fd
+      }).then(function (res) {
+        return res.json().catch(function () { return null; }).then(function (j) {
+          if (!res.ok) {
+            var err = new Error((j && j.error && j.error.message) || ('HTTP ' + res.status));
+            err.status = res.status; err.code = j && j.error && j.error.code;
+            throw err;
+          }
+          // Recarrega a atividade para a lista de anexos refletir o servidor.
+          self._reload('activities');
+          return j.data;
+        });
+      }).catch(function (err) {
+        if (err && err.status === 403) throw new Error('Só o autor do registro anexa arquivo nele.');
+        if (err && err.status === 413 || (err && err.status === 422)) throw new Error((err.message) || 'Arquivo não aceito.');
+        if (err && err.status === 429) throw new Error('Muitos envios. Aguarde um instante.');
+        throw new Error((err && err.message) || 'Não foi possível enviar o anexo.');
+      });
+    },
+
+    /* Download autenticado: o arquivo fica fora da pasta pública e a rota exige
+       sessão, então não dá para usar href direto. Busca como blob e dispara o
+       salvamento; nada é adicionado à tela. */
+    downloadAttachment: function (id, name) {
+      return fetch(API + '/attachments/' + id, { credentials: 'include' }).then(function (res) {
+        if (!res.ok) {
+          var msg = res.status === 403 || res.status === 404
+            ? 'Anexo não disponível para você.'
+            : 'Não foi possível baixar o anexo.';
+          throw new Error(msg);
+        }
+        return res.blob();
+      }).then(function (blob) {
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url; a.download = name || 'anexo';
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+        return true;
+      });
+    },
+
+    removeAttachment: function (id) {
+      return http('DELETE', '/attachments/' + id).then(function () { return true; }).catch(function (err) {
+        if (err && err.status === 403) throw new Error('Sem permissão para remover este anexo.');
+        throw new Error('Não foi possível remover o anexo.');
+      });
+    },
+
+    /* Quem pode administrar (gestor+), conforme o servidor decidiu no bootstrap.
+       Não é controle de acesso, que é sempre do backend: serve para a tela não
+       oferecer ação que vai ser recusada. */
+    canAdminister: function () { return !!state.canAdminister; },
+
+    /* O atalho "entrar como" depende de dev-login, que responde 404 em producao.
+       A tela consulta isto para nao oferecer o que nao funciona. */
+    devLoginAvailable: function () { return !!state.devLoginAllowed; },
+
+    /* Itens de menu que exigem administração. Sem isto, o nível dev via
+       Configurações e Auditoria e não conseguia usar nada nas duas telas. */
+    ADMIN_ONLY: ['configuracoes'],
+
     nav: function (active, collapsed) {
-      return this.NAV.map(function (n) {
+      var podeAdministrar = !!state.canAdminister;
+      var itens = this.NAV.filter(function (n) {
+        return podeAdministrar || this.ADMIN_ONLY.indexOf(n.id) === -1;
+      }, this);
+      return itens.map(function (n) {
         var on = n.id === active;
         return {
           label: n.label, icon: n.icon, href: n.href,
@@ -602,9 +678,21 @@
         priority: temp.pri || 'média', tags: temp.tags || [], clientMutationId: temp.id,
         sourceTaskId: rec.sourceTaskId || null
       };
-      http('POST', '/activities', payload)
-        .then(function (r) { var i = findIdx(state.activities, temp.id); if (i > -1) state.activities[i] = mapActivity(r.data); rerender(); })
-        .catch(function (e) { state.activities = state.activities.filter(function (a) { return a.id !== temp.id; }); rerender(); notifyError(e); });
+      /* `saved` é adição, não troca de contrato: o retorno síncrono continua sendo
+         o registro otimista, como as telas esperam. Quem precisa do id real do
+         servidor, como o envio de anexo, aguarda esta promessa. */
+      temp.saved = http('POST', '/activities', payload)
+        .then(function (r) {
+          var salvo = mapActivity(r.data);
+          var i = findIdx(state.activities, temp.id);
+          if (i > -1) state.activities[i] = salvo;
+          rerender();
+          return salvo;
+        })
+        .catch(function (e) {
+          state.activities = state.activities.filter(function (a) { return a.id !== temp.id; });
+          rerender(); notifyError(e); throw e;
+        });
       return temp;
     },
     update: function (id, rec) {
@@ -671,7 +759,7 @@
     state.appearance = data.appearance || {}; state.preferences = Object.assign({ collapsed: false, density: 'confortável', theme: 'light' }, data.preferences || {});
     state.preferences.defaultProject = idToName[state.preferences.defaultProjectId] || '';
     state.serverNow = data.serverNow; state.timezone = data.timezone || 'America/Sao_Paulo';
-    state.cursor = data.cursor; state.canAdminister = !!data.canAdminister;
+    state.cursor = data.cursor; state.canAdminister = !!data.canAdminister; state.devLoginAllowed = !!data.devLoginAllowed;
     snapWrite('dv.snap.theme', state.preferences.theme); snapWrite('dv.snap.brand', state.appearance);
   }
 
