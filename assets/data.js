@@ -128,9 +128,10 @@
       var self = this, ps = [];
       l.forEach(function (p) {
         var prev = byId[p.id];
-        var body = { name: p.name, role: p.role, email: p.email, initials: p.ini, color: p.color, level: p.level, active: p.active !== false };
+        /* Sem level: o nível é derivado dos grupos e recalculado pelo servidor. */
+        var body = { name: p.name, role: p.role, email: p.email, initials: p.ini, color: p.color, active: p.active !== false };
         if (!prev) ps.push(http('POST', '/users', body));
-        else if (prev.name !== p.name || prev.role !== p.role || prev.email !== p.email || prev.ini !== p.ini || prev.color !== p.color || prev.level !== p.level || prev.active !== p.active) {
+        else if (prev.name !== p.name || prev.role !== p.role || prev.email !== p.email || prev.ini !== p.ini || prev.color !== p.color || prev.active !== p.active) {
           ps.push(http('PATCH', '/users/' + p.id, body));
         }
       });
@@ -496,7 +497,7 @@
     /* ── shell: navegação e sidebar (idênticos) ── */
     NAV: [
       { id: 'dashboard', label: 'Dashboard', icon: '◱', href: 'dashboard.dc.html' },
-      { id: 'atividades', label: 'Atividades', icon: '≡', href: 'atividades.dc.html' },
+      { id: 'atividades', label: 'Monitoria', icon: '≡', href: 'atividades.dc.html' },
       { id: 'colaboradores', label: 'Colaboradores', icon: '◍', href: 'colaboradores.dc.html' },
       { id: 'projetos', label: 'Projetos', icon: '◈', href: 'projetos.dc.html' },
       { id: 'relatorios', label: 'Relatórios', icon: '◔', href: 'relatorios.dc.html' },
