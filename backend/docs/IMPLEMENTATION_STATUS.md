@@ -54,16 +54,36 @@ flat); 87 arquivos analisados sem problema; dependências `@fastify/swagger` e
 - Validação do link de redefinição antes de mostrar o formulário: quem abre link
   expirado preenche a senha duas vezes para só então descobrir.
 - Aviso ao titular quando um administrador troca a senha dele.
+- `DV.onError` só está registrado em `configuracoes.dc.html`. As demais telas de
+  escrita continuam revertendo em silêncio quando o servidor recusa.
+- Verificação do bloco "Trocar de usuário" oculto: comprovada no navegador com a
+  flag ligada (o bloco aparece, que é o correto) e comprovada no servidor da VM que
+  a flag está desligada. A observação direta do bloco ausente em produção exige
+  login com senha real, que não foi feito.
 
-## Bloqueios de frontend (§4.3, exigem autorização para tocar HTML)
-- Upload/download de anexo pela tela (o HTML descarta o objeto File; o backend existe).
-- Tela de Configurações e item Auditoria aparecem para nível dev, que não pode usar
-  nenhuma das ações: nenhuma tela consulta `canAdminister`, que o bootstrap envia.
-- Escrita recusada pelo servidor reverte em silêncio: `notifyError` só escreve no
-  console e nenhuma tela registra `DV.onError`, então o usuário vê a alteração
-  aplicar e voltar sozinha, sem explicação.
-- Bloco "Trocar de usuário" em usuario.dc.html depende de dev-login, que responde
-  404 em produção.
+## Bloqueios de frontend (§4.3) — resolvidos em 2026-08-06 com autorização explícita
+Os quatro foram fechados. Alteração em `*.dc.html` feita pelo procedimento do §4.3:
+bloqueio documentado, alteração mínima apresentada, autorização recebida. Os dois
+testes de regressão visual continuam passando, o que prova que a aparência não mudou.
+
+- Anexos: era o único dos quatro que representava funcionalidade ausente. O HTML
+  convertia o arquivo em nome e tamanho e descartava o objeto `File`, então nada
+  chegava ao servidor, e abrir anexo era um stub. Hoje `onPickFiles` guarda o `File`,
+  o commit envia depois de o servidor confirmar o registro, e o download é
+  autenticado por `fetch` com blob, porque o arquivo fica fora da pasta pública.
+  Para isso `DV.create` passou a expor `saved`, promessa que resolve com o registro
+  confirmado. É adição, não troca de contrato (§8.3): o retorno síncrono continua
+  sendo o registro otimista.
+- Menu por permissão: `Configurações` sai para quem não administra, via
+  `canAdminister`. Resolvido em `assets/data.js`, sem tocar HTML, porque o menu vem
+  de `DV.NAV`. Correção da caracterização anterior: o item **Auditoria não era
+  bloqueio**. Ele aponta para a tela de pesquisa, que respeita escopo e devolve só o
+  que a pessoa pode ver, portanto é legítimo para nível dev.
+- Escrita recusada deixa de reverter em silêncio: `configuracoes.dc.html` registra
+  `DV.onError` e mostra o motivo no aviso visual que a tela já tem. As outras telas
+  de escrita ainda não registram: pendência abaixo.
+- Bloco "Trocar de usuário": o bootstrap informa `devLoginAllowed` e a tela esconde o
+  bloco quando o recurso está desligado, como na VM, onde dev-login responde 404.
 
 ## Não implementar
 - Aba "Estados" não persiste nada (§23): sem tabela nem endpoint.
