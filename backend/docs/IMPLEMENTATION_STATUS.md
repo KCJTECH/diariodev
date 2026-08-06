@@ -42,6 +42,19 @@ flat); 87 arquivos analisados sem problema; dependências `@fastify/swagger` e
 `@fastify/swagger-ui` removidas por nunca terem sido registradas.
 
 ## Pendências
+- **Sem backup do banco em produção.** Revisão da VM em 2026-08-06: nada em
+  `/etc/cron.d`, `/etc/cron.daily`, `/etc/cron.hourly`, `/etc/cron.weekly`, nenhum
+  timer systemd de dump, nenhum arquivo `.sql` ou `.dump` no host e nenhum crontab
+  do usuário da aplicação. O único timer de backup é o `dpkg-db-backup` do próprio
+  Debian, que salva o banco de pacotes do sistema, não o nosso. Existe procedimento
+  escrito em `BACKUP_E_RESTAURACAO.md`, mas nada executa. Hoje o banco tem 9,4 MB,
+  9 usuários, 130 registros de auditoria e nenhum anexo, então a perda seria pequena
+  em volume e total em histórico. Instalar timer exige root.
+- **Sem rotina de retenção.** Não existe nenhum `deleteMany` em `src/jobs` nem em
+  `src/workers`: sessões revogadas, tokens de redefinição usados e eventos de outbox
+  já publicados nunca são removidos. Na VM: 50 sessões revogadas de 84, 14 tokens
+  usados e 2 expirados de 16, e 61 eventos de outbox todos publicados. Irrelevante
+  no volume atual, mas o crescimento não tem limite por desenho.
 - Regressão visual limitada a regiões estáveis; full-page precisa congelar serverNow.
 - Anexos: provider S3/MinIO, quarentena/ClamAV, streaming (hoje disco local + buffer).
 - Reset de senha por e-mail implementado (SMTP via Nodemailer); depende de SMTP_HOST e

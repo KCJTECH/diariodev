@@ -144,3 +144,44 @@ Isso também revoga as sessões ativas daquele usuário.
 - Firewall: a porta 3333 está acessível na rede interna. Restringir se necessário.
 - Trocar as senhas que foram compartilhadas durante o processo (kcj, root) e a senha
   do usuário de banco, se desejado.
+
+## Revisão da VM em 2026-08-06 (leitura, sem tocar dados)
+
+Verificado com evidência, não por leitura de código:
+
+- **Autenticação em toda a superfície.** As 18 rotas protegidas respondem 401 sem
+  sessão: `auth/me`, `bootstrap`, `activities`, `tasks`, `users`, `categories`,
+  `projects`, `groups`, `integrations`, `integration-runs`, `search`, os cinco
+  relatórios, `sync` e `attachments`. `dev-login` e `dev-accounts` respondem 404,
+  porque `ALLOW_DEV_LOGIN=false`. `health/live` e `health/ready` respondem 200.
+- **Build igual ao repositório.** Comparação por SHA-256 dos 69 arquivos de
+  `backend/dist`: 68 idênticos e o 69º, `search.service.js`, diferindo apenas por 17
+  caracteres de retorno de carro. Conteúdo idêntico. Nenhuma alteração fora do git.
+- **Cabeçalhos.** CSP, Referrer-Policy `no-referrer`, X-Content-Type-Options
+  `nosniff`, X-Frame-Options `SAMEORIGIN`, X-DNS-Prefetch-Control `off`. Sem HSTS,
+  correto: o acesso é HTTP e HSTS é condicional por desenho.
+- **Rate limit** ativo, 600 por minuto, visível nos cabeçalhos `x-ratelimit-*`.
+- **Units systemd** `enabled`, então sobem no boot, e `active`.
+- **Busca sem acento funcionando de ponta a ponta.** `dv_norm` presente, `unaccent` e
+  `pg_trgm` instaladas, seis índices trigram criados, e a consulta real prova a
+  insensibilidade: `questao`, `QUESTÃO` e `questão` encontram a mesma atividade.
+- **Outbox drenado.** 61 eventos, todos publicados, nenhum pendente: o worker está
+  consumindo.
+- **Resumo diário executando.** Job repetido registrado para 18:30 em
+  America/Sao_Paulo, duas execuções concluídas e a próxima agendada.
+- **Sem erro em 24 horas.** Zero registros de nível 50 ou 60 na API e no worker.
+- **Auditoria ativa.** 130 registros, o mais recente no próprio dia da revisão.
+- **Nenhum token de redefinição aberto.** 14 usados e 2 expirados.
+- **Configuração efetiva:** `NODE_ENV=production`, `ALLOW_DEV_LOGIN=false`,
+  `TRUST_PROXY=[]` (nenhum proxy confiável, correto para exposição direta),
+  `LOGIN_MAX_ATTEMPTS=10`, `LOGIN_LOCK_MINUTES=15`, `COOKIE_SECURE=false` com
+  `ALLOW_INSECURE_COOKIES=true`, que é a exceção explícita exigida para HTTP.
+
+Duas lacunas encontradas, ambas registradas em `IMPLEMENTATION_STATUS.md`: não há
+backup do banco agendado, e não há rotina de retenção para sessões, tokens e outbox.
+
+Um job de webhook está parado no conjunto `failed` do BullMQ desde 2026-08-03, com
+motivo `DELIVERY_ERROR`. Não é defeito de registro: `delivery.ts` grava a tentativa
+em `integration_runs` inclusive quando falha. A tabela está vazia porque as
+integrações de teste foram excluídas e a relação tem `onDelete: Cascade`. O que
+sobra é higiene: o job permanece na fila indefinidamente e nada o expõe.
