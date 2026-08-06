@@ -53,10 +53,14 @@ components:
     Person:
       type: object
       properties:
-        id: { type: string, description: chave pública }
+        id: { type: string, description: chave pública; o id interno não é exposto }
         name: { type: string }
         role: { type: string }
-        email: { type: string }
+        email:
+          type: string
+          description: >-
+            vazio quando quem consulta é nível dev e o registro é de outra pessoa;
+            o próprio registro sempre traz o e-mail
         ini: { type: string }
         color: { type: string }
         active: { type: boolean }
@@ -167,7 +171,7 @@ paths:
   /users/{id}/password:
     post:
       tags: [users]
-      summary: gestor+ define a senha de outro colaborador
+      summary: gestor+ define a senha de outro colaborador (nível estritamente menor)
       description: >-
         Atende os campos de senha da tela de administração. Só age sobre nível
         estritamente menor e nunca sobre a própria conta (trocar a própria senha é
@@ -285,6 +289,13 @@ paths:
                       serverNow: { type: string, format: date-time }
                       timezone: { type: string }
                       cursor: { type: string, nullable: true }
+                      permissions:
+                        type: array
+                        items: { type: string }
+                        description: >-
+                          permissões efetivas do usuário, união das permissões dos grupos
+                          ativos dele. São rótulos descritivos: a autorização real é por
+                          nível, no servidor
                       canAdminister: { type: boolean }
                   meta: { $ref: "#/components/schemas/Meta" }
   /activities:
