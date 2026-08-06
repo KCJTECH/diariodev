@@ -185,3 +185,39 @@ motivo `DELIVERY_ERROR`. Não é defeito de registro: `delivery.ts` grava a tent
 em `integration_runs` inclusive quando falha. A tabela está vazia porque as
 integrações de teste foram excluídas e a relação tem `onDelete: Cascade`. O que
 sobra é higiene: o job permanece na fila indefinidamente e nada o expõe.
+
+## Remoção do "Esqueci minha senha" na VM, 2026-08-06
+
+Deploy do commit `54aab94`, com GO explícito do responsável. Ordem executada de
+propósito: código primeiro, restart depois, migration por último. Assim o processo em
+execução nunca ficou referenciando uma tabela já apagada.
+
+1. Dump das 16 linhas de `password_reset_tokens` em
+   `/home/kcj/password_reset_tokens_backup_20260806.json` (5.718 bytes), antes de
+   qualquer alteração. A VM não tem backup automatizado, então isto foi a única rede
+   de proteção do passo irreversível.
+2. Envio de seis arquivos compilados, do `schema.prisma`, do `package.json` e do
+   `package-lock.json`, mais a pasta da migration.
+3. Remoção manual de `dist/src/common/mail/mailer.js` e do `.map` correspondente: o
+   `scp` não apaga o que saiu do repositório, e o `tsc` também não limpa saída
+   obsoleta. Vale como lembrete: em remoção de arquivo, o deploy por `scp` deixa
+   resíduo se ninguém apagar à mão.
+4. `npx prisma generate` com o schema novo, depois `restart.sh`.
+5. `npx prisma migrate deploy`, que aplicou `20260806190000_remove_password_reset`.
+
+Verificado depois:
+
+- `password_reset_tokens` não existe mais; o schema `diariodev` passou de 17 para 16
+  tabelas.
+- Os 17 registros de auditoria sobre senha continuam em `audit_logs`.
+- As três rotas removidas respondem 404; `POST /auth/password` e
+  `POST /users/:id/password` continuam respondendo 401 sem sessão.
+- `/health/ready` ok, um processo de API e um de worker, zero erros de nível 50 ou 60
+  nos dois units.
+- 6 usuários ativos e 34 sessões ativas preservados: ninguém foi desconectado.
+- Tela de login carrega, `DV` publicado, sem loop de recarga.
+
+Pendência criada por este deploy, registrada em `IMPLEMENTATION_STATUS.md`: a tela de
+login ainda oferece "Esqueci minha senha" e o `DV` ainda expõe
+`requestPasswordReset`, que agora recebe 404. Remover exige tocar `index.html` e
+`assets/data.js`, protegidos pelo §4.1.
