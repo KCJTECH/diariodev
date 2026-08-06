@@ -54,8 +54,18 @@ flat); 87 arquivos analisados sem problema; dependências `@fastify/swagger` e
 - Validação do link de redefinição antes de mostrar o formulário: quem abre link
   expirado preenche a senha duas vezes para só então descobrir.
 - Aviso ao titular quando um administrador troca a senha dele.
-- `DV.onError` só está registrado em `configuracoes.dc.html`. As demais telas de
-  escrita continuam revertendo em silêncio quando o servidor recusa.
+- ~~`DV.onError` só está registrado em `configuracoes.dc.html`~~ Resolvido em
+  2026-08-06: as cinco telas de escrita (`atividades`, `projeto`, `projetos`,
+  `usuario`, `configuracoes`) registram o tratador e usam o toast que já possuem.
+  Comprovado com recusa real do servidor em cada uma, 403 nas de permissão.
+  Telas apenas de leitura (`dashboard`, `pesquisa`, `relatorios`, `colaborador`,
+  `colaboradores`) não registram porque não escrevem.
+- Defeito corrigido em 2026-08-06, achado ao provar o toast de sucesso: o botão
+  "Salvar alterações" de Minha conta nunca funcionou. `DV.user()` publica o cargo
+  como `roleTitle` e a tela lê `u.role`, então o campo Cargo vinha vazio e o clique
+  quebrava em `f.role.trim()` de undefined. Corrigido em `normalizeUser`, espelhando
+  `role` sem remover `roleTitle`. Fica o alerta: divergência de nome entre o DTO do
+  servidor e o que a tela lê não aparece em teste de backend nem de contrato.
 - Verificação do bloco "Trocar de usuário" oculto: comprovada no navegador com a
   flag ligada (o bloco aparece, que é o correto) e comprovada no servidor da VM que
   a flag está desligada. A observação direta do bloco ausente em produção exige
