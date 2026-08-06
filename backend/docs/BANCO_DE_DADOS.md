@@ -8,7 +8,6 @@ Instantes em timestamptz (UTC). Schema padrão do projeto: diariodev.
 - users: pessoas e nível efetivo. E-mail único (normalizado minúsculo). Soft delete.
 - user_preferences: preferências individuais (collapsed, density, tema, projeto padrão).
 - sessions: refresh token só como hash, expiração, rotação, revogação.
-- password_reset_tokens: token de redefinição só como hash.
 - categories: nome, slug único, cor, ordem; arquivamento (archived_at) libera o slug.
 - projects: nome, slug único; arquivamento; created_by.
 - activities: user_id (da sessão), project_id, category_id, category_name_snapshot,

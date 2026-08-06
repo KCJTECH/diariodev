@@ -17,16 +17,7 @@ const passwordSchema = z.object({
   currentPassword: z.string().min(1).max(200),
   newPassword: z.string().min(8).max(200),
 });
-const resetConfirmSchema = z.object({
-  token: z.string().min(10).max(200),
-  newPassword: z.string().min(8).max(200),
-});
-const resetRequestSchema = z.object({ email: z.string().email().max(200) });
-
 const tight = { rateLimit: { max: 10, timeWindow: '1 minute' } };
-// Rota pública que dispara e-mail: limite menor, para não virar ferramenta de
-// disparo em massa nem sonda de enumeração de contas.
-const resetRequest = { rateLimit: { max: 5, timeWindow: '15 minutes' } };
 
 function ctxOf(req: FastifyRequest): { ua: string | undefined; ip: string | undefined } {
   return { ua: req.headers['user-agent'], ip: req.ip };
@@ -85,32 +76,6 @@ export function registerAuthRoutes(app: FastifyInstance, db: Db): void {
     const token = req.cookies[REFRESH_COOKIE];
     await auth.logout(db, token);
     clearAuthCookies(reply);
-    return ok({ ok: true }, req.id);
-  });
-
-  // Solicitação de redefinição pela tela de login. Rota pública, por isso o
-  // rate limit é mais apertado que o das demais. A resposta é sempre a mesma,
-  // com ou sem conta para o e-mail informado (não permite enumerar usuários).
-  app.post('/password-reset/request', { config: resetRequest }, async (req) => {
-    const { email } = resetRequestSchema.parse(req.body);
-    const result = await auth.requestPasswordReset(db, email);
-    if (result.userId) {
-      await writeAudit(db, {
-        actorUserId: result.userId,
-        action: 'auth.password_reset_requested',
-        entityType: 'user',
-        entityId: result.userId,
-        requestId: req.id,
-        ipHash: hashIp(req.ip),
-        userAgent: req.headers['user-agent'] ?? null,
-      });
-    }
-    return ok({ ok: true }, req.id);
-  });
-
-  app.post('/password-reset/confirm', { config: tight }, async (req) => {
-    const { token, newPassword } = resetConfirmSchema.parse(req.body);
-    await auth.confirmPasswordReset(db, token, newPassword);
     return ok({ ok: true }, req.id);
   });
 

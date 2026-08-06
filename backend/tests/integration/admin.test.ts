@@ -47,83 +47,6 @@ describe('usuários: salvaguardas', () => {
   });
 });
 
-// Reset acionado pelo gestor para outro colaborador: o link vai por e-mail para
-// quem acionou, que repassa pelo canal que já usa com a equipe.
-describe('usuários: reset de senha acionado pelo gestor', () => {
-  async function criarAlvo(): Promise<{ publicKey: string; email: string }> {
-    const email = `alvo${Date.now()}@itscs.com.br`;
-    const res = await app.inject({
-      method: 'POST', url: '/api/v1/users', headers: { cookie: ceo },
-      payload: { name: 'Alvo Reset', role: 'Analista', email, level: 'dev' },
-    });
-    expect(res.statusCode).toBe(201);
-    return { publicKey: body(res).data.user.id, email };
-  }
-
-  it('gera token para o colaborador e informa se o e-mail saiu', async () => {
-    const alvo = await criarAlvo();
-    const res = await app.inject({
-      method: 'POST', url: `/api/v1/users/${alvo.publicKey}/password-reset`, headers: { cookie: ceo },
-    });
-    expect(res.statusCode).toBe(200);
-    const d = body(res).data;
-    expect(d.resetToken).toBeTruthy(); // devolvido fora de produção
-    expect(typeof d.mailSent).toBe('boolean');
-  });
-
-  it('o token gerado pelo gestor troca a senha do colaborador', async () => {
-    const alvo = await criarAlvo();
-    const pedido = await app.inject({
-      method: 'POST', url: `/api/v1/users/${alvo.publicKey}/password-reset`, headers: { cookie: ceo },
-    });
-    const token = body(pedido).data.resetToken;
-    const nova = 'SenhaViaGestor@2026';
-    const confirma = await app.inject({
-      method: 'POST', url: '/api/v1/auth/password-reset/confirm', payload: { token, newPassword: nova },
-    });
-    expect(confirma.statusCode).toBe(200);
-    const entra = await app.inject({
-      method: 'POST', url: '/api/v1/auth/login', payload: { email: alvo.email, password: nova },
-    });
-    expect(entra.statusCode).toBe(200);
-  });
-
-  it('pedido novo invalida o token anterior', async () => {
-    const alvo = await criarAlvo();
-    const p1 = await app.inject({ method: 'POST', url: `/api/v1/users/${alvo.publicKey}/password-reset`, headers: { cookie: ceo } });
-    await app.inject({ method: 'POST', url: `/api/v1/users/${alvo.publicKey}/password-reset`, headers: { cookie: ceo } });
-    const res = await app.inject({
-      method: 'POST', url: '/api/v1/auth/password-reset/confirm',
-      payload: { token: body(p1).data.resetToken, newPassword: 'OutraQualquer@2026' },
-    });
-    expect(res.statusCode).toBe(401);
-  });
-
-  it('dev não pode acionar reset de outro colaborador', async () => {
-    const alvo = await criarAlvo();
-    const dev = await login('elaine@itscs.com.br');
-    const res = await app.inject({
-      method: 'POST', url: `/api/v1/users/${alvo.publicKey}/password-reset`, headers: { cookie: dev },
-    });
-    expect(res.statusCode).toBe(403);
-  });
-
-  it('colaborador inexistente → 404', async () => {
-    const res = await app.inject({
-      method: 'POST', url: '/api/v1/users/nao-existe-mesmo/password-reset', headers: { cookie: ceo },
-    });
-    expect(res.statusCode).toBe(404);
-  });
-
-  it('gestor não gera link de redefinição do CEO (bloqueia tomada de conta)', async () => {
-    const gestor = await login('laerty@itscs.com.br');
-    const res = await app.inject({
-      method: 'POST', url: '/api/v1/users/marcelo/password-reset', headers: { cookie: gestor },
-    });
-    expect(res.statusCode).toBe(403);
-  });
-});
-
 // Campos "Nova senha"/"Confirmar senha" da tela de administração.
 describe('usuários: gestor define a senha do colaborador', () => {
   async function criarAlvo(): Promise<{ publicKey: string; email: string }> {
@@ -136,15 +59,8 @@ describe('usuários: gestor define a senha do colaborador', () => {
     return { publicKey: body(res).data.user.id, email };
   }
 
-  it('define a senha, encerra as sessões e invalida link em aberto', async () => {
+  it('define a senha e o colaborador entra com ela', async () => {
     const alvo = await criarAlvo();
-
-    // link de redefinição em aberto antes da troca direta
-    const link = await app.inject({
-      method: 'POST', url: `/api/v1/users/${alvo.publicKey}/password-reset`, headers: { cookie: ceo },
-    });
-    const tokenAntigo = body(link).data.resetToken;
-
     const nova = 'DefinidaPeloGestor@2026';
     const res = await app.inject({
       method: 'POST', url: `/api/v1/users/${alvo.publicKey}/password`, headers: { cookie: ceo },
@@ -156,13 +72,26 @@ describe('usuários: gestor define a senha do colaborador', () => {
       method: 'POST', url: '/api/v1/auth/login', payload: { email: alvo.email, password: nova },
     });
     expect(entra.statusCode).toBe(200);
+  });
 
-    // o link que estava em aberto não vale mais
-    const reusa = await app.inject({
-      method: 'POST', url: '/api/v1/auth/password-reset/confirm',
-      payload: { token: tokenAntigo, newPassword: 'AindaOutra@2026' },
+  // Cobertura que antes vinha pela rota de reset, mantida aqui porque a regra de
+  // credencial é a mesma: nível gestor no gate e alvo estritamente menor na policy.
+  it('dev não define a senha de outro colaborador', async () => {
+    const alvo = await criarAlvo();
+    const dev = await login('elaine@itscs.com.br');
+    const res = await app.inject({
+      method: 'POST', url: `/api/v1/users/${alvo.publicKey}/password`, headers: { cookie: dev },
+      payload: { newPassword: 'TentandoComoDev@2026' },
     });
-    expect(reusa.statusCode).toBe(401);
+    expect(res.statusCode).toBe(403);
+  });
+
+  it('colaborador inexistente → 404', async () => {
+    const res = await app.inject({
+      method: 'POST', url: '/api/v1/users/nao-existe-mesmo/password', headers: { cookie: ceo },
+      payload: { newPassword: 'QualquerCoisa@2026' },
+    });
+    expect(res.statusCode).toBe(404);
   });
 
   it('não define a senha da própria conta por esta rota', async () => {

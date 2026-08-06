@@ -16,7 +16,6 @@ Erro: `{ "error": { "code": "...", "message": "...", "details": [], "requestId":
 - POST /auth/logout
 - GET  /auth/me
 - POST /auth/password { currentPassword, newPassword }
-- POST /auth/password-reset/confirm { token, newPassword }
 
 ## Bootstrap e sync
 - GET /bootstrap (estado inicial conforme escopo)
@@ -44,7 +43,7 @@ Erro: `{ "error": { "code": "...", "message": "...", "details": [], "requestId":
 - DELETE /tasks/:id (gestor+)
 
 ## Administração (gestor+)
-- Usuários: GET/POST /users, GET/PATCH/DELETE /users/:publicKey, POST /users/:publicKey/password-reset
+- Usuários: GET/POST /users, GET/PATCH/DELETE /users/:publicKey, POST /users/:publicKey/password
 - Categorias: GET/POST /categories, PATCH/DELETE /categories/:id
 - Projetos: GET/POST /projects, PATCH/DELETE /projects/:id
 - Grupos: GET/POST /groups, PATCH/DELETE /groups/:id, PUT /groups/:id/members

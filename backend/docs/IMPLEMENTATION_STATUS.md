@@ -51,22 +51,30 @@ flat); 87 arquivos analisados sem problema; dependências `@fastify/swagger` e
   9 usuários, 130 registros de auditoria e nenhum anexo, então a perda seria pequena
   em volume e total em histórico. Instalar timer exige root.
 - **Sem rotina de retenção.** Não existe nenhum `deleteMany` em `src/jobs` nem em
-  `src/workers`: sessões revogadas, tokens de redefinição usados e eventos de outbox
-  já publicados nunca são removidos. Na VM: 50 sessões revogadas de 84, 14 tokens
-  usados e 2 expirados de 16, e 61 eventos de outbox todos publicados. Irrelevante
-  no volume atual, mas o crescimento não tem limite por desenho.
+  `src/workers`: sessões revogadas e eventos de outbox já publicados nunca são
+  removidos. Na VM: 50 sessões revogadas de 84 e 61 eventos de outbox todos
+  publicados. Irrelevante no volume atual, mas o crescimento não tem limite por
+  desenho. (Os tokens de redefinição saíram do problema junto com a tabela.)
 - Regressão visual limitada a regiões estáveis; full-page precisa congelar serverNow.
 - Anexos: provider S3/MinIO, quarentena/ClamAV, streaming (hoje disco local + buffer).
-- Reset de senha por e-mail implementado (SMTP via Nodemailer); depende de SMTP_HOST e
-  MAIL_FROM preenchidos no ambiente. Sem isso o pedido é registrado e só vai ao log.
-- Resumo diário: o job dispara webhook, mas NÃO envia e-mail. Não há mailer no job.
+- **Não existe recuperação de acesso por autoatendimento.** O fluxo "Esqueci minha
+  senha" foi removido em 2026-08-06 a pedido do responsável: saíram as três rotas de
+  redefinição por token, a tabela `password_reset_tokens`, o mailer e a dependência
+  `nodemailer`. Quem perder a senha depende de alguém de nível superior definir uma
+  nova em `POST /users/:publicKey/password`, pela tela de administração. Se a conta de
+  nível mais alto perder o acesso, a saída é definir a senha direto no servidor, com
+  acesso ao banco. Consequência aceita conscientemente pelo responsável.
+- Resumo diário: o job dispara webhook, e não envia e-mail. Com a remoção do mailer,
+  enviar e-mail no resumo exigiria reintroduzir `nodemailer` e as variáveis SMTP.
 - Métricas Prometheus: decisão consciente de não implementar agora. Exige
   dependência nova e política de exposição do endpoint, que não pode ser público.
   Observabilidade hoje é log estruturado mais /health/live e /health/ready.
 - Teste de contrato do payload de webhook e caracterização retroativa do DV.
-- Validação do link de redefinição antes de mostrar o formulário: quem abre link
-  expirado preenche a senha duas vezes para só então descobrir.
 - Aviso ao titular quando um administrador troca a senha dele.
+- Frontend do "Esqueci minha senha" continua no `index.html` e no `assets/data.js`,
+  chamando rotas que não existem mais. Remover exige tocar arquivo protegido pelo
+  §4.1, portanto autorização explícita. Enquanto não for removido, quem clicar no
+  link recebe erro.
 - ~~`DV.onError` só está registrado em `configuracoes.dc.html`~~ Resolvido em
   2026-08-06: as cinco telas de escrita (`atividades`, `projeto`, `projetos`,
   `usuario`, `configuracoes`) registram o tratador e usam o toast que já possuem.

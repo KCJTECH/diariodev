@@ -71,7 +71,6 @@ model User {
   uploadedAttachment Attachment[]
   groupMemberships   GroupMember[]
   sessions           Session[]
-  passwordResets     PasswordResetToken[]
   auditLogs          AuditLog[]
 
   @@index([active])
@@ -113,21 +112,6 @@ model Session {
   @@index([userId])
   @@index([expiresAt])
   @@map("sessions")
-}
-
-model PasswordResetToken {
-  id          String    @id @default(uuid()) @db.Uuid
-  userId      String    @map("user_id") @db.Uuid
-  tokenHash   String    @unique @map("token_hash")
-  expiresAt   DateTime  @map("expires_at") @db.Timestamptz(6)
-  usedAt      DateTime? @map("used_at") @db.Timestamptz(6)
-  requestedBy String?   @map("requested_by") @db.Uuid
-  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@map("password_reset_tokens")
 }
 
 // ── categorias, projetos ─────────────────────────────────────────────────

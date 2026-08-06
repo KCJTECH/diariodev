@@ -1,12 +1,10 @@
 // Regras de autenticação e sessão. O access token é JWT curto; o refresh é
 // opaco, guardado apenas como hash, rotacionado a cada uso, com detecção de
 // reuso (§15.2). Toda autorização real acontece no servidor.
-import { randomBytes } from 'node:crypto';
 import type { Prisma, User } from '@prisma/client';
 import type { Db } from '../../common/database/prisma.js';
 import { redis } from '../../common/database/redis.js';
 import { AppError, Errors } from '../../common/errors/app-error.js';
-import { sendMail } from '../../common/mail/mailer.js';
 import { logger } from '../../common/logging/logger.js';
 import { hashPassword, verifyPassword, isTrivialPassword } from '../../common/auth/password.js';
 import {
@@ -17,7 +15,7 @@ import {
 } from '../../common/auth/tokens.js';
 import { LEVEL_TO_API, type AuthUser } from '../../common/auth/types.js';
 import { writeOutbox } from '../../common/events/outbox.js';
-import { env, isProduction } from '../../config/env.js';
+import { env } from '../../config/env.js';
 
 export type AuthResult = { user: AuthUser; accessToken: string; refreshToken: string };
 type Ctx = { ua?: string | undefined; ip?: string | undefined };
@@ -222,143 +220,6 @@ export async function changePassword(
       data: { revokedAt: new Date() },
     });
     await revokedEvent(tx, userId);
-  });
-}
-
-// Solicitação de reset pelo próprio usuário, a partir da tela de login.
-// Nunca revela se o e-mail existe: o retorno é o mesmo para conta existente,
-// inexistente ou inativa (evita enumeração de usuários). O `userId` volta só
-// para a rota registrar a auditoria e o `token` só para teste e log de
-// desenvolvimento: a resposta HTTP não pode conter nenhum dos dois.
-export async function requestPasswordReset(
-  db: Db,
-  email: string,
-): Promise<{ userId: string | null; token: string | null }> {
-  const user = await db.user.findFirst({
-    where: { email: email.trim().toLowerCase(), deletedAt: null, active: true },
-  });
-  if (!user) return { userId: null, token: null };
-
-  // Um pedido novo invalida os anteriores ainda abertos, para não deixar
-  // vários links válidos circulando por e-mail.
-  await db.passwordResetToken.updateMany({
-    where: { userId: user.id, usedAt: null, expiresAt: { gt: new Date() } },
-    data: { usedAt: new Date() },
-  });
-
-  const token = randomBytes(32).toString('base64url');
-  const ttlMs = env.PASSWORD_RESET_TTL_MINUTES * 60 * 1000;
-  await db.passwordResetToken.create({
-    data: {
-      userId: user.id,
-      tokenHash: sha256(token),
-      expiresAt: new Date(Date.now() + ttlMs),
-      // Pedido do próprio titular: não há terceiro solicitante.
-      requestedBy: null,
-    },
-  });
-
-  // Token no fragmento (#), não na query: o fragmento não é enviado ao servidor,
-  // então o token não entra no log de requisição, no Referer nem em log de proxy.
-  const link = `${env.APP_ORIGIN}/#reset=${encodeURIComponent(token)}`;
-  const minutes = env.PASSWORD_RESET_TTL_MINUTES;
-
-  // Contas declaradas em PASSWORD_RESET_VIA_GESTOR não têm caixa que alguém leia,
-  // então o link nem é tentado nelas: vai direto para os gestores, que repassam ao
-  // responsável. Enviar ao titular deixaria um link válido parado numa caixa que
-  // ninguém abre. Ver docs/AUTENTICACAO_E_PERMISSOES.md.
-  const semCaixaPropria = env.PASSWORD_RESET_VIA_GESTOR.has(user.email.toLowerCase());
-
-  // Envio sem await: a resposta não espera o SMTP. Além de não travar a requisição,
-  // isso encurta a diferença de tempo entre e-mail existente e inexistente, que de
-  // outro modo permitiria descobrir quem tem conta medindo a demora.
-  void (async () => {
-    if (!semCaixaPropria) {
-      const enviado = await sendMail({
-        to: user.email,
-        subject: 'Diário Dev: redefinição de senha',
-        text: [
-          `Olá, ${user.name}.`,
-          '',
-          'Recebemos um pedido para redefinir a senha da sua conta no Diário Dev.',
-          `Abra o endereço abaixo para cadastrar uma nova senha. O link vale ${minutes} minutos e só pode ser usado uma vez.`,
-          '',
-          link,
-          '',
-          'Se não foi você que pediu, ignore esta mensagem. Sua senha atual continua válida.',
-          '',
-          'Diário Dev ITS',
-        ].join('\n'),
-      });
-      if (enviado) {
-        // Registrar o sucesso é o que permite distinguir "enviado" de "não existe
-        // conta para esse e-mail", que sem isso ficam os dois sem rastro no log.
-        logger.info({ userId: user.id }, 'e-mail de redefinição de senha enviado');
-        return;
-      }
-      logger.warn({ userId: user.id }, 'envio ao titular falhou; tentando pelos gestores');
-    }
-
-    // Destino alternativo: os gestores ativos. É o papel, não um endereço fixo.
-    const gestores = await db.user.findMany({
-      where: { effectiveLevel: 'GESTOR', active: true, deletedAt: null, id: { not: user.id } },
-      select: { email: true },
-    });
-    const destinos = gestores.map((g) => g.email).filter(Boolean);
-    if (destinos.length === 0) {
-      logger.error(
-        { userId: user.id },
-        'reset solicitado para conta sem caixa própria, mas não há gestor ativo para receber o link',
-      );
-      if (!isProduction) logger.warn({ resetLink: link }, 'link de redefinição (apenas desenvolvimento)');
-      return;
-    }
-
-    const enviadoGestor = await sendMail({
-      to: destinos.join(', '),
-      subject: `Diário Dev: redefinição de senha de ${user.name}`,
-      text: [
-        'Olá.',
-        '',
-        `Foi solicitada a redefinição de senha da conta de ${user.name} (${user.email}), que não recebe e-mail.`,
-        `Repasse o endereço abaixo ao responsável por essa conta. O link vale ${minutes} minutos e só pode ser usado uma vez.`,
-        '',
-        link,
-        '',
-        'Quem abrir este link define uma nova senha para essa conta. Não encaminhe para mais ninguém.',
-        '',
-        'Diário Dev ITS',
-      ].join('\n'),
-    });
-
-    if (enviadoGestor) {
-      logger.info({ userId: user.id, gestores: destinos.length }, 'link de redefinição enviado aos gestores');
-    } else {
-      logger.error({ userId: user.id }, 'reset solicitado, mas nem o titular nem os gestores receberam o link');
-      if (!isProduction) logger.warn({ resetLink: link }, 'link de redefinição (apenas desenvolvimento)');
-    }
-  })();
-
-  return { userId: user.id, token };
-}
-
-// Confirma um reset de senha via token (§15). Marca o token como usado e
-// revoga todas as sessões do usuário.
-export async function confirmPasswordReset(db: Db, token: string, newPassword: string): Promise<void> {
-  if (newPassword.length < 8) throw Errors.validation([{ field: 'newPassword', message: 'Mínimo de 8 caracteres.' }]);
-  if (isTrivialPassword(newPassword)) {
-    throw Errors.validation([{ field: 'newPassword', message: 'Senha muito comum.' }]);
-  }
-  const record = await db.passwordResetToken.findUnique({ where: { tokenHash: sha256(token) } });
-  if (!record || record.usedAt || record.expiresAt.getTime() <= Date.now()) {
-    throw Errors.unauthorized('Token de redefinição inválido ou expirado.');
-  }
-  const passwordHash = await hashPassword(newPassword);
-  await db.$transaction(async (tx) => {
-    await tx.user.update({ where: { id: record.userId }, data: { passwordHash, passwordChangedAt: new Date() } });
-    await tx.passwordResetToken.update({ where: { id: record.id }, data: { usedAt: new Date() } });
-    await tx.session.updateMany({ where: { userId: record.userId, revokedAt: null }, data: { revokedAt: new Date() } });
-    await revokedEvent(tx, record.userId);
   });
 }
 

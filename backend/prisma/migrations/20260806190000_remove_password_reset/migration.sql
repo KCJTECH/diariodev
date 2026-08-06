@@ -1,0 +1,13 @@
+-- Remove o fluxo de redefinição de senha por token ("Esqueci minha senha"), a
+-- pedido do responsável. A tabela só era usada por esse fluxo: as rotas
+-- POST /auth/password-reset/request, POST /auth/password-reset/confirm e
+-- POST /users/:id/password-reset foram removidas no mesmo commit.
+--
+-- Destrutivo e sem volta: apaga os tokens existentes. Não há perda de rastro de
+-- quem pediu redefinição, porque isso vive em audit_logs, que é tabela separada e
+-- não é tocada aqui.
+--
+-- A troca de senha continua existindo por dois caminhos, que não usam token:
+-- POST /auth/password (o próprio usuário, com a senha atual) e
+-- POST /users/:id/password (gestor define a senha de nível estritamente menor).
+DROP TABLE IF EXISTS "password_reset_tokens";

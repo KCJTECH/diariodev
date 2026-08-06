@@ -58,11 +58,6 @@ export function registerUserRoutes(app: FastifyInstance, db: Db): void {
     return ok({ ok: true }, req.id);
   });
 
-  app.post('/:id/password-reset', { preHandler: app.requireLevel('gestor'), config: tight }, async (req) => {
-    const { id } = keyParam.parse(req.params);
-    return ok(await svc.adminResetPassword(db, req.authUser!, id, requestMeta(req)), req.id);
-  });
-
   // Define a senha do colaborador direto, para os campos de senha da tela de
   // administração. Só age sobre nível estritamente menor e nunca sobre a própria
   // conta; as duas regras estão em users.service (assertCanActOnPassword).

@@ -11,9 +11,7 @@ import {
   assertCanManageUser,
 } from '../../common/auth/policy.js';
 import { hashPassword, isTrivialPassword } from '../../common/auth/password.js';
-import { sha256 } from '../../common/auth/tokens.js';
 import { slugify } from '../../common/utils/format.js';
-import { sendMail } from '../../common/mail/mailer.js';
 import { logger } from '../../common/logging/logger.js';
 import { writeAudit } from '../audit/audit.service.js';
 import { revokedEvent } from '../auth/auth.service.js';
@@ -201,10 +199,6 @@ export async function setUserPassword(
   const passwordHash = await hashPassword(newPassword);
   await db.$transaction(async (tx) => {
     await tx.user.update({ where: { id: user.id }, data: { passwordHash, passwordChangedAt: new Date() } });
-    await tx.passwordResetToken.updateMany({
-      where: { userId: user.id, usedAt: null, expiresAt: { gt: new Date() } },
-      data: { usedAt: new Date() },
-    });
     await tx.session.updateMany({ where: { userId: user.id, revokedAt: null }, data: { revokedAt: new Date() } });
     await revokedEvent(tx, user.id);
   });
@@ -215,76 +209,3 @@ export async function setUserPassword(
   logger.info({ actorUserId: actor.id, targetUserId: user.id }, 'senha definida pelo administrador');
 }
 
-// Reset acionado por gestor+ para outro colaborador. O link vai por e-mail para
-// quem acionou, não para o titular da conta: o caso de uso é justamente o
-// colaborador que não consegue acessar o próprio e-mail, e aí o gestor repassa o
-// link pelo canal que já usa com a equipe (telefone, WhatsApp, presencialmente).
-export async function adminResetPassword(
-  db: Db,
-  actor: AuthUser,
-  targetPublicKey: string,
-  meta: Meta,
-): Promise<{ resetToken?: string; mailSent: boolean }> {
-  const user = await db.user.findFirst({ where: { publicKey: targetPublicKey, deletedAt: null } });
-  if (!user) throw Errors.notFound('USER_NOT_FOUND', 'Usuário não encontrado.');
-  assertCanManageCredentials(actor, user);
-
-  // Um pedido novo invalida os anteriores ainda abertos, para não deixar vários
-  // links válidos circulando para a mesma conta.
-  await db.passwordResetToken.updateMany({
-    where: { userId: user.id, usedAt: null, expiresAt: { gt: new Date() } },
-    data: { usedAt: new Date() },
-  });
-
-  const token = randomBytes(32).toString('base64url');
-  const minutes = env.PASSWORD_RESET_TTL_MINUTES;
-  await db.passwordResetToken.create({
-    data: {
-      userId: user.id,
-      tokenHash: sha256(token),
-      expiresAt: new Date(Date.now() + minutes * 60 * 1000),
-      requestedBy: actor.id,
-    },
-  });
-  await writeAudit(db, {
-    actorUserId: actor.id, action: 'user.password_reset_requested', entityType: 'user', entityId: user.id,
-    requestId: meta.requestId, ipHash: meta.ipHash, userAgent: meta.userAgent,
-  });
-
-  // Token no fragmento (#), não na query: o fragmento não é enviado ao servidor,
-  // então não entra em log de requisição, Referer nem log de proxy.
-  const link = `${env.APP_ORIGIN}/#reset=${encodeURIComponent(token)}`;
-  const mailSent = await sendMail({
-    to: actor.email,
-    subject: `Diário Dev: link de redefinição de senha de ${user.name}`,
-    text: [
-      `Olá, ${actor.name}.`,
-      '',
-      `Você solicitou a redefinição de senha da conta de ${user.name} (${user.email}).`,
-      `Repasse o endereço abaixo para ${user.name} pelo canal que vocês já usam. O link vale ${minutes} minutos e só pode ser usado uma vez.`,
-      '',
-      link,
-      '',
-      'Quem abrir este link define uma nova senha para essa conta. Não encaminhe para mais ninguém.',
-      '',
-      'Diário Dev ITS',
-    ].join('\n'),
-  });
-
-  if (mailSent) {
-    logger.info(
-      { actorUserId: actor.id, targetUserId: user.id },
-      'link de redefinição enviado ao gestor que solicitou',
-    );
-  } else {
-    logger.warn(
-      { actorUserId: actor.id, targetUserId: user.id },
-      'reset administrativo criado, mas o e-mail para o gestor não foi enviado',
-    );
-    if (!isProduction) logger.warn({ resetLink: link }, 'link de redefinição (apenas desenvolvimento)');
-  }
-
-  // Fora de produção o token também volta na resposta, para teste e para o admin
-  // repassar sem SMTP. Em produção nunca: o caminho é o e-mail.
-  return { resetToken: isProduction ? undefined : token, mailSent };
-}

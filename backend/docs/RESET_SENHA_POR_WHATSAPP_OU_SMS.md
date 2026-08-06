@@ -1,5 +1,10 @@
 # Redefinição de senha por WhatsApp ou SMS
 
+**Documento histórico, sem validade a partir de 2026-08-06.** O fluxo de redefinição por
+link, que este estudo pressupõe existir, foi removido do backend a pedido do responsável.
+Todas as rotas citadas aqui deixaram de existir. Mantido como registro da análise; para
+reimplementar qualquer opção, o ponto de partida é reconstruir o fluxo por link.
+
 Documento de decisão. Nada foi implementado. Levantamento feito em 2026-08-05 sobre o
 código real deste repositório.
 

@@ -101,12 +101,6 @@ describe('escalonamento vertical por usuário', () => {
     });
     expect(senha.statusCode).toBe(403);
 
-    // Nem gerar link de redefinição do par.
-    const link = await app.inject({
-      method: 'POST', url: `/api/v1/users/${par}/password-reset`, headers: { cookie: gestor },
-    });
-    expect(link.statusCode).toBe(403);
-
     // E não consegue elevar o par acima do próprio nível.
     const eleva = await app.inject({
       method: 'PATCH', url: `/api/v1/users/${par}`, headers: { cookie: gestor }, payload: { level: 'ceo' },
