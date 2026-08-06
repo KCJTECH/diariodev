@@ -64,8 +64,10 @@ flat); 87 arquivos analisados sem problema; dependências `@fastify/swagger` e
   "Salvar alterações" de Minha conta nunca funcionou. `DV.user()` publica o cargo
   como `roleTitle` e a tela lê `u.role`, então o campo Cargo vinha vazio e o clique
   quebrava em `f.role.trim()` de undefined. Corrigido em `normalizeUser`, espelhando
-  `role` sem remover `roleTitle`. Fica o alerta: divergência de nome entre o DTO do
-  servidor e o que a tela lê não aparece em teste de backend nem de contrato.
+  `role` sem remover `roleTitle`. Confirmado em produção pelo responsável em
+  2026-08-06: o campo Cargo aparece preenchido e o salvamento conclui. Fica o
+  alerta: divergência de nome entre o DTO do servidor e o que a tela lê não aparece
+  em teste de backend, nem de contrato, nem de tipo. Só aparece clicando.
 - Verificação do bloco "Trocar de usuário" oculto: comprovada no navegador com a
   flag ligada (o bloco aparece, que é o correto) e comprovada no servidor da VM que
   a flag está desligada. A observação direta do bloco ausente em produção exige
