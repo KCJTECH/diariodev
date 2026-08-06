@@ -16,13 +16,38 @@ ROOT="$(cd "$(dirname "$0")" && pwd)"
 cd "$ROOT/backend" || { echo "ERRO: $ROOT/backend nao encontrado"; exit 1; }
 mkdir -p "$ROOT/logs"
 
-pkill -f "dist/src/server.js" || true
-pkill -f "dist/src/workers/index.js" || true
-sleep 2
+# Se os units systemd estiverem instalados, o restart TEM de passar por eles.
+# Matar o processo com o unit ativo faz o systemd subir um substituto e, em
+# seguida, o metodo manual sobe outro: dois processos e conflito na porta 3333.
+UNIT_INSTALADO=0
+if command -v systemctl > /dev/null 2>&1; then
+  if systemctl list-unit-files 2>/dev/null | grep -q '^diariodev-api\.service'; then
+    UNIT_INSTALADO=1
+  fi
+fi
 
-setsid nohup node dist/src/server.js        > "$ROOT/logs/api.log"    2>&1 < /dev/null &
-setsid nohup node dist/src/workers/index.js > "$ROOT/logs/worker.log" 2>&1 < /dev/null &
-sleep 6
+if [ "$UNIT_INSTALADO" = "1" ]; then
+  echo "units systemd instalados: delegando o restart ao systemd"
+  if systemctl restart diariodev-api diariodev-worker 2>/dev/null; then
+    :
+  elif sudo -n systemctl restart diariodev-api diariodev-worker 2>/dev/null; then
+    :
+  else
+    echo "FALHA: nao foi possivel reiniciar pelos units sem privilegio."
+    echo "Rode como root:  systemctl restart diariodev-api diariodev-worker"
+    echo "Ou libere so estes dois units para o usuario da aplicacao, por sudoers ou polkit."
+    exit 1
+  fi
+  sleep 6
+else
+  pkill -f "dist/src/server.js" || true
+  pkill -f "dist/src/workers/index.js" || true
+  sleep 2
+
+  setsid nohup node dist/src/server.js        > "$ROOT/logs/api.log"    2>&1 < /dev/null &
+  setsid nohup node dist/src/workers/index.js > "$ROOT/logs/worker.log" 2>&1 < /dev/null &
+  sleep 6
+fi
 
 for _ in 1 2 3 4 5 6 7 8 9 10; do
   if OUT=$(curl -sf -m 3 http://127.0.0.1:3333/health/ready); then

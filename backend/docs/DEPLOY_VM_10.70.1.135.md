@@ -66,8 +66,28 @@ porque a argv do shell é só `bash restart.sh`.
 Para conferir processos sem correr esse risco, use o colchete apenas na consulta:
 `pgrep -af 'dist/src/serve[r].js'`.
 
-## Pendente: iniciar automaticamente no boot (exige root)
-Os arquivos de serviço já estão no servidor em /home/kcj/. Instale como root:
+## Iniciar automaticamente no boot (exige root)
+
+Revisão dos units feita em 2026-08-06, antes de instalar: `/usr/bin/node` existe
+(v24.18.1), `redis-server.service` e `postgresql.service` são os nomes reais das
+units nesta máquina, os arquivos de log são graváveis pelo `kcj` e o systemd é o
+257, que suporta `StandardOutput=append:`. Os dois arquivos estão corretos como
+escritos, sem ajuste necessário.
+
+Depois de instalar, o restart passa a exigir privilégio: `systemctl restart` não
+funciona como `kcj`. O `restart.sh` detecta os units e delega ao systemd, e falha
+com mensagem clara em vez de subir processo duplicado, porque matar o processo com
+o unit ativo faria o systemd subir um substituto e o método manual subir outro,
+causando conflito na porta 3333.
+
+Para o deploy continuar funcionando sem root, libere apenas estes dois units.
+Como root, crie `/etc/sudoers.d/diariodev` com:
+```
+kcj ALL=(root) NOPASSWD: /usr/bin/systemctl restart diariodev-api diariodev-worker, /usr/bin/systemctl restart diariodev-api, /usr/bin/systemctl restart diariodev-worker, /usr/bin/systemctl status diariodev-api, /usr/bin/systemctl status diariodev-worker
+```
+Isso não dá privilégio geral: apenas reiniciar e consultar esses dois serviços.
+
+Instalação, como root:
 ```bash
 su -
 install -m 644 /home/kcj/diariodev-api.service    /etc/systemd/system/diariodev-api.service
