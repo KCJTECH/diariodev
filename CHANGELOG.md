@@ -1,3 +1,22 @@
+## [v0.0.3] - 2026-08-07 (publish)
+
+Jean Passos
+
+**Autor:** Jean Passos  ·  **Solicitante:** Jean Passos
+
+⚠️ Contrato e integração não rodaram (banco diariodev_test ausente).
+
+## Correções
+- Adicionada a opção `--no-a<CHAVE-MASCARADA>` ao comando `systemctl restart` para evitar erro de autenticação pelo polkit, que não é aplicável na VM utilizada.
+
+## Interno
+- Comentários adicionados ao script `restart.sh` para explicar a razão da mudança e o erro que estava sendo gerado anteriormente.
+
+### Resumo
+Nesta versão, foi corrigido um problema no script de reinício que gerava uma mensagem de erro desnecessária ao tentar reiniciar os serviços. Agora, a operação é realizada de forma mais silenciosa, melhorando a experiência do usuário.
+
+_Release notes geradas por IA (gpt-4o-mini); revise antes de divulgar._
+
 ## [v0.0.2] - 2026-08-07 (publish)
 
 Correções

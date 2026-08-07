@@ -28,7 +28,12 @@ fi
 
 if [ "$UNIT_INSTALADO" = "1" ]; then
   echo "units systemd instalados: delegando o restart ao systemd"
-  if systemctl restart diariodev-api diariodev-worker 2>/dev/null; then
+  # --no-ask-password: sem isso o systemctl tenta autenticar pelo polkit, que procura o
+  # /usr/bin/pkttyagent. Nesta VM ele nao existe, e o erro "Failed to execute
+  # /usr/bin/pkttyagent" era impresso direto no terminal (escapa do 2>/dev/null porque
+  # nao vem pelo stderr do systemctl). O restart funcionava mesmo assim, pelo sudo -n
+  # da linha seguinte, mas a mensagem assustava sem motivo.
+  if systemctl --no-ask-password restart diariodev-api diariodev-worker 2>/dev/null; then
     :
   elif sudo -n systemctl restart diariodev-api diariodev-worker 2>/dev/null; then
     :

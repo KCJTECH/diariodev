@@ -1,5 +1,15 @@
 [
   {
+    "versao": "0.0.3",
+    "data": "2026-08-07",
+    "solicitante": "Jean Passos",
+    "autor": "Jean Passos",
+    "acao": "Jean Passos",
+    "resumo": "Nesta versão, foi corrigido um problema no script de reinício que gerava uma mensagem de erro desnecessária ao tentar reiniciar os serviços. Agora, a operação é realizada de forma mais silenciosa, melhorando a experiência do usuário.",
+    "modo": "publish",
+    "migrations": false
+  },
+  {
     "versao": "0.0.2",
     "data": "2026-08-07",
     "solicitante": "Jean Passos",
