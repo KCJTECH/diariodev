@@ -1,0 +1,12 @@
+[
+  {
+    "versao": "0.0.1",
+    "data": "2026-08-07",
+    "solicitante": "(não informado)",
+    "autor": "Kauan Dalfovo",
+    "acao": "revisao das permissoes documentada e limpeza do .gitignore apos o deploy.sh sair do repositorio",
+    "resumo": "Nesta versão, foram feitas correções na gestão de arquivos do repositório e uma revisão detalhada das permissões de usuários, que agora estão melhor documentadas. A estrutura de níveis de acesso foi esclarecida, garantindo que todos os usuários entendam suas permissões e limitações dentro do sistema.",
+    "modo": "publish",
+    "migrations": false
+  }
+]

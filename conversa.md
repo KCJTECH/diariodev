@@ -213,3 +213,148 @@ Observações: o menu é o mesmo para todos (o frontend não esconde itens; o ga
 backend). As permissões finas dos grupos (gerenciar.usuarios etc.) são rótulos
 descritivos herdados do frontend; a autorização real é por NÍVEL efetivo, não por essas
 strings. Salvaguardas: último CEO não rebaixa/desativa; ninguém se exclui.
+
+## Revisão das permissões de usuários (2026-08-07)
+
+Releitura do código de autorização e conferência contra o banco `diariodev` da VM.
+A seção anterior (2026-08-03) continua correta no conceito, mas a lista de usuários
+e grupos que ela cita é do seed antigo e não existe mais no banco.
+
+### O modelo, em três camadas
+
+A autorização real tem uma única variável: `users.effective_level`, com três valores
+(DEV, GESTOR, CEO). Tudo o mais é derivado dela.
+
+1. Camada de rota. `requireLevel(min)` em `src/modules/auth/auth.plugin.ts` compara o
+   rank do usuário com o mínimo exigido. Só existe em rotas de administração.
+2. Camada de serviço. `seesAll` (gestor+) e `canPlan` (gestor+) em
+   `src/common/auth/types.ts` recortam o que cada um enxerga e pode planejar. É onde
+   mora a diferença real entre dev e gestor no dia a dia.
+3. Camada relacional. `src/common/auth/policy.ts` responde quem pode agir sobre quem.
+   Cadastro usa teto (até o próprio nível, e a própria conta sempre pode). Credencial
+   usa regra estrita (nível estritamente menor, nunca a própria conta).
+
+O grupo entra em um ponto só: `recalcLevels` em `src/modules/groups/groups.service.ts`
+define o nível efetivo como o maior nível entre os grupos ativos do usuário, e DEV se
+ele não estiver em nenhum. Roda na mesma transação da alteração, com `ensureCeoRemains`
+abortando se a organização ficaria sem CEO ativo.
+
+### Distribuição das rotas por exigência de nível
+
+- Sem autenticação: `/health`, login, refresh, logout, redefinição de senha por link.
+- Autenticado, sem exigência de nível: bootstrap, atividades, tarefas, anexos,
+  relatórios, pesquisa, sync, leitura de usuários, leitura de aparência, preferências.
+  Nesses casos o recorte é por `seesAll`/`canPlan` dentro do serviço, não na rota.
+- Gestor ou acima: grupos (módulo inteiro), integrações (módulo inteiro), escrita de
+  categorias e projetos, criação/edição/exclusão de usuários, definição de senha de
+  terceiro, escrita de aparência, configuração do servidor de e-mail.
+
+### Estado no banco da VM (schema diariodev, conferido em 2026-08-07)
+
+Seis usuários ativos, cada um em exatamente um grupo, sem divergência entre nível
+efetivo e nível do grupo:
+
+- CEO: Admin (`admin`), no grupo Diretoria.
+- GESTOR: Jean Passos (`jean-passos`), no grupo Gestor.
+- DEV: Alvaro Lima, Diogo Koerich, Joao Paulo, Kauan Dalfovo, no grupo Desenvolvedor.
+
+Três grupos ativos (Diretoria[CEO], Gestor[GESTOR], Desenvolvedor[DEV]) mais um grupo
+"Gestor" excluído e sem membros. Três contas de teste com soft delete: `smoke-gestor`,
+`smoke-sessao`, `teste-redefinicao`.
+
+### O que está sólido
+
+O fechamento de escalonamento por grupo cobre as três portas conhecidas: criar grupo
+acima do próprio nível, elevar o nível de um grupo existente e se incluir em grupo
+superior. `membrosAfetados` valida só quem entra ou sai, o que evita travar o gestor
+num grupo que já contém um CEO sem abrir brecha. Apagar grupo também valida todos os
+membros, porque delete rebaixa gente. Há cinco casos de teste dedicados a isso em
+`tests/integration/privilege-escalation.test.ts`.
+
+### Achados que continuam abertos
+
+1. As permissões finas não autorizam nada (alta, governança, CONFIRMADO EM EXECUÇÃO).
+   O campo `permissions` do grupo é gravado, agregado no bootstrap e devolvido ao
+   frontend, mas nenhuma rota, serviço ou guard consulta esse valor. A tela oferece
+   oito permissões com nomes que sugerem controle real (`gerenciar.usuarios`,
+   `relatorio.executivo` e outras) e elas só viram badge. Retirar `gerenciar.usuarios`
+   de um grupo não tira acesso nenhum. Ver a prova no antes e depois da subseção de
+   verificação empírica.
+2. Dois caminhos gravam o nível (média). `PATCH /users/:id` grava `effective_level`
+   direto, enquanto `recalcLevels` recalcula a partir dos grupos. Quem for promovido
+   pela tela de usuários volta ao nível do grupo assim que qualquer edição de grupo o
+   afetar, sem erro e sem registro específico em auditoria. Atenuante verificado: o
+   frontend nunca envia `level` nesse PATCH, então hoje só é alcançável chamando a API
+   direto.
+3. O nível CEO não protege nenhuma rota (média). Não existe `requireLevel('ceo')` em
+   lugar nenhum, e o helper `isExec` está definido e nunca é usado. Na prática há dois
+   níveis de capacidade, dev e gestor+; CEO só se distingue por ser inatingível pelo
+   gestor nas regras relacionais. Relatório executivo não tem gate no servidor.
+4. Gestor promove qualquer dev a gestor (governança, decisão deliberada). O teto de
+   concessão é "até o próprio nível", escolha documentada em `policy.ts` para que seja
+   possível criar um CEO. O efeito é que a base de administradores pode crescer sem
+   passar pela diretoria. É reversível e fica em `audit_log`.
+5. Grupo inativo existe no modelo e não na API (baixa). `recalcLevels` só conta grupos
+   com `active = true`, mas nenhuma rota expõe esse campo. Suspender um grupo
+   temporariamente não é possível: só criar e excluir.
+6. Membro inexistente é descartado em silêncio (baixa). `resolveUsers` ignora chaves
+   públicas desconhecidas em `PUT /groups/:id/members`, e a resposta volta 200.
+7. Gestor enxerga grupos de nível CEO (baixa). `listGroups` não filtra por nível, então
+   a composição da Diretoria é visível para quem não pode administrá-la.
+8. O único CEO é uma conta genérica (governança). A salvaguarda do último CEO ativo
+   apoia-se em `admin`, e toda ação executiva sai em `audit_log` atribuída a "Admin",
+   sem identificar quem agiu.
+9. Dev cria projeto pela porta lateral (média, DESCOBERTO EM EXECUÇÃO). `POST /projects`
+   exige gestor, mas `resolveProject` cria projeto novo quando o nome não existe, e um
+   dev registrando atividade em nome inédito recebe 201 e o projeto passa a existir.
+   O comportamento é intencional e está comentado no código (herdado do protótipo), e a
+   guarda de escopo só barra entrar em projeto alheio já existente. Na prática, porém,
+   o gate de gestor sobre criação de projeto é contornável por qualquer dev.
+
+### Verificação empírica com um usuário DEV (2026-08-07)
+
+Conta DEV descartável criada no banco, requisições reais contra a API em execução,
+conta e grupo de teste removidos ao final (limpeza conferida: zero remanescentes).
+
+O que o bootstrap entrega a um dev: `level=dev`, `canAdminister=false`,
+`permissions=[]`, 7 pessoas, 8 categorias, e zero em grupos, integrações e histórico
+de integrações. Atividades, tarefas e projetos vêm só os próprios. Grupos e
+integrações chegam vazios por decisão do servidor, não por filtro de tela.
+
+Mascaramento confirmado: o e-mail de terceiros não é entregue. De outra pessoa o dev
+recebe `{"id":"admin","name":"Admin","role":"Administrador","email":"","ini":"AD",
+"color":"#0f2f47","active":true,"level":"ceo"}`.
+
+Leitura: 200 em `/users`, `/activities`, `/tasks`, `/projects`, `/categories`,
+`/reports/summary`, `/reports/by-person` (1 item, ele mesmo) e `/search`. 403 em
+`/groups`, `/integrations`, `/integration-runs` e `/settings/mail`.
+`GET /activities?person=admin` devolve 200 com zero itens: não vaza registro alheio.
+
+Escrita: 201 em `POST /activities` (registro próprio), 200 em `PUT /preferences`,
+troca da própria senha exigindo a atual. 403 em `POST /tasks` ("Sem permissão para
+criar tarefas"), `POST /categories`, `POST /projects`, `POST /users`, `POST /groups`,
+`POST /integrations`, `PATCH /users/:id`, `DELETE /users/:id`,
+`POST /users/:id/password`, `PUT /settings/appearance` e `PUT /settings/mail`.
+
+Prova do achado 1: a mesma conta foi colocada em um grupo de nível DEV com cinco
+permissões fortes (`gerenciar.usuarios`, `gerenciar.integracoes`, `relatorio.executivo`,
+`exportar.dados`, `ver.equipe`) e a bateria foi refeita com sessão nova.
+
+```
+ANTES   permissions = []
+        POST /users 403 | GET /integrations 403 | GET /groups 403
+
+DEPOIS  permissions = ["exportar.dados","gerenciar.integracoes",
+                       "gerenciar.usuarios","relatorio.executivo","ver.equipe"]
+        POST /users 403 | GET /integrations 403 | GET /groups 403
+```
+
+As strings chegam ao frontend e nada muda: `canAdminister` segue `false`, o nível segue
+`dev`, e `ver.equipe` não fez o dev enxergar a equipe.
+
+### Observação de método
+
+A matriz acima vem de requisições reais. Os itens 2 a 8 continuam vindo de leitura de
+código e consulta ao banco. A suíte de integração não roda no ambiente atual: o banco
+`diariodev_test` não existe e o usuário do Postgres não tem permissão para criá-lo
+(`prisma migrate deploy` falha com "permissão negada ao criar banco de dados").
