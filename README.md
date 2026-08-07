@@ -18,7 +18,7 @@ Protótipo navegável, uma página por tela, pronto para virar um app React/Type
 | `pesquisa.dc.html` | Pesquisa global (`?q=`) |
 | `configuracoes.dc.html` | Categorias, cadastro de colaboradores, estados do sistema |
 | `usuario.dc.html` | Minha conta: dados, preferências, trocar usuário, sair |
-| `assets/data.js` | Camada de dados / mock API + tokens e estilos compartilhados |
+| `assets/data.js` | Camada de dados: cliente HTTP real do backend (`/api/v1`), publica `window.DV` com cache hidratado no bootstrap, escrita otimista e Socket.IO |
 | `assets/its-theme.css` | Folha de estilo de referência (tokens + classes) para o projeto real |
 
 ## Rotas equivalentes (React Router)

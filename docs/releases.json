@@ -1,5 +1,15 @@
 [
   {
+    "versao": "0.0.2",
+    "data": "2026-08-07",
+    "solicitante": "Jean Passos",
+    "autor": "Jean Passos",
+    "acao": "Correções",
+    "resumo": "Nesta versão, a descrição do arquivo responsável pela camada de dados foi aprimorada para esclarecer que agora ele utiliza um cliente HTTP real do backend, proporcionando uma melhor compreensão das funcionalidades do sistema.",
+    "modo": "publish",
+    "migrations": false
+  },
+  {
     "versao": "0.0.1",
     "data": "2026-08-07",
     "solicitante": "(não informado)",

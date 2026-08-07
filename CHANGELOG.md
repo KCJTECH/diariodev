@@ -1,3 +1,17 @@
+## [v0.0.2] - 2026-08-07 (publish)
+
+Correções
+
+⚠️ Contrato e integração não rodaram (banco diariodev_test ausente).
+
+## Correções
+- Atualizada a descrição do arquivo `assets/data.js` para refletir a mudança de uma mock API para um cliente HTTP real do backend, melhorando a clareza sobre a funcionalidade implementada.
+
+### Resumo
+Nesta versão, a descrição do arquivo responsável pela camada de dados foi aprimorada para esclarecer que agora ele utiliza um cliente HTTP real do backend, proporcionando uma melhor compreensão das funcionalidades do sistema.
+
+_Release notes geradas por IA (gpt-4o-mini); revise antes de divulgar._
+
 ## [v0.0.1] - 2026-08-07 (publish)
 
 revisao das permissoes documentada e limpeza do .gitignore apos o deploy.sh sair do repositorio
