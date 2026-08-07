@@ -36,6 +36,9 @@ export function eventRooms(eventName: string, scope: OutboxScope | null | undefi
     if (scope?.type === 'project' && scope.id) rooms.push(`project:${scope.id}`);
     return rooms;
   }
+  // Configuração de e-mail é de administração: não vai para a organização toda,
+  // ao contrário do resto de settings (aparência, que todos veem).
+  if (eventName.startsWith('settings.mail')) return ['level:gestor'];
   if (eventName.startsWith('category.') || eventName.startsWith('project.') || eventName.startsWith('settings.')) {
     return [ORG_ROOM];
   }

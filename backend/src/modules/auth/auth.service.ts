@@ -15,7 +15,10 @@ import {
 } from '../../common/auth/tokens.js';
 import { LEVEL_TO_API, type AuthUser } from '../../common/auth/types.js';
 import { writeOutbox } from '../../common/events/outbox.js';
-import { env } from '../../config/env.js';
+import { sendMailResult } from '../../common/mail/mailer.js';
+import { renderResetBody } from '../../common/mail/reset-template.js';
+import { env, isDevelopment } from '../../config/env.js';
+import { randomBytes } from 'node:crypto';
 
 export type AuthResult = { user: AuthUser; accessToken: string; refreshToken: string };
 type Ctx = { ua?: string | undefined; ip?: string | undefined };
@@ -219,7 +222,106 @@ export async function changePassword(
       where: { userId, revokedAt: null, id: { not: sessionId } },
       data: { revokedAt: new Date() },
     });
+    // Quem trocou a senha não deve deixar link de redefinição pendente valendo.
+    await tx.passwordResetToken.updateMany({
+      where: { userId, usedAt: null },
+      data: { usedAt: new Date() },
+    });
     await revokedEvent(tx, userId);
+  });
+}
+
+/* ── redefinição de senha por link ───────────────────────────────────────────
+   O servidor de e-mail vem de app_settings.mail, configurável pela tela. */
+
+// Solicitação feita pelo próprio usuário na tela de entrada. Nunca revela se o
+// e-mail existe: o retorno é idêntico para conta existente, inexistente, inativa
+// ou de diretoria (evita enumeração de usuários). O `userId` volta só para a rota
+// auditar e o `token` só para teste: a resposta HTTP não pode conter nenhum dos dois.
+//
+// Contas de diretoria ficam fora deste fluxo por decisão de segurança: quem
+// administra o servidor de e-mail (nível gestor) poderia apontá-lo para um relay
+// próprio e pedir o link de um diretor, contornando a regra de que ninguém altera
+// credencial de nível igual ou maior. O filtro está na consulta, então essas
+// contas caem no mesmo caminho de "não encontrado" e a resposta não as distingue.
+export async function requestPasswordReset(
+  db: Db,
+  email: string,
+): Promise<{ userId: string | null; token: string | null }> {
+  const user = await db.user.findFirst({
+    where: {
+      email: email.trim().toLowerCase(),
+      deletedAt: null,
+      active: true,
+      effectiveLevel: { not: 'CEO' },
+    },
+  });
+  if (!user) return { userId: null, token: null };
+
+  // Um pedido novo invalida os anteriores, para não deixar vários links válidos
+  // circulando por e-mail.
+  await db.passwordResetToken.updateMany({
+    where: { userId: user.id, usedAt: null, expiresAt: { gt: new Date() } },
+    data: { usedAt: new Date() },
+  });
+
+  const token = randomBytes(32).toString('base64url');
+  const minutes = env.PASSWORD_RESET_TTL_MINUTES;
+  await db.passwordResetToken.create({
+    data: {
+      userId: user.id,
+      tokenHash: sha256(token),
+      expiresAt: new Date(Date.now() + minutes * 60 * 1000),
+      requestedBy: null,
+    },
+  });
+
+  // Token no fragmento (#), não na query: o fragmento não é enviado ao servidor,
+  // então não entra em log de requisição, Referer nem log de proxy.
+  const link = `${env.APP_ORIGIN}/#reset=${encodeURIComponent(token)}`;
+
+  // Sem await: além de não travar a resposta, encurta a diferença de tempo entre
+  // e-mail existente e inexistente, que permitiria descobrir quem tem conta
+  // medindo a demora. sendMailResult nunca lança, então nada escapa daqui.
+  void (async () => {
+    // Texto configurável na tela (app_settings.mail.resetBody); sem nada salvo,
+    // usa o padrão. Ver common/mail/reset-template.ts.
+    const cfg = await db.appSetting.findFirst({ orderBy: { createdAt: 'asc' }, select: { mail: true } });
+    const template = (cfg?.mail as { resetBody?: string } | null)?.resetBody ?? null;
+    const result = await sendMailResult(db, {
+      to: user.email,
+      subject: 'Diário Dev: redefinição de senha',
+      text: renderResetBody(template, { usuario: user.name, link, minutos: minutes }),
+    });
+    if (result.ok) {
+      logger.info({ userId: user.id }, 'e-mail de redefinição de senha enviado');
+      return;
+    }
+    // Sem este log, "pedi e não chegou" fica sem rastro nenhum.
+    logger.error({ userId: user.id, code: result.code }, 'pedido de redefinição sem envio');
+    if (isDevelopment) logger.warn({ resetLink: link }, 'link de redefinição (apenas desenvolvimento)');
+  })();
+
+  return { userId: user.id, token };
+}
+
+// Conclui a redefinição com o token recebido por e-mail. Marca o token como usado
+// e revoga todas as sessões do usuário.
+export async function confirmPasswordReset(db: Db, token: string, newPassword: string): Promise<void> {
+  if (newPassword.length < 8) throw Errors.validation([{ field: 'newPassword', message: 'Mínimo de 8 caracteres.' }]);
+  if (isTrivialPassword(newPassword)) {
+    throw Errors.validation([{ field: 'newPassword', message: 'Senha muito comum.' }]);
+  }
+  const record = await db.passwordResetToken.findUnique({ where: { tokenHash: sha256(token) } });
+  if (!record || record.usedAt || record.expiresAt.getTime() <= Date.now()) {
+    throw Errors.unauthorized('Token de redefinição inválido ou expirado.');
+  }
+  const passwordHash = await hashPassword(newPassword);
+  await db.$transaction(async (tx) => {
+    await tx.user.update({ where: { id: record.userId }, data: { passwordHash, passwordChangedAt: new Date() } });
+    await tx.passwordResetToken.update({ where: { id: record.id }, data: { usedAt: new Date() } });
+    await tx.session.updateMany({ where: { userId: record.userId, revokedAt: null }, data: { revokedAt: new Date() } });
+    await revokedEvent(tx, record.userId);
   });
 }
 

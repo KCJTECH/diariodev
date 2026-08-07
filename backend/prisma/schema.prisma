@@ -71,6 +71,7 @@ model User {
   uploadedAttachment Attachment[]
   groupMemberships   GroupMember[]
   sessions           Session[]
+  passwordResets     PasswordResetToken[]
   auditLogs          AuditLog[]
 
   @@index([active])
@@ -112,6 +113,23 @@ model Session {
   @@index([userId])
   @@index([expiresAt])
   @@map("sessions")
+}
+
+// Token de redefinição de senha. Guarda só o hash: o token em claro existe
+// apenas no link enviado por e-mail. Uso único (usedAt) e com validade curta.
+model PasswordResetToken {
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String    @map("user_id") @db.Uuid
+  tokenHash   String    @unique @map("token_hash")
+  expiresAt   DateTime  @map("expires_at") @db.Timestamptz(6)
+  usedAt      DateTime? @map("used_at") @db.Timestamptz(6)
+  requestedBy String?   @map("requested_by") @db.Uuid
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("password_reset_tokens")
 }
 
 // ── categorias, projetos ─────────────────────────────────────────────────
@@ -296,6 +314,15 @@ model Integration {
   endpoint        String?
   encryptedSecret String?   @map("encrypted_secret")
   events          String[]  @default([])
+  // Projetos que disparam esta integração, por id. Vazio = todos os projetos.
+  // Só filtra eventos que carregam projeto no escopo (atividade e tarefa); o
+  // resumo diário é da organização e sempre passa.
+  projectIds      String[]  @default([]) @map("project_ids") @db.Uuid
+  // Configuração própria por tipo. Para o tipo e-mail: host, port, user e
+  // fromEmail do servidor desta integração (a senha fica em encryptedSecret,
+  // que já é cifrado e redigido no log). Vazio = usa o servidor do sistema
+  // (app_settings.mail), para não obrigar a repetir a credencial em cada card.
+  config          Json      @default("{}")
   notes           String?
   timeoutMs       Int       @default(10000) @map("timeout_ms")
   maxAttempts     Int       @default(5) @map("max_attempts")
@@ -340,6 +367,11 @@ model AppSetting {
   id                   String   @id @default(uuid()) @db.Uuid
   brand                Json     @default("{}")
   appearance           Json     @default("{}")
+  // Servidor de e-mail, editável pela tela (aba Integrações). Guarda host, port,
+  // user, fromEmail, enabled e a senha em encryptedSecret (AES-256-GCM). Nunca
+  // entra no bootstrap nem em payload de evento: só gestor+ lê, pelas rotas de
+  // settings. Ver docs/AUTENTICACAO_E_PERMISSOES.md.
+  mail                 Json     @default("{}")
   defaultTheme         String   @default("light") @map("default_theme")
   defaultDensity       String   @default("confortável") @map("default_density")
   organizationTimezone String   @default("America/Sao_Paulo") @map("organization_timezone")

@@ -200,6 +200,9 @@ export async function setUserPassword(
   await db.$transaction(async (tx) => {
     await tx.user.update({ where: { id: user.id }, data: { passwordHash, passwordChangedAt: new Date() } });
     await tx.session.updateMany({ where: { userId: user.id, revokedAt: null }, data: { revokedAt: new Date() } });
+    // Senha nova invalida link de redefinição pendente, senão um link antigo
+    // continuaria valendo depois da troca.
+    await tx.passwordResetToken.updateMany({ where: { userId: user.id, usedAt: null }, data: { usedAt: new Date() } });
     await revokedEvent(tx, user.id);
   });
   await writeAudit(db, {

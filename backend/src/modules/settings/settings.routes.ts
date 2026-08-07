@@ -4,6 +4,7 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import type { Db } from '../../common/database/prisma.js';
 import { ok } from '../../common/http/envelope.js';
+import { requestMeta } from '../../common/http/request-meta.js';
 import * as svc from './settings.service.js';
 
 // Sem passthrough: a aparência é entregue a todos os usuários autenticados no
@@ -31,6 +32,37 @@ const appearanceBody = z
   })
   .strict();
 
+// Servidor de e-mail. Porta em allowlist: porta livre transformaria o botão de
+// testar em varredura de portas da rede interna, com oráculo de erro e de tempo.
+const PORTAS_SMTP = new Set([25, 465, 587, 2525]);
+const mailBody = z
+  .object({
+    enabled: z.boolean().optional(),
+    host: z
+      .string()
+      .trim()
+      .min(1)
+      .max(255)
+      // Servidor, não URL: sem esquema, barra, arroba, espaço ou porta embutida.
+      .refine((v) => !/[\s/@:\\]/.test(v) && !/^[a-z]+:\/\//i.test(v), {
+        message: 'Informe apenas o servidor, sem http://, sem porta e sem barra.',
+      })
+      .optional(),
+    port: z.coerce
+      .number()
+      .int()
+      .refine((p) => PORTAS_SMTP.has(p), { message: 'Use a porta 25, 465, 587 ou 2525.' })
+      .optional(),
+    user: z.string().trim().max(255).optional(),
+    // Ausente mantém a senha atual; string vazia apaga.
+    password: z.string().max(200).optional(),
+    fromEmail: z.string().trim().email().max(200).optional(),
+    // Texto do e-mail de redefinição. Marcadores {USUARIO}, {LINK} e {MINUTOS};
+    // a obrigatoriedade de {LINK} é verificada no serviço, depois do merge.
+    resetBody: z.string().max(4000).optional(),
+  })
+  .strict();
+
 const prefsBody = z.object({
   collapsed: z.boolean().optional(),
   density: z.string().max(20).optional(),
@@ -47,6 +79,21 @@ export function registerSettingsRoutes(app: FastifyInstance, db: Db): void {
     '/settings/appearance',
     { preHandler: app.requireLevel('gestor') },
     async (req) => ok(await svc.updateAppearance(db, req.authUser!, appearanceBody.parse(req.body)), req.id),
+  );
+
+  // Servidor de e-mail: gestor+ em TODAS as rotas, inclusive na leitura. O hook
+  // do módulo só autentica, e host/porta/usuário do relay é topologia interna,
+  // que nível dev não tem por que ler.
+  app.get('/settings/mail', { preHandler: app.requireLevel('gestor') }, async (req) => ok(await svc.getMail(db), req.id));
+  app.put('/settings/mail', { preHandler: app.requireLevel('gestor') }, async (req) =>
+    ok(await svc.updateMail(db, req.authUser!, mailBody.parse(req.body), requestMeta(req)), req.id),
+  );
+  // Rate limit apertado: cada acerto manda e-mail de verdade, o que consome
+  // limite e reputação do relay.
+  app.post(
+    '/settings/mail/test',
+    { preHandler: app.requireLevel('gestor'), config: { rateLimit: { max: 5, timeWindow: '10 minutes' } } },
+    async (req) => ok(await svc.testMail(db, req.authUser!, requestMeta(req)), req.id),
   );
 
   app.get('/preferences', async (req) => ok(await svc.getPreferences(db, req.authUser!), req.id));

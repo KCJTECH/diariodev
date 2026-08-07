@@ -17,6 +17,9 @@ const redactPaths = [
   '*.secret',
   '*.encryptedSecret',
   '*.encryption_key',
+  // `pass` é o nome da opção de senha do nodemailer: se um erro do transporte
+  // carregar as options, a senha do relay iria para o log sem isto.
+  '*.pass',
 ];
 
 export const loggerOptions: LoggerOptions = {

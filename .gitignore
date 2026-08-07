@@ -7,6 +7,10 @@ backend/dist/
 .env
 .env.*
 !.env.example
+# Variaveis do deploy.sh (contem AI_API_KEY). O padrao .env.* acima NAO pega este
+# nome, porque o arquivo se chama deploy.env e nao .env.deploy.
+deploy.env
+!deploy.env.example
 
 # Logs e artefatos de runtime
 logs/
@@ -30,6 +34,10 @@ Thumbs.db
 
 # Pacotes locais
 *.tgz
+
+# Artefatos do deploy.sh
+backend/.dist-prev/
+repositorio/
 
 # artefato de hook (sobrescrito a cada fim de sessao)
 .planning/

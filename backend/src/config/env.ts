@@ -60,6 +60,16 @@ const schema = z.object({
   S3_REGION: z.string().default('us-east-1'),
   S3_FORCE_PATH_STYLE: bool.default('true'),
 
+  // Interruptor de ambiente do envio de e-mail. O servidor de e-mail em si é
+  // configurado pela tela (app_settings.mail), não aqui; esta variável só
+  // permite desligar o envio sem depender do banco: é o que impede as suítes de
+  // teste de disparar mensagem real para os endereços do seed, e serve de
+  // interruptor de emergência em produção. Padrão ligado, para que a ausência da
+  // variável no .env não desligue o envio em silêncio.
+  MAIL_ENABLED: bool.default('true'),
+  // Validade do link de redefinição de senha, em minutos.
+  PASSWORD_RESET_TTL_MINUTES: z.coerce.number().int().positive().default(60),
+
   // Senha inicial de usuários criados pela tela de administração (que não tem
   // campo de senha). Se vazio, o sistema gera uma senha aleatória, que só é
   // devolvida na resposta da API. Defina para que o admin saiba a senha inicial

@@ -7,7 +7,7 @@ await prisma.$executeRawUnsafe(
   `TRUNCATE TABLE
      attachments, activities, tasks, group_members, access_groups,
      integration_runs, integrations, audit_logs, outbox_events,
-     sessions, user_preferences, users,
+     password_reset_tokens, sessions, user_preferences, users,
      categories, projects, app_settings
    RESTART IDENTITY CASCADE`,
 );
