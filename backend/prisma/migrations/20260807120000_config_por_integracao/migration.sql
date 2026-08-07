@@ -1,0 +1,12 @@
+-- Configuração própria por integração. Para o tipo e-mail, guarda o servidor
+-- daquela integração (host, port, user, fromEmail), permitindo que integrações
+-- diferentes enviem de contas diferentes. A senha continua em encrypted_secret,
+-- que já é cifrada e redigida no log.
+--
+-- Vazio significa usar o servidor de e-mail do sistema (app_settings.mail), para
+-- não obrigar a repetir a mesma credencial em cada integração.
+--
+-- Aditiva. Escrita à mão porque o gerador do Prisma incluiria um DROP INDEX de
+-- "activities_tags_gin_idx", criado por SQL na migration inicial e não declarado
+-- no schema; ver 20260807100100_password_reset_tokens.
+ALTER TABLE "integrations" ADD COLUMN IF NOT EXISTS "config" JSONB NOT NULL DEFAULT '{}';

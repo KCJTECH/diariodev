@@ -14,6 +14,25 @@ const writeBody = z.object({
   enabled: z.boolean().optional(),
   endpoint: z.string().max(500).nullable().optional(),
   events: z.array(z.string().max(60)).max(50).optional(),
+  // Projetos que disparam a integração (ids). Lista vazia = todos os projetos.
+  projects: z.array(z.string().uuid()).max(100).optional(),
+  // Servidor de e-mail próprio (tipo e-mail). Host vazio = usa o do sistema.
+  // Mesma validação do servidor do sistema: host sem esquema e porta em allowlist.
+  mailHost: z
+    .string()
+    .trim()
+    .max(255)
+    .refine((v) => v === '' || (!/[\s/@:\\]/.test(v) && !/^[a-z]+:\/\//i.test(v)), {
+      message: 'Informe apenas o servidor, sem http://, sem porta e sem barra.',
+    })
+    .optional(),
+  mailPort: z.coerce
+    .number()
+    .int()
+    .refine((p) => [25, 465, 587, 2525].includes(p), { message: 'Use a porta 25, 465, 587 ou 2525.' })
+    .optional(),
+  mailUser: z.string().trim().max(255).optional(),
+  mailFrom: z.union([z.string().trim().email().max(200), z.literal('')]).optional(),
   notes: z.string().max(2000).nullable().optional(),
   secret: z.string().max(500).optional(),
 });

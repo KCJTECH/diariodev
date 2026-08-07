@@ -69,7 +69,7 @@ export function startOutboxPublisher(io: Server, db: Db): () => void {
       // Despacho de webhooks fora da transação (entrega assíncrona via fila).
       for (const r of claimed) {
         try {
-          await enqueueWebhooks(db, r.event_name, r.id, r.payload);
+          await enqueueWebhooks(db, r.event_name, r.id, r.payload, r.scope);
         } catch (err) {
           logger.error({ err, event: r.event_name }, 'falha ao enfileirar webhook');
         }

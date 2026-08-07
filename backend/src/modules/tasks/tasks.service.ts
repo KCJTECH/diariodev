@@ -34,6 +34,40 @@ export type TaskWrite = {
 
 type Meta = { requestId: string; ipHash: string | null; userAgent: string | null };
 
+// Conteúdo do aviso de tarefa encaminhada. Precisa ser legível por quem recebe,
+// porque alimenta e-mail e fluxo de automação: nome e e-mail do responsável (o
+// destino do aviso), quem atribuiu, projeto, prazo e prioridade. Sem dado
+// sensível: são os mesmos campos que a tela já mostra a quem tem acesso ao projeto.
+async function assignedPayload(tx: Prisma.TransactionClient, taskId: string) {
+  const t = await tx.task.findUniqueOrThrow({
+    where: { id: taskId },
+    select: {
+      id: true,
+      title: true,
+      description: true,
+      dueDate: true,
+      priority: true,
+      categoryNameSnapshot: true,
+      project: { select: { name: true } },
+      assignee: { select: { publicKey: true, name: true, email: true } },
+      creator: { select: { publicKey: true, name: true } },
+    },
+  });
+  return {
+    id: t.id,
+    titulo: t.title,
+    descricao: t.description ?? '',
+    projeto: t.project.name,
+    categoria: t.categoryNameSnapshot ?? '',
+    prioridade: t.priority,
+    prazo: t.dueDate ? t.dueDate.toISOString().slice(0, 10) : null,
+    responsavel: t.assignee
+      ? { id: t.assignee.publicKey, nome: t.assignee.name, email: t.assignee.email }
+      : null,
+    atribuidaPor: { id: t.creator.publicKey, nome: t.creator.name },
+  };
+}
+
 async function resolveAssigneeId(db: Db, publicKey: string | null | undefined): Promise<string | null> {
   if (!publicKey) return null;
   const user = await db.user.findFirst({ where: { publicKey, deletedAt: null }, select: { id: true } });
@@ -106,6 +140,18 @@ export async function createTask(db: Db, actor: AuthUser, input: TaskWrite, meta
       payload: { id: task.id, who: input.who ?? null },
       scope: { type: 'project', id: project.id },
     });
+    // Aviso de tarefa encaminhada, só quando há responsável: tarefa sem dono não
+    // tem quem avisar. Evento separado do task.created porque o created também
+    // serve ao realtime da tela, que não deve virar notificação.
+    if (assigneeId) {
+      await writeOutbox(tx, {
+        eventName: 'task.assigned',
+        aggregateType: 'task',
+        aggregateId: task.id,
+        payload: await assignedPayload(tx, task.id),
+        scope: { type: 'project', id: project.id },
+      });
+    }
     return task.id;
   });
 
@@ -161,6 +207,18 @@ export async function updateTask(
       payload: { id },
       scope: { type: 'project', id: project.id },
     });
+    // Trocou de responsável: para quem recebeu, é uma tarefa nova na fila dele,
+    // então avisa igual à criação. Edição de título ou prazo não reavisa, para
+    // não transformar cada ajuste do gestor em mensagem para a equipe.
+    if (assigneeId && assigneeId !== current.assigneeId) {
+      await writeOutbox(tx, {
+        eventName: 'task.assigned',
+        aggregateType: 'task',
+        aggregateId: id,
+        payload: await assignedPayload(tx, id),
+        scope: { type: 'project', id: project.id },
+      });
+    }
   });
 
   await writeAudit(db, {

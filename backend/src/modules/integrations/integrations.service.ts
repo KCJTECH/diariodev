@@ -19,6 +19,14 @@ export type IntegrationDto = {
   enabled: boolean;
   endpoint: string | null;
   events: string[];
+  // Projetos que disparam esta integração. Vazio = todos.
+  projects: string[];
+  // Servidor de e-mail próprio desta integração (tipo e-mail). Host vazio =
+  // usa o servidor do sistema. A senha nunca sai: ver secretConfigured.
+  mailHost: string;
+  mailPort: number;
+  mailUser: string;
+  mailFrom: string;
   notes: string | null;
   secretConfigured: boolean;
   secretPreview: string | null;
@@ -31,14 +39,44 @@ export type IntegrationWrite = {
   enabled?: boolean;
   endpoint?: string | null;
   events?: string[];
+  projects?: string[];
+  mailHost?: string;
+  mailPort?: number;
+  mailUser?: string;
+  mailFrom?: string;
   notes?: string | null;
   secret?: string;
 };
 
 type IntegrationRow = {
   id: string; name: string; abbreviation: string | null; type: string; enabled: boolean;
-  endpoint: string | null; events: string[]; notes: string | null; encryptedSecret: string | null;
+  endpoint: string | null; events: string[]; projectIds: string[]; notes: string | null; encryptedSecret: string | null;
+  config: unknown;
 };
+
+// Config de e-mail guardada em Integration.config. A senha não mora aqui: fica
+// em encryptedSecret, cifrada, como o segredo de webhook.
+type MailFields = { mailHost: string; mailPort: number; mailUser: string; mailFrom: string };
+function mailFieldsOf(config: unknown): MailFields {
+  const c = (config && typeof config === 'object' ? config : {}) as Record<string, unknown>;
+  return {
+    mailHost: typeof c.host === 'string' ? c.host : '',
+    mailPort: typeof c.port === 'number' ? c.port : 587,
+    mailUser: typeof c.user === 'string' ? c.user : '',
+    mailFrom: typeof c.fromEmail === 'string' ? c.fromEmail : '',
+  };
+}
+
+// Monta o config a gravar, preservando o que não veio no patch.
+function mergeMailConfig(atual: unknown, input: Partial<IntegrationWrite>): Record<string, unknown> {
+  const a = mailFieldsOf(atual);
+  return {
+    host: (input.mailHost ?? a.mailHost).trim(),
+    port: input.mailPort ?? a.mailPort,
+    user: (input.mailUser ?? a.mailUser).trim(),
+    fromEmail: (input.mailFrom ?? a.mailFrom).trim(),
+  };
+}
 
 function toDto(i: IntegrationRow): IntegrationDto {
   let preview: string | null = null;
@@ -51,14 +89,15 @@ function toDto(i: IntegrationRow): IntegrationDto {
   }
   return {
     id: i.id, name: i.name, abbr: i.abbreviation, type: i.type, enabled: i.enabled,
-    endpoint: i.endpoint, events: i.events, notes: i.notes,
+    endpoint: i.endpoint, events: i.events, projects: i.projectIds, notes: i.notes,
+    ...mailFieldsOf(i.config),
     secretConfigured: i.encryptedSecret !== null, secretPreview: preview,
   };
 }
 
 const columns = {
   id: true, name: true, abbreviation: true, type: true, enabled: true,
-  endpoint: true, events: true, notes: true, encryptedSecret: true,
+  endpoint: true, events: true, projectIds: true, notes: true, encryptedSecret: true, config: true,
 };
 
 export async function listIntegrations(db: Db): Promise<IntegrationDto[]> {
@@ -77,6 +116,8 @@ export async function createIntegration(db: Db, actor: AuthUser, input: Integrat
         endpoint: input.endpoint ?? null,
         encryptedSecret: input.secret ? encryptSecret(input.secret) : null,
         events: input.events ?? [],
+        projectIds: input.projects ?? [],
+        config: mergeMailConfig({}, input) as never,
         notes: input.notes ?? null,
         createdBy: actor.id,
       },
@@ -103,6 +144,8 @@ export async function updateIntegration(db: Db, actor: AuthUser, id: string, inp
         enabled: input.enabled,
         endpoint: input.endpoint ?? undefined,
         events: input.events ?? undefined,
+        projectIds: input.projects ?? undefined,
+        config: mergeMailConfig(current.config, input) as never,
         notes: input.notes ?? undefined,
         // Só re-encripta se um novo segredo não vazio foi enviado; caso contrário mantém.
         encryptedSecret: input.secret ? encryptSecret(input.secret) : undefined,
