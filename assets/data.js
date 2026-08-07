@@ -54,13 +54,14 @@
   /* mensagem de erro reutilizando o mecanismo visual existente (sem novos componentes) */
   function notifyError(err) {
     var msg = err && err.message ? err.message : 'Falha de comunicação com o servidor.';
+    // 401 aqui já passou pela renovação de sessão do http(): a sessão acabou mesmo.
     if (err && err.status === 401) { location.href = '/'; return; }
     try { if (window.location && console) console.warn('[DV]', msg); } catch (e) {}
     fireError(err);
   }
 
   /* ── HTTP ── */
-  function http(method, path, body) {
+  function request(method, path, body) {
     var opts = { method: method, credentials: 'include', headers: {} };
     if (body !== undefined) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
     return fetch(API + path, opts).then(function (res) {
@@ -73,6 +74,32 @@
         }
         return j;
       });
+    });
+  }
+
+  /* Renovação de sessão, uma por vez nesta aba. O access token é curto e expira
+     por inatividade; sem serializar, várias chamadas que tomam 401 juntas
+     disparam vários /auth/refresh, e como a rotação troca o token em lugar, só o
+     primeiro encontra a sessão: os demais levam 401 e derrubam a tela com a
+     sessão ainda válida no servidor. */
+  var renewing = null;
+  function renewSession() {
+    if (!renewing) {
+      renewing = request('POST', '/auth/refresh');
+      var limpa = function () { renewing = null; };
+      renewing.then(limpa, limpa);
+    }
+    return renewing;
+  }
+
+  /* Access token expirado: renova uma vez e repete a chamada, em vez de mandar
+     direto para a tela de entrada. As rotas de /auth/ ficam de fora porque o 401
+     delas é credencial inválida ou sessão encerrada, não token vencido, e tentar
+     renovar ali daria recursão. */
+  function http(method, path, body) {
+    return request(method, path, body).catch(function (err) {
+      if (!err || err.status !== 401 || path.indexOf('/auth/') === 0) throw err;
+      return renewSession().then(function () { return request(method, path, body); });
     });
   }
 
@@ -173,6 +200,12 @@
       Promise.all(ps).then(function () { self._reloadCats(); }).catch(function (e) { notifyError(e); self._reloadCats(); });
     },
     projects: function () { return state.projects.slice(); },
+    /* Projetos com id, para telas que precisam referenciar projeto no servidor
+       (o filtro de projeto das integrações guarda id, e a lista mostra nome). */
+    projectList: function () {
+      var map = state.projectMap || {};
+      return Object.keys(map).map(function (name) { return { id: map[name], name: name }; });
+    },
     setProjects: function (l) { state.projects = l; },
     /* Cria um projeto no servidor (POST /projects). Otimista com rollback em erro. */
     createProject: function (name) {
@@ -308,6 +341,27 @@
     applyBrand: function () {
       try { var b = this.brand(); var r = document.documentElement.style; r.setProperty('--brand', b.brand); r.setProperty('--accent', b.accent); r.setProperty('--radius', b.radius + 'px'); } catch (e) {}
     },
+
+    /* ── servidor de e-mail (gestor+) ──
+       Não entra no bootstrap: é buscado quando a tela de Configurações abre a
+       aba. A senha nunca volta do servidor; o campo fica vazio e, em branco,
+       mantém a que já está salva. */
+    mailSettings: function () {
+      return http('GET', '/settings/mail').then(function (r) { return r.data; });
+    },
+    saveMailSettings: function (patch) {
+      return http('PUT', '/settings/mail', patch).then(function (r) { return r.data; }).catch(function (err) {
+        if (err && err.status === 403) throw new Error('Você não tem permissão para alterar o servidor de e-mail.');
+        throw err;
+      });
+    },
+    testMailSettings: function () {
+      return http('POST', '/settings/mail/test').then(function (r) { return r.data; }).catch(function (err) {
+        if (err && err.status === 429) throw new Error('Muitos testes seguidos. Aguarde alguns minutos.');
+        if (err && err.status === 403) throw new Error('Você não tem permissão para testar o envio.');
+        throw err;
+      });
+    },
     logoVals: function (collapsed) {
       var b = this.brand();
       return {
@@ -375,10 +429,10 @@
       var self = this, ps = [];
       list.forEach(function (i) {
         var prev = byId[i.id];
-        var body = { name: i.name, abbr: i.abbr || null, type: i.type, enabled: i.enabled, endpoint: i.endpoint || null, events: i.events || [], notes: i.notes || null };
+        var body = { name: i.name, abbr: i.abbr || null, type: i.type, enabled: i.enabled, endpoint: i.endpoint || null, events: i.events || [], projects: i.projects || [], notes: i.notes || null, mailHost: i.mailHost || '', mailPort: i.mailPort || 587, mailUser: i.mailUser || '', mailFrom: i.mailFrom || '' };
         if (i.secret) body.secret = i.secret; // só envia segredo se foi digitado
         if (!prev) ps.push(http('POST', '/integrations', body));
-        else if (prev.name !== i.name || prev.abbr !== i.abbr || prev.type !== i.type || prev.enabled !== i.enabled || prev.endpoint !== i.endpoint || prev.notes !== i.notes || !self._eq(prev.events, i.events) || i.secret) {
+        else if (prev.name !== i.name || prev.abbr !== i.abbr || prev.type !== i.type || prev.enabled !== i.enabled || prev.endpoint !== i.endpoint || prev.notes !== i.notes || !self._eq(prev.events, i.events) || !self._eq(prev.projects, i.projects) || prev.mailHost !== i.mailHost || prev.mailPort !== i.mailPort || prev.mailUser !== i.mailUser || prev.mailFrom !== i.mailFrom || i.secret) {
           ps.push(http('PATCH', '/integrations/' + i.id, body));
         }
       });

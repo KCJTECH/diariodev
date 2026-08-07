@@ -376,6 +376,7 @@
       <sc-if value="{{ isIntegra }}" hint-placeholder-val="{{ false }}">
         <div style="display:flex;flex-direction:column;gap:16px">
 
+
           <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 20px">
             <div style="flex:1;min-width:0">
               <div style="font-size:.86rem;font-weight:700">Integrações</div>
@@ -521,11 +522,55 @@
                     <div>
                       <div style="font-size:.77rem;font-weight:700;margin-bottom:6px">{{ g.endpointLabel }}</div>
                       <input value="{{ g.draft.endpoint }}" onChange="{{ g.onEndpoint }}" placeholder="{{ g.endpointHint }}" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:6px;font-size:.85rem;outline:none;font-family:ui-monospace,monospace" style-focus="border-color:var(--brand-text)" />
+                      <sc-if value="{{ g.isEmail }}" hint-placeholder-val="{{ false }}">
+                        <div style="font-size:.73rem;color:var(--text-faint);margin-top:6px">Separe por vírgula. Use <span style="font-family:ui-monospace,monospace;font-weight:700">{responsavel}</span> para avisar quem recebeu a tarefa.</div>
+                      </sc-if>
                     </div>
-                    <div>
-                      <div style="font-size:.77rem;font-weight:700;margin-bottom:6px">Credencial / assinatura</div>
-                      <input value="{{ g.draft.secret }}" onChange="{{ g.onSecret }}" placeholder="token, secret ou chave" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:6px;font-size:.85rem;outline:none;font-family:ui-monospace,monospace" style-focus="border-color:var(--brand-text)" />
-                    </div>
+                    <sc-if value="{{ g.isEmail }}" hint-placeholder-val="{{ false }}">
+                      <div style="border:1.5px solid var(--border);border-radius:8px;padding:14px;background:var(--surface-2)">
+                        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+                          <span style="font-size:.79rem;font-weight:700">Servidor de envio desta integração</span>
+                          <span style="font-size:.72rem;color:var(--text-faint)">{{ g.mailOrigem }}</span>
+                        </div>
+                        <div style="display:grid;grid-template-columns:2fr 1fr;gap:10px">
+                          <div>
+                            <div style="font-size:.75rem;font-weight:700;margin-bottom:5px">Servidor (host)</div>
+                            <input value="{{ g.draft.mailHost }}" onChange="{{ g.onMailHost }}" placeholder="deixe vazio para usar o do sistema" style="width:100%;padding:8px 11px;border:1.5px solid var(--border);border-radius:6px;font-size:.82rem;outline:none;font-family:ui-monospace,monospace;background:var(--surface)" style-focus="border-color:var(--brand-text)" />
+                          </div>
+                          <div>
+                            <div style="font-size:.75rem;font-weight:700;margin-bottom:5px">Porta</div>
+                            <select value="{{ g.mailPort }}" onChange="{{ g.onMailPort }}" style="{{ selectStyle }}">
+                              <sc-for list="{{ g.portOptions }}" as="o" hint-placeholder-count="4">
+                                <option value="{{ o.value }}">{{ o.label }}</option>
+                              </sc-for>
+                            </select>
+                          </div>
+                        </div>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
+                          <div>
+                            <div style="font-size:.75rem;font-weight:700;margin-bottom:5px">Usuário</div>
+                            <input value="{{ g.draft.mailUser }}" onChange="{{ g.onMailUser }}" placeholder="envio@itscs.com.br" style="width:100%;padding:8px 11px;border:1.5px solid var(--border);border-radius:6px;font-size:.82rem;outline:none;font-family:ui-monospace,monospace;background:var(--surface)" style-focus="border-color:var(--brand-text)" />
+                          </div>
+                          <div>
+                            <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:5px">
+                              <span style="font-size:.75rem;font-weight:700">Senha</span>
+                              <span style="font-size:.71rem;color:var(--text-faint)">{{ g.secretNote }}</span>
+                            </div>
+                            <input type="password" value="{{ g.draft.secret }}" onChange="{{ g.onSecret }}" placeholder="••••••••" style="width:100%;padding:8px 11px;border:1.5px solid var(--border);border-radius:6px;font-size:.82rem;outline:none;background:var(--surface)" style-focus="border-color:var(--brand-text)" />
+                          </div>
+                        </div>
+                        <div style="margin-top:10px">
+                          <div style="font-size:.75rem;font-weight:700;margin-bottom:5px">Remetente (from)</div>
+                          <input value="{{ g.draft.mailFrom }}" onChange="{{ g.onMailFrom }}" placeholder="naoresponda@itscs.com.br" style="width:100%;padding:8px 11px;border:1.5px solid var(--border);border-radius:6px;font-size:.82rem;outline:none;font-family:ui-monospace,monospace;background:var(--surface)" style-focus="border-color:var(--brand-text)" />
+                        </div>
+                      </div>
+                    </sc-if>
+                    <sc-if value="{{ g.notEmail }}" hint-placeholder-val="{{ true }}">
+                      <div>
+                        <div style="font-size:.77rem;font-weight:700;margin-bottom:6px">Credencial / assinatura</div>
+                        <input value="{{ g.draft.secret }}" onChange="{{ g.onSecret }}" placeholder="token, secret ou chave" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:6px;font-size:.85rem;outline:none;font-family:ui-monospace,monospace" style-focus="border-color:var(--brand-text)" />
+                      </div>
+                    </sc-if>
                     <div>
                       <div style="font-size:.77rem;font-weight:700;margin-bottom:7px">Eventos assinados</div>
                       <div style="display:flex;flex-wrap:wrap;gap:6px">
@@ -533,10 +578,25 @@
                           <div onClick="{{ e.onClick }}" style="{{ e.style }}">{{ e.label }}</div>
                         </sc-for>
                       </div>
-                      <div style="display:flex;gap:8px;margin-top:8px">
-                        <input value="{{ g.draft.newEvent }}" onChange="{{ g.onNewEvent }}" placeholder="evento.personalizado" style="flex:1;padding:8px 11px;border:1.5px solid var(--border);border-radius:6px;font-size:.8rem;outline:none;font-family:ui-monospace,monospace" style-focus="border-color:var(--brand-text)" />
-                        <div onClick="{{ g.onAddEvent }}" style="padding:8px 13px;border:1.5px solid var(--brand);color:var(--brand-text);border-radius:6px;font-size:.8rem;font-weight:600;cursor:pointer;white-space:nowrap" style-hover="background:var(--tint-blue)">Adicionar</div>
+                      <div style="display:flex;align-items:center;gap:8px;margin-top:8px;padding:8px 11px;border:1.5px dashed var(--border-strong);border-radius:6px">
+                        <span style="font-size:.75rem;font-weight:700;color:var(--text-muted)">Evento personalizado</span>
+                        <span style="font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:20px;background:var(--surface-2);border:1px solid var(--border);color:var(--text-faint)">em breve</span>
+                        <span style="font-size:.73rem;color:var(--text-faint)">os eventos acima são os que o servidor dispara hoje</span>
                       </div>
+                    </div>
+                    <div>
+                      <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:7px;gap:10px;flex-wrap:wrap">
+                        <span style="font-size:.77rem;font-weight:700">Projetos que disparam</span>
+                        <span style="font-size:.72rem;color:var(--text-faint)">{{ g.projectNote }}</span>
+                      </div>
+                      <div style="display:flex;flex-wrap:wrap;gap:6px">
+                        <sc-for list="{{ g.projectChips }}" as="pj" hint-placeholder-count="3">
+                          <div onClick="{{ pj.onClick }}" style="{{ pj.style }}">{{ pj.label }}</div>
+                        </sc-for>
+                      </div>
+                      <sc-if value="{{ g.noProjects }}" hint-placeholder-val="{{ false }}">
+                        <div style="font-size:.74rem;color:var(--text-faint);margin-top:6px">Nenhum projeto cadastrado ainda.</div>
+                      </sc-if>
                     </div>
                     <div>
                       <div style="font-size:.77rem;font-weight:700;margin-bottom:6px">Observação</div>
@@ -560,6 +620,76 @@
             </sc-for>
           </div>
 
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px">
+            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:4px">
+              <div style="flex:1;min-width:0">
+                <div style="font-size:.86rem;font-weight:700">E-mail do sistema</div>
+                <div style="font-size:.74rem;color:var(--text-muted);margin-top:2px">Servidor usado para recuperação de senha e avisos automáticos</div>
+              </div>
+              <span style="{{ mailCfg.statusBadge }}">{{ mailCfg.statusLabel }}</span>
+              <div style="display:flex;align-items:center;gap:9px">
+                <div onClick="{{ mailCfg.onToggle }}" style="{{ mailCfg.switch }}"><div style="{{ mailCfg.knob }}"></div></div>
+                <span style="font-size:.8rem;font-weight:600;color:var(--text-muted)">{{ mailCfg.enabledLabel }}</span>
+              </div>
+            </div>
+
+            <sc-if value="{{ mailCfg.hasMessage }}" hint-placeholder-val="{{ false }}">
+              <div style="{{ mailCfg.messageStyle }}">{{ mailCfg.message }}</div>
+            </sc-if>
+
+            <div style="display:grid;grid-template-columns:2fr 1fr;gap:12px;margin-top:12px">
+              <div>
+                <div style="font-size:.77rem;font-weight:700;margin-bottom:6px">Servidor (host)</div>
+                <input value="{{ mailCfg.host }}" onChange="{{ mailCfg.onHost }}" placeholder="smtp.itscs.com.br" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:6px;font-size:.85rem;outline:none;font-family:ui-monospace,monospace" style-focus="border-color:var(--brand-text)" />
+              </div>
+              <div>
+                <div style="font-size:.77rem;font-weight:700;margin-bottom:6px">Porta</div>
+                <select value="{{ mailCfg.port }}" onChange="{{ mailCfg.onPort }}" style="{{ selectStyle }}">
+                  <sc-for list="{{ mailCfg.portOptions }}" as="o" hint-placeholder-count="4">
+                    <option value="{{ o.value }}">{{ o.label }}</option>
+                  </sc-for>
+                </select>
+              </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
+              <div>
+                <div style="font-size:.77rem;font-weight:700;margin-bottom:6px">Usuário</div>
+                <input value="{{ mailCfg.user }}" onChange="{{ mailCfg.onUser }}" placeholder="envio@itscs.com.br" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:6px;font-size:.85rem;outline:none;font-family:ui-monospace,monospace" style-focus="border-color:var(--brand-text)" />
+              </div>
+              <div>
+                <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px">
+                  <span style="font-size:.77rem;font-weight:700">Senha</span>
+                  <span style="font-size:.72rem;color:var(--text-faint)">{{ mailCfg.secretNote }}</span>
+                </div>
+                <input type="password" value="{{ mailCfg.password }}" onChange="{{ mailCfg.onPassword }}" placeholder="••••••••" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:6px;font-size:.85rem;outline:none" style-focus="border-color:var(--brand-text)" />
+              </div>
+            </div>
+
+            <div style="margin-top:12px">
+              <div style="font-size:.77rem;font-weight:700;margin-bottom:6px">Remetente (from)</div>
+              <input value="{{ mailCfg.fromEmail }}" onChange="{{ mailCfg.onFrom }}" placeholder="naoresponda@itscs.com.br" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:6px;font-size:.85rem;outline:none;font-family:ui-monospace,monospace" style-focus="border-color:var(--brand-text)" />
+            </div>
+
+            <div style="margin-top:12px">
+              <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px;gap:10px;flex-wrap:wrap">
+                <span style="font-size:.77rem;font-weight:700">Texto do e-mail de recuperação de senha</span>
+                <span style="font-size:.72rem;color:var(--text-faint)">{USUARIO}, {LINK} e {MINUTOS} são substituídos no envio</span>
+              </div>
+              <textarea value="{{ mailCfg.resetBody }}" onChange="{{ mailCfg.onResetBody }}" style="width:100%;min-height:150px;padding:10px 12px;border:1.5px solid var(--border);border-radius:6px;font-size:.82rem;outline:none;resize:vertical;line-height:1.6;font-family:ui-monospace,monospace" style-focus="border-color:var(--brand-text)"></textarea>
+              <div style="display:flex;align-items:center;gap:10px;margin-top:7px;flex-wrap:wrap">
+                <span style="font-size:.72rem;color:var(--text-faint)">O endereço de redefinição entra onde estiver {LINK}, que é obrigatório.</span>
+                <div onClick="{{ mailCfg.onResetDefault }}" style="font-size:.75rem;font-weight:600;color:var(--brand-text);cursor:pointer" style-hover="text-decoration:underline">restaurar texto padrão</div>
+              </div>
+            </div>
+
+            <div style="display:flex;align-items:center;gap:10px;margin-top:14px;padding-top:14px;border-top:1px solid var(--border-soft);flex-wrap:wrap">
+              <span style="font-size:.73rem;color:var(--text-faint)">{{ mailCfg.updatedLabel }}</span>
+              <div style="flex:1"></div>
+              <div onClick="{{ mailCfg.onTest }}" style="font-size:.82rem;font-weight:600;padding:9px 14px;border:1.5px solid var(--brand);color:var(--brand-text);border-radius:6px;cursor:pointer;white-space:nowrap" style-hover="background:var(--tint-blue)">Testar envio</div>
+              <div onClick="{{ mailCfg.onSave }}" style="font-size:.84rem;font-weight:700;padding:10px 18px;background:var(--accent);color:#fff;border-radius:6px;cursor:pointer;white-space:nowrap" style-hover="filter:brightness(1.08)">Salvar e-mail</div>
+            </div>
+          </div>
           <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px">
             <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:14px;gap:12px;flex-wrap:wrap">
               <div>
@@ -878,7 +1008,7 @@ class Component extends DCLogic {
     newCat: '', newP: { name: '', role: '', mail: '' },
     list: null, editing: null, draft: null, confirmDelete: null,
     groups: null, gEditing: null, gDraft: null, gConfirm: null,
-    userDraft: null, userConfirm: false, userResetBusy: false,
+    userDraft: null, userConfirm: false, userResetBusy: false, mail: null,
     gView: 'lista', gSort: 'az', gPage: 1,
     iView: 'lista', iSort: 'az', iPage: 1,
     pView: 'lista', pSort: 'az', pPage: 1, cPage: 1, cSort: 'az',
@@ -887,7 +1017,9 @@ class Component extends DCLogic {
   };
 
   types = [
-    { id: 'whatsapp', label: 'WhatsApp', tone: 'green', endpoint: 'Número do bot', hint: '+55 62 90000-0000' },
+    /* soon: o transporte não existe no servidor, que só entrega por POST HTTP.
+       Fica visível como planejado, em vez de aceitar configuração que não dispara. */
+    { id: 'whatsapp', label: 'WhatsApp', tone: 'green', endpoint: 'Número do bot', hint: '+55 62 90000-0000', soon: true },
     { id: 'webhook', label: 'Webhook / n8n', tone: 'orange', endpoint: 'URL do webhook', hint: 'https://n8n.itscs.com.br/webhook/diario-dev' },
     { id: 'chat', label: 'Chat (Slack, Google Chat)', tone: 'blue', endpoint: 'URL do canal', hint: 'https://hooks.slack.com/services/…' },
     { id: 'email', label: 'E-mail', tone: 'gray', endpoint: 'Destinatários', hint: 'gestao@itscs.com.br' },
@@ -901,7 +1033,26 @@ class Component extends DCLogic {
     { id: 'i4', name: 'Digest para gestão', abbr: '@', type: 'email', enabled: true, endpoint: 'gestao@itscs.com.br; diretoria@itscs.com.br', secret: '', events: ['resumo.semanal'], notes: 'E-mail semanal com entregas por projeto, gerado do relatório.' }
   ];
 
-  baseEvents = ['atividade.criada', 'atividade.editada', 'atividade.excluida', 'mensagem.recebida', 'resumo.diario', 'resumo.semanal'];
+  /* Só os eventos que o servidor realmente dispara (webhook/events.ts). Saíram
+     mensagem.recebida e resumo.semanal: não existem no backend e ficavam
+     marcáveis sem nunca disparar. */
+  baseEvents = ['atividade.criada', 'atividade.editada', 'atividade.excluida', 'tarefa.encaminhada', 'resumo.diario'];
+
+  /* Espelha RESET_BODY_DEFAULT de backend/src/common/mail/reset-template.ts.
+     Serve só para o botão "restaurar texto padrão": o texto em vigor sempre vem
+     do servidor, que é a fonte. */
+  RESET_BODY_DEFAULT = [
+    'Olá, {USUARIO}.',
+    '',
+    'Recebemos um pedido para redefinir a senha da sua conta no Diário Dev.',
+    'Abra o endereço abaixo para cadastrar uma nova senha. O link vale {MINUTOS} minutos e só pode ser usado uma vez.',
+    '',
+    '{LINK}',
+    '',
+    'Se não foi você que pediu, ignore esta mensagem. Sua senha atual continua válida.',
+    '',
+    'Diário Dev ITS'
+  ].join('\n');
 
   perms = [
     'registrar.atividade', 'ver.proprios', 'ver.equipe', 'relatorio.equipe',
@@ -956,6 +1107,17 @@ class Component extends DCLogic {
     this.setState({ toast: { title: title, sub: sub, kind: kind || 'success' } });
     this._tt = setTimeout(() => this.setState({ toast: null }), 3000);
   }
+  setMail(patch) { this.setState(s => ({ mail: Object.assign({}, s.mail, patch) })); }
+  /* Busca a configuração de e-mail sob demanda: não vem no bootstrap, porque só
+     gestor+ pode lê-la. A senha nunca chega do servidor. */
+  loadMail() {
+    if (this.state.mail || this._mailLoading) return;
+    this._mailLoading = true;
+    DV.mailSettings()
+      .then((m) => this.setState({ mail: Object.assign({}, m, { password: '', message: '', messageKind: '' }) }))
+      .catch(() => this.setState({ mail: { host: '', port: 587, user: '', fromEmail: '', enabled: true, password: '', secretConfigured: false, secretUsable: true, message: 'Não foi possível carregar a configuração de e-mail.', messageKind: 'error' } }))
+      .finally(() => { this._mailLoading = false; });
+  }
   bump() { this.setState(s => ({ tick: s.tick + 1 })); }
   persist(list) { DV.setUi({ integrations: list }); this.setState({ list: list }); }
   persistRuns(runs) { DV.setUi({ integrationRuns: runs }); this.setState({ runs: runs }); }
@@ -1008,10 +1170,11 @@ class Component extends DCLogic {
 
     const blank = () => ({
       id: 'i' + Date.now(), name: '', abbr: '', type: 'webhook', enabled: true,
-      endpoint: '', secret: '', events: ['atividade.criada'], notes: '', newEvent: ''
+      endpoint: '', secret: '', events: ['atividade.criada'], projects: [], notes: '', newEvent: '',
+      mailHost: '', mailPort: 587, mailUser: '', mailFrom: ''
     });
 
-    const startEdit = (g) => this.setState({ editing: g.id, draft: Object.assign({ newEvent: '' }, g, { events: (g.events || []).slice() }), confirmDelete: null });
+    const startEdit = (g) => this.setState({ editing: g.id, draft: Object.assign({ newEvent: '' }, g, { events: (g.events || []).slice(), projects: (g.projects || []).slice() }), confirmDelete: null });
     const remove = (id) => {
       if (this.state.confirmDelete !== id) { this.setState({ confirmDelete: id }); return; }
       const g = list.find(x => x.id === id);
@@ -1062,10 +1225,34 @@ class Component extends DCLogic {
           (confirming ? '#dc2626;background:#dc2626;color:#fff' : 'var(--tint-red-bd);color:#dc2626'),
         draft: editing ? { name: d.name, abbr: d.abbr, endpoint: d.endpoint, secret: d.secret, notes: d.notes, newEvent: d.newEvent || '' } : {},
         endpointLabel: typeOf(d.type).endpoint, endpointHint: typeOf(d.type).hint,
+        isEmail: d.type === 'email', notEmail: d.type !== 'email',
+        /* Servidor de envio próprio desta integração. Vazio = usa o do sistema,
+           para não obrigar a repetir a mesma credencial em cada card. */
+        mailPort: String(d.mailPort || 587),
+        portOptions: [25, 465, 587, 2525].map(p => ({ value: String(p), label: String(p) + (p === 587 ? ' (recomendada)' : p === 465 ? ' (TLS)' : '') })),
+        mailOrigem: (d.mailHost || '').trim() ? 'usando servidor próprio' : 'usando o servidor do sistema',
+        secretNote: g.secretConfigured ? 'em branco mantém a atual' : 'nenhuma senha salva',
+        onMailHost: (e) => this.setD({ mailHost: e.target.value }),
+        onMailPort: (e) => this.setD({ mailPort: parseInt(e.target.value, 10) }),
+        onMailUser: (e) => this.setD({ mailUser: e.target.value }),
+        onMailFrom: (e) => this.setD({ mailFrom: e.target.value }),
         typeChips: this.types.map(tt => ({
-          label: tt.label, style: D.chip(d.type === tt.id) + 'font-size:.76rem;',
-          onClick: () => this.setD({ type: tt.id })
+          label: tt.soon ? tt.label + ' · em breve' : tt.label,
+          style: D.chip(d.type === tt.id) + 'font-size:.76rem;' + (tt.soon ? 'opacity:.55;cursor:not-allowed;' : ''),
+          onClick: () => {
+            if (tt.soon) { this.toast('Em breve', tt.label + ' ainda não tem envio no servidor', 'error'); return; }
+            this.setD({ type: tt.id });
+          }
         })),
+        /* Filtro de projeto: nenhum selecionado = dispara para todos, que é o
+           comportamento de sempre. Guarda id, mostra nome. */
+        projectChips: D.projectList().map(pj => ({
+          label: pj.name,
+          style: D.chip((d.projects || []).indexOf(pj.id) > -1) + 'font-size:.76rem;',
+          onClick: () => this.setD({ projects: (d.projects || []).indexOf(pj.id) > -1 ? d.projects.filter(y => y !== pj.id) : (d.projects || []).concat([pj.id]) })
+        })),
+        projectNote: (d.projects || []).length === 0 ? 'nenhum marcado: dispara para todos os projetos' : (d.projects || []).length + ' de ' + D.projectList().length + ' projeto(s)',
+        noProjects: D.projectList().length === 0,
         eventChips: Array.from(new Set(this.baseEvents.concat(d.events || []))).map(e => ({
           label: e, style: D.chip((d.events || []).indexOf(e) > -1) + 'font-size:.75rem;font-family:ui-monospace,monospace;',
           onClick: () => this.setD({ events: (d.events || []).indexOf(e) > -1 ? d.events.filter(y => y !== e) : (d.events || []).concat([e]) })
@@ -1092,7 +1279,9 @@ class Component extends DCLogic {
           const rec = {
             id: dr.id, name: dr.name.trim(), abbr: (dr.abbr || dr.name).trim().slice(0, 3).toUpperCase(),
             type: dr.type, enabled: dr.enabled, endpoint: dr.endpoint.trim(), secret: (dr.secret || '').trim(),
-            events: (dr.events || []).slice(), notes: (dr.notes || '').trim()
+            events: (dr.events || []).slice(), projects: (dr.projects || []).slice(), notes: (dr.notes || '').trim(),
+            mailHost: (dr.mailHost || '').trim(), mailPort: dr.mailPort || 587,
+            mailUser: (dr.mailUser || '').trim(), mailFrom: (dr.mailFrom || '').trim()
           };
           this.persist(list.some(y => y.id === rec.id) ? list.map(y => y.id === rec.id ? rec : y) : list.concat([rec]));
           this.setState({ editing: null, draft: null });
@@ -1262,6 +1451,58 @@ class Component extends DCLogic {
       }
     };
 
+    /* ── servidor de e-mail ──
+       Carregado sob demanda ao abrir a aba. O campo de senha fica sempre vazio:
+       o servidor não devolve a senha, e em branco mantém a que está salva. */
+    if (this.state.tab === 'integra') this.loadMail();
+    const mc = this.state.mail;
+    const mailCfg = mc ? {
+      host: mc.host || '', user: mc.user || '', fromEmail: mc.fromEmail || '', password: mc.password || '',
+      port: String(mc.port || 587),
+      portOptions: [25, 465, 587, 2525].map(p => ({ value: String(p), label: String(p) + (p === 587 ? ' (recomendada)' : p === 465 ? ' (TLS)' : '') })),
+      switch: sw(mc.enabled !== false), knob: knob,
+      enabledLabel: mc.enabled !== false ? 'Envio ativo' : 'Envio pausado',
+      statusLabel: !mc.configured ? 'não configurado' : mc.secretUsable === false ? 'senha ilegível' : mc.enabled === false ? 'pausado' : 'configurado',
+      statusBadge: D.badge(!mc.configured ? 'gray' : mc.secretUsable === false ? 'orange' : mc.enabled === false ? 'gray' : 'green'),
+      secretNote: mc.secretConfigured ? 'em branco mantém a atual' : 'nenhuma senha salva',
+      updatedLabel: mc.updatedAt ? 'Alterado em ' + new Date(mc.updatedAt).toLocaleString('pt-BR') : 'Nunca configurado',
+      hasMessage: !!mc.message, message: mc.message || '',
+      messageStyle: 'display:flex;gap:9px;padding:10px 13px;border-radius:6px;font-size:.81rem;margin-top:10px;' +
+        (mc.messageKind === 'error'
+          ? 'background:var(--tint-red);border:1px solid var(--tint-red-bd);color:var(--danger-text)'
+          : 'background:var(--tint-green);border:1px solid var(--tint-green-bd);color:var(--ok-text)'),
+      onHost: (e) => this.setMail({ host: e.target.value, message: '' }),
+      onPort: (e) => this.setMail({ port: parseInt(e.target.value, 10), message: '' }),
+      onUser: (e) => this.setMail({ user: e.target.value, message: '' }),
+      onPassword: (e) => this.setMail({ password: e.target.value, message: '' }),
+      onFrom: (e) => this.setMail({ fromEmail: e.target.value, message: '' }),
+      onToggle: () => this.setMail({ enabled: mc.enabled === false, message: '' }),
+      resetBody: mc.resetBody || '',
+      onResetBody: (e) => this.setMail({ resetBody: e.target.value, message: '' }),
+      onResetDefault: () => this.setMail({ resetBody: this.RESET_BODY_DEFAULT, message: '' }),
+      onSave: () => {
+        const patch = { enabled: mc.enabled !== false, host: (mc.host || '').trim(), port: mc.port || 587, user: (mc.user || '').trim(), fromEmail: (mc.fromEmail || '').trim(), resetBody: mc.resetBody || '' };
+        if (patch.resetBody && patch.resetBody.indexOf('{LINK}') < 0) {
+          this.setMail({ message: 'O texto precisa conter {LINK}, senão o e-mail sai sem o endereço de redefinição.', messageKind: 'error' });
+          return;
+        }
+        // Só envia a senha se foi digitada: em branco o servidor mantém a atual.
+        if (mc.password) patch.password = mc.password;
+        DV.saveMailSettings(patch)
+          .then((m) => {
+            this.setState({ mail: Object.assign({}, m, { password: '', message: 'Configuração salva.', messageKind: 'ok' }) });
+            this.toast('E-mail salvo', m.host || 'configuração atualizada', 'success');
+          })
+          .catch((err) => this.setMail({ message: (err && err.message) || 'Não foi possível salvar.', messageKind: 'error' }));
+      },
+      onTest: () => {
+        this.setMail({ message: 'Enviando teste…', messageKind: 'ok' });
+        DV.testMailSettings()
+          .then((r) => this.setMail({ message: r.message + (r.ok ? ' (' + r.to + ')' : ''), messageKind: r.ok ? 'ok' : 'error' }))
+          .catch((err) => this.setMail({ message: (err && err.message) || 'Falha no teste de envio.', messageKind: 'error' }));
+      }
+    } : { portOptions: [], statusLabel: 'carregando…', statusBadge: D.badge('gray'), switch: sw(false), knob: knob, enabledLabel: '', secretNote: '', updatedLabel: '', messageStyle: '' };
+
     /* ── modal de usuário ── */
     const ud = this.state.userDraft;
     const setU = (patch) => this.setState(s => ({ userDraft: Object.assign({}, s.userDraft, patch, patch.error === undefined ? { error: '' } : {}) }));
@@ -1381,6 +1622,7 @@ class Component extends DCLogic {
       isBrand: this.state.tab === 'brand',
       bd: bd,
       isIntegra: this.state.tab === 'integra', isStates: this.state.tab === 'states',
+      mailCfg: mailCfg,
       groups: groups,
       selectStyle: D.selectStyle,
       gSort: this.state.gSort, gSortOptions: D.sortOptions('Membros'),
@@ -1489,7 +1731,7 @@ class Component extends DCLogic {
           stateLabel: g.enabled ? 'ativa' : 'pausada', stateBadge: D.badge(g.enabled ? 'green' : 'gray'),
           toggleLabel: g.enabled ? 'Pausar' : 'Ativar',
           onToggle: () => this.persist(list.map(y => y.id === g.id ? Object.assign({}, y, { enabled: !y.enabled }) : y)),
-          onEdit: () => this.setState({ iView: 'cards', editing: g.id, draft: Object.assign({ newEvent: '' }, g, { events: (g.events || []).slice() }), confirmDelete: null }),
+          onEdit: () => this.setState({ iView: 'cards', editing: g.id, draft: Object.assign({ newEvent: '' }, g, { events: (g.events || []).slice(), projects: (g.projects || []).slice() }), confirmDelete: null }),
           deleteLabel: confirming ? 'Confirmar' : 'Excluir',
           deleteStyle: 'font-size:.78rem;font-weight:600;cursor:pointer;color:' + (confirming ? '#fff;background:#dc2626;padding:2px 8px;border-radius:5px' : '#dc2626'),
           onDelete: () => remove(g.id)
